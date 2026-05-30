@@ -1,10 +1,5 @@
-package com.grahambartley.rules;
+package com.grahambartley.data;
 
-import com.grahambartley.data.FilterMode;
-import com.grahambartley.data.LootLockPlayerData;
-import com.grahambartley.data.LootLockProfile;
-import com.grahambartley.data.RejectedItemAction;
-import com.grahambartley.data.RuleEntry;
 import net.minecraft.util.Identifier;
 import org.junit.jupiter.api.Test;
 
@@ -15,7 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class ProfileMatchingTest {
+class LootLockProfileTest {
 
 	private static boolean evaluate(LootLockPlayerData data, Identifier itemId) {
 		LootLockProfile profile = data.getActiveProfile().orElse(null);
