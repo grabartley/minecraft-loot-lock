@@ -12,7 +12,8 @@ Use this skill first when starting implementation work.
 1. `git fetch origin main`.
 2. Pick a short kebab-case branch name, for example `add-profile-validation`.
 3. Create worktree: `git worktree add -b <branch-name> ./.claude/worktrees/loot-lock-<branch-name> origin/main`.
-4. Perform all coding, validation, commit, and PR steps from inside `./.claude/worktrees/loot-lock-<branch-name>`.
+4. Copy the dev `run/` directory into the worktree (required for Fabric dev env client/server launch): `cp -a run/ ./.claude/worktrees/loot-lock-<branch-name>/run/`.
+5. Perform all coding, validation, commit, and PR steps from inside `./.claude/worktrees/loot-lock-<branch-name>`.
 
 ## Conventions
 
