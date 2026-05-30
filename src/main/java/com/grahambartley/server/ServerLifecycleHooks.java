@@ -14,7 +14,7 @@ public final class ServerLifecycleHooks {
 	private ServerLifecycleHooks() {
 	}
 
-	public static void initialize(ServerPlayerDataManager playerDataManager) {
+	public static void initialize(ServerPlayerDataManager playerDataManager, PickupGuard pickupGuard) {
 		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
 			UUID playerUuid = handler.player.getUuid();
 			playerDataManager.get(handler.player);
@@ -24,6 +24,7 @@ public final class ServerLifecycleHooks {
 		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
 			UUID playerUuid = handler.player.getUuid();
 			playerDataManager.saveOnDisconnect(playerUuid);
+			pickupGuard.clearNotificationCooldown(playerUuid);
 			LOGGER.debug("Player data saved and cache cleared for {} on disconnect", playerUuid);
 		});
 

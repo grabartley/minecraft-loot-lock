@@ -17,7 +17,6 @@ public abstract class ItemEntityMixin {
 	private void lootlock$beforePickup(PlayerEntity player, CallbackInfo ci) {
 		if (player.getWorld().isClient()) return;
 		if (!(player instanceof ServerPlayerEntity serverPlayer)) return;
-
 		if (LootLock.PICKUP_GUARD == null) return;
 
 		ItemEntity itemEntity = (ItemEntity) (Object) this;
@@ -27,13 +26,13 @@ public abstract class ItemEntityMixin {
 
 		if (decision == PickupDecision.ALLOW) return;
 
+		long currentTick = serverPlayer.getWorld().getTime();
+
 		if (decision == PickupDecision.REJECT_DELETE) {
 			itemEntity.discard();
-			LootLock.PICKUP_GUARD.tryNotify(serverPlayer, stack, true, serverPlayer.getServer().getTicks());
-		} else {
-			LootLock.PICKUP_GUARD.tryNotify(serverPlayer, stack, false, serverPlayer.getServer().getTicks());
 		}
 
+		LootLock.PICKUP_GUARD.tryNotify(serverPlayer, stack, decision == PickupDecision.REJECT_DELETE, currentTick);
 		ci.cancel();
 	}
 }

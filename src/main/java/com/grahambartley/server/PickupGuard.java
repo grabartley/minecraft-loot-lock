@@ -8,6 +8,7 @@ import net.minecraft.registry.Registries;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,16 +28,12 @@ public final class PickupGuard {
 	}
 
 	public PickupDecision evaluate(ServerPlayerEntity player, ItemStack stack) {
-		return evaluate(player.getUuid(), stack);
-	}
-
-	private PickupDecision evaluate(UUID playerUuid, ItemStack stack) {
 		Identifier itemId = Registries.ITEM.getId(stack.getItem());
-		return evaluate(playerUuid, itemId, playerDataManager);
+		return evaluate(player.getUuid(), itemId);
 	}
 
-	PickupDecision evaluate(UUID playerUuid, Identifier itemId, ServerPlayerDataManager dataManager) {
-		LootLockPlayerData playerData = dataManager.getOrLoad(playerUuid);
+	public PickupDecision evaluate(UUID playerUuid, Identifier itemId) {
+		LootLockPlayerData playerData = playerDataManager.getOrLoad(playerUuid);
 		LootLockProfile activeProfile = playerData.getActiveProfile().orElse(null);
 
 		if (activeProfile == null || !activeProfile.isEnabled()) {
@@ -54,8 +51,10 @@ public final class PickupGuard {
 		return tryNotify(playerUuid, stack, deleted, currentTick, null);
 	}
 
-	private boolean tryNotify(UUID playerUuid, ItemStack stack, boolean deleted, long currentTick, @org.jetbrains.annotations.Nullable ServerPlayerEntity player) {
-		if (!checkNotificationCooldown(playerUuid, currentTick)) {
+	private boolean tryNotify(UUID playerUuid, ItemStack stack, boolean deleted, long currentTick, @Nullable ServerPlayerEntity player) {
+		Long lastTick = lastNotificationTick.get(playerUuid);
+
+		if (lastTick != null && (currentTick - lastTick) < NOTIFICATION_COOLDOWN_TICKS) {
 			return false;
 		}
 
@@ -66,19 +65,9 @@ public final class PickupGuard {
 
 			player.sendMessage(Text.literal(message), true);
 			LOGGER.debug("{} for player {}", message, playerUuid);
+			lastNotificationTick.put(playerUuid, currentTick);
 		}
 
-		return true;
-	}
-
-	boolean checkNotificationCooldown(UUID playerUuid, long currentTick) {
-		Long lastTick = lastNotificationTick.get(playerUuid);
-
-		if (lastTick != null && (currentTick - lastTick) < NOTIFICATION_COOLDOWN_TICKS) {
-			return false;
-		}
-
-		lastNotificationTick.put(playerUuid, currentTick);
 		return true;
 	}
 

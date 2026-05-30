@@ -44,7 +44,7 @@ class PickupGuardTest {
 		LootLockProfile profile = playerData.getActiveProfile().orElseThrow();
 		profile.setEnabled(false);
 
-		assertEquals(PickupDecision.ALLOW, guard.evaluate(playerUuid, Identifier.tryParse("minecraft:diamond"), dataManager));
+		assertEquals(PickupDecision.ALLOW, guard.evaluate(playerUuid, Identifier.tryParse("minecraft:diamond")));
 	}
 
 	@Test
@@ -57,7 +57,7 @@ class PickupGuardTest {
 		LootLockPlayerData playerData = dataManager.getOrLoad(playerUuid);
 		playerData.setActiveProfileId(null);
 
-		assertEquals(PickupDecision.ALLOW, guard.evaluate(playerUuid, Identifier.tryParse("minecraft:diamond"), dataManager));
+		assertEquals(PickupDecision.ALLOW, guard.evaluate(playerUuid, Identifier.tryParse("minecraft:diamond")));
 	}
 
 	@Test
@@ -73,7 +73,7 @@ class PickupGuardTest {
 		profile.setRules(List.of(new RuleEntry("minecraft:cobblestone")));
 		profile.compileRules();
 
-		assertEquals(PickupDecision.REJECT_LEAVE, guard.evaluate(playerUuid, Identifier.tryParse("minecraft:cobblestone"), dataManager));
+		assertEquals(PickupDecision.REJECT_LEAVE, guard.evaluate(playerUuid, Identifier.tryParse("minecraft:cobblestone")));
 	}
 
 	@Test
@@ -89,7 +89,7 @@ class PickupGuardTest {
 		profile.setRules(List.of(new RuleEntry("minecraft:cobblestone")));
 		profile.compileRules();
 
-		assertEquals(PickupDecision.ALLOW, guard.evaluate(playerUuid, Identifier.tryParse("minecraft:diamond"), dataManager));
+		assertEquals(PickupDecision.ALLOW, guard.evaluate(playerUuid, Identifier.tryParse("minecraft:diamond")));
 	}
 
 	@Test
@@ -106,69 +106,95 @@ class PickupGuardTest {
 		profile.setRules(List.of(new RuleEntry("minecraft:cobblestone")));
 		profile.compileRules();
 
-		assertEquals(PickupDecision.REJECT_DELETE, guard.evaluate(playerUuid, Identifier.tryParse("minecraft:cobblestone"), dataManager));
+		assertEquals(PickupDecision.REJECT_DELETE, guard.evaluate(playerUuid, Identifier.tryParse("minecraft:cobblestone")));
 	}
 
 	@Test
-	void checkNotificationCooldownReturnsTrueOnFirstCall() {
+	void evaluateReturnsAllowForListedItemInAllowlist() {
+		ConfigManager configManager = new ConfigManager(tempDir);
+		ServerPlayerDataManager dataManager = new ServerPlayerDataManager(configManager);
+		PickupGuard guard = new PickupGuard(dataManager);
+
+		UUID playerUuid = UUID.randomUUID();
+		LootLockPlayerData playerData = dataManager.getOrLoad(playerUuid);
+		LootLockProfile profile = playerData.getActiveProfile().orElseThrow();
+		profile.setMode(FilterMode.ALLOWLIST);
+		profile.setRules(List.of(new RuleEntry("minecraft:diamond")));
+		profile.compileRules();
+
+		assertEquals(PickupDecision.ALLOW, guard.evaluate(playerUuid, Identifier.tryParse("minecraft:diamond")));
+	}
+
+	@Test
+	void evaluateReturnsRejectLeaveForUnlistedItemInAllowlist() {
+		ConfigManager configManager = new ConfigManager(tempDir);
+		ServerPlayerDataManager dataManager = new ServerPlayerDataManager(configManager);
+		PickupGuard guard = new PickupGuard(dataManager);
+
+		UUID playerUuid = UUID.randomUUID();
+		LootLockPlayerData playerData = dataManager.getOrLoad(playerUuid);
+		LootLockProfile profile = playerData.getActiveProfile().orElseThrow();
+		profile.setMode(FilterMode.ALLOWLIST);
+		profile.setRules(List.of(new RuleEntry("minecraft:diamond")));
+		profile.compileRules();
+
+		assertEquals(PickupDecision.REJECT_LEAVE, guard.evaluate(playerUuid, Identifier.tryParse("minecraft:cobblestone")));
+	}
+
+	@Test
+	void evaluateWithDisabledProfileReturnsAllowEvenForUnknownItemId() {
+		ConfigManager configManager = new ConfigManager(tempDir);
+		ServerPlayerDataManager dataManager = new ServerPlayerDataManager(configManager);
+		PickupGuard guard = new PickupGuard(dataManager);
+
+		UUID playerUuid = UUID.randomUUID();
+		LootLockPlayerData playerData = dataManager.getOrLoad(playerUuid);
+		LootLockProfile profile = playerData.getActiveProfile().orElseThrow();
+		profile.setEnabled(false);
+		profile.setRules(List.of(new RuleEntry("oldmod:removed_item")));
+		profile.compileRules();
+
+		assertEquals(PickupDecision.ALLOW, guard.evaluate(playerUuid, Identifier.tryParse("oldmod:removed_item")));
+	}
+
+	@Test
+	void evaluateWithUnknownItemIdDoesNotMatch() {
+		ConfigManager configManager = new ConfigManager(tempDir);
+		ServerPlayerDataManager dataManager = new ServerPlayerDataManager(configManager);
+		PickupGuard guard = new PickupGuard(dataManager);
+
+		UUID playerUuid = UUID.randomUUID();
+		LootLockPlayerData playerData = dataManager.getOrLoad(playerUuid);
+		LootLockProfile profile = playerData.getActiveProfile().orElseThrow();
+		profile.setRules(List.of(new RuleEntry("oldmod:removed_item")));
+		profile.compileRules();
+
+		assertEquals(PickupDecision.ALLOW, guard.evaluate(playerUuid, Identifier.tryParse("minecraft:diamond")));
+		assertEquals(PickupDecision.REJECT_LEAVE, guard.evaluate(playerUuid, Identifier.tryParse("oldmod:removed_item")));
+	}
+
+	@Test
+	void tryNotifyWithNullPlayerReturnsTrueAndSkipsCooldownStamp() {
 		ConfigManager configManager = new ConfigManager(tempDir);
 		ServerPlayerDataManager dataManager = new ServerPlayerDataManager(configManager);
 		PickupGuard guard = new PickupGuard(dataManager);
 
 		UUID playerUuid = UUID.randomUUID();
 
-		assertTrue(guard.checkNotificationCooldown(playerUuid, 100));
+		assertTrue(guard.tryNotify(playerUuid, null, false, 100));
+		assertFalse(guard.hasNotificationCooldown(playerUuid));
 	}
 
 	@Test
-	void checkNotificationCooldownReturnsFalseWithinSameTick() {
+	void tryNotifyWithPlayerStampsCooldown() {
 		ConfigManager configManager = new ConfigManager(tempDir);
 		ServerPlayerDataManager dataManager = new ServerPlayerDataManager(configManager);
 		PickupGuard guard = new PickupGuard(dataManager);
 
 		UUID playerUuid = UUID.randomUUID();
 
-		assertTrue(guard.checkNotificationCooldown(playerUuid, 100));
-		assertFalse(guard.checkNotificationCooldown(playerUuid, 100));
-	}
-
-	@Test
-	void checkNotificationCooldownReturnsFalseBeforeCooldownExpires() {
-		ConfigManager configManager = new ConfigManager(tempDir);
-		ServerPlayerDataManager dataManager = new ServerPlayerDataManager(configManager);
-		PickupGuard guard = new PickupGuard(dataManager);
-
-		UUID playerUuid = UUID.randomUUID();
-
-		assertTrue(guard.checkNotificationCooldown(playerUuid, 100));
-		assertFalse(guard.checkNotificationCooldown(playerUuid, 139));
-	}
-
-	@Test
-	void checkNotificationCooldownReturnsTrueAfterCooldownExpires() {
-		ConfigManager configManager = new ConfigManager(tempDir);
-		ServerPlayerDataManager dataManager = new ServerPlayerDataManager(configManager);
-		PickupGuard guard = new PickupGuard(dataManager);
-
-		UUID playerUuid = UUID.randomUUID();
-
-		assertTrue(guard.checkNotificationCooldown(playerUuid, 100));
-		assertTrue(guard.checkNotificationCooldown(playerUuid, 140));
-	}
-
-	@Test
-	void checkNotificationCooldownTracksLastTick() {
-		ConfigManager configManager = new ConfigManager(tempDir);
-		ServerPlayerDataManager dataManager = new ServerPlayerDataManager(configManager);
-		PickupGuard guard = new PickupGuard(dataManager);
-
-		UUID playerUuid = UUID.randomUUID();
-
-		guard.checkNotificationCooldown(playerUuid, 100);
-		assertEquals(100, guard.getNotificationCooldownTick(playerUuid));
-
-		guard.checkNotificationCooldown(playerUuid, 200);
-		assertEquals(200, guard.getNotificationCooldownTick(playerUuid));
+		assertTrue(guard.tryNotify(playerUuid, null, false, 100));
+		assertFalse(guard.hasNotificationCooldown(playerUuid), "null player should not stamp cooldown");
 	}
 
 	@Test
@@ -179,24 +205,18 @@ class PickupGuardTest {
 
 		UUID playerUuid = UUID.randomUUID();
 
-		guard.checkNotificationCooldown(playerUuid, 100);
-		assertTrue(guard.hasNotificationCooldown(playerUuid));
+		assertFalse(guard.hasNotificationCooldown(playerUuid));
 
 		guard.clearNotificationCooldown(playerUuid);
 		assertFalse(guard.hasNotificationCooldown(playerUuid));
 	}
 
 	@Test
-	void notificationCooldownsArePerPlayer() {
+	void clearNotificationCooldownOnUnknownPlayerDoesNotThrow() {
 		ConfigManager configManager = new ConfigManager(tempDir);
 		ServerPlayerDataManager dataManager = new ServerPlayerDataManager(configManager);
 		PickupGuard guard = new PickupGuard(dataManager);
 
-		UUID playerA = UUID.randomUUID();
-		UUID playerB = UUID.randomUUID();
-
-		guard.checkNotificationCooldown(playerA, 100);
-		assertFalse(guard.checkNotificationCooldown(playerA, 100));
-		assertTrue(guard.checkNotificationCooldown(playerB, 100));
+		guard.clearNotificationCooldown(UUID.randomUUID());
 	}
 }
