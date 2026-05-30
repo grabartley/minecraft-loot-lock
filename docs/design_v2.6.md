@@ -194,7 +194,7 @@ Client code does **not** decide pickup outcomes.
 ### ADR-006 — Primary hook is `ItemEntity#onPlayerCollision`
 **Decision:** Use `ItemEntity#onPlayerCollision(PlayerEntity)` via Mixin as the primary interception point.
 **Reasoning:** It is semantically closest to "dropped item pickup", matching the product promise. `PlayerInventory.insertStack` would be broader and catch non-pickup paths.
-**Status:** Accepted (pending PoC-001 / PoC-002 validation — see Section 31 / 32).
+**Status:** Accepted, PoC-001 singleplayer hook lifecycle validated, PoC-002 delete-mode safety still pending.
 
 ### ADR-007 — PlayerInventory guard is not active by default
 **Decision:** Secondary `PlayerInventory#insertStack` guard is implemented behind an internal flag and disabled by default in v1.
@@ -227,6 +227,8 @@ Yarn 1.20.1 exposes `PlayerInventory.insertStack(ItemStack)` and `PlayerInventor
 
 ### 8.3 Dropped item pickup
 The primary desired hook is dropped-item collision with player, likely `ItemEntity#onPlayerCollision(PlayerEntity)`. This is semantically closer to "ground item pickup" than inventory insertion. It should be the primary interception point.
+
+PoC-001 singleplayer validation confirms the hook is invoked on the logical server and can fire repeatedly for the same `ItemEntity` across consecutive ticks before final pickup resolution.
 
 ### 8.4 Existing mod landscape
 Existing pickup filter mods confirm the feature demand:
@@ -1331,7 +1333,7 @@ v1 applies to players only. Hoppers, foxes, allays, and other item interactions 
 
 ### RG-001 — Pickup lifecycle
 Verify complete item pickup lifecycle.
-**Status:** Open.
+**Status:** Complete, PoC-001 validated in integrated singleplayer with server-thread lifecycle logs and explicit reject-path cancellation (2026-05-30).
 
 ### RG-002 — Delete-mode injection point
 Verify safest delete-mode injection point. Must respect pickup delay and ownership.
@@ -1352,10 +1354,6 @@ Dedicated server compatibility verification. No accidental client-class loading.
 ---
 
 ## 31. Proof of Concept Gates
-
-### PoC-001 — Pickup Hook Validation
-**Goal:** Verify `ItemEntity#onPlayerCollision` interception.
-**Success:** Pickup blocked without desync.
 
 ### PoC-002 — Delete Mode Validation
 **Goal:** Respect pickup delay and ownership.
@@ -1708,8 +1706,8 @@ Use this before recovering death drops if your allowlist would block important i
 |---|---|
 | Architecture | **Locked** |
 | Implementation | **Not Started** |
-| Research | **Partially Complete** — see RG-001 through RG-005 |
-| Next Milestone | **PoC-001 — Pickup Hook Validation** |
+| Research | **Partially Complete** — RG-001 complete, RG-002 through RG-005 open |
+| Next Milestone | **PoC-002 — Delete Mode Validation** |
 
 ---
 
