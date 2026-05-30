@@ -1,7 +1,12 @@
 ---
 name: pr
-description: Create a PR for the loot-lock repo using a git worktree branched from latest main
+description: Create a PR for the minecraft-loot-lock repo using a git worktree branched from latest main. Use for final branch, commit, push, and PR flow.
 ---
+
+# PR
+
+Use this skill for branch strategy, final validation, commit, push, and PR creation.
+This skill is used directly by humans and also as a handoff step from the build skill.
 
 ## Workflow
 
@@ -16,7 +21,7 @@ description: Create a PR for the loot-lock repo using a git worktree branched fr
 8. Commit: `git commit -m "<type>: <short lowercase descriptive present tense message>"`
 - Types: feat, fix, refactor, test, docs, chore
 9. Push: `git push origin <branch-name>`
-10. Create PR: `gh pr create --repo grabartley/loot-lock --base main --head <branch-name> --title "<title>" --body "<body>"`
+10. Create PR: `gh pr create --repo grabartley/minecraft-loot-lock --base main --head <branch-name> --title "<title>" --body "<body>"`
 	- Title: `<type>: <description>` (same style as commit message)
 	- Body: one-liner summary, then "**What's included:**" with bullet points
 11. After merge, clean up: `cd ../loot-lock && git worktree remove ./.claude/worktrees/loot-lock-<branch-name>`
@@ -32,3 +37,8 @@ description: Create a PR for the loot-lock repo using a git worktree branched fr
 - PR descriptions: bullet points under "What's included:" header
 - Pre-commit must complete successfully: format, test, build
 - No emoji in commit messages or PR titles
+
+## Build Skill Integration
+
+- If invoked after build work, confirm the linked issue is in `QA testing` before final handoff.
+- Do not move issue to `Done`, that is reserved for human QA completion.
