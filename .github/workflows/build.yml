@@ -36,6 +36,9 @@ jobs:
         with:
           cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
 
+      - name: Check formatting (Spotless)
+        run: ./gradlew spotlessCheck --configuration-cache --build-cache
+
       - name: Run tests with coverage
         run: ./gradlew check --configuration-cache --build-cache
 

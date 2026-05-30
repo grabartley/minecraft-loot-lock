@@ -1,4 +1,3 @@
 package com.grahambartley.api;
 
-public interface LootLockApi {
-}
+public interface LootLockApi {}

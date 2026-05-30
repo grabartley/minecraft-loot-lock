@@ -1,6 +1,7 @@
 plugins {
 	id 'net.fabricmc.fabric-loom-remap' version "${loom_version}"
 	id 'maven-publish'
+	id 'com.diffplug.spotless' version '6.25.0'
 }
 
 import java.nio.charset.StandardCharsets
@@ -96,6 +97,24 @@ tasks.register("verifyMainSourceSideSafety") {
 
 tasks.named("check") {
 	dependsOn("verifyMainSourceSideSafety")
+	dependsOn("spotlessCheck")
+}
+
+spotless {
+	java {
+		target 'src/**/*.java'
+		targetExclude 'build/**'
+		googleJavaFormat('1.19.2')
+		removeUnusedImports()
+		trimTrailingWhitespace()
+		endWithNewline()
+	}
+	format 'misc', {
+		target '**/*.gradle', '**/*.md', '**/.gitignore'
+		trimTrailingWhitespace()
+		indentWithTabs()
+		endWithNewline()
+	}
 }
 
 java {

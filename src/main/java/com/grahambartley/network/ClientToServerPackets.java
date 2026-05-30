@@ -1,4 +1,3 @@
 package com.grahambartley.network;
 
-public final class ClientToServerPackets {
-}
+public final class ClientToServerPackets {}

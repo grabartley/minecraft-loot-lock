@@ -1,4 +1,3 @@
 package com.grahambartley.util;
 
-public final class RegistryUtil {
-}
+public final class RegistryUtil {}

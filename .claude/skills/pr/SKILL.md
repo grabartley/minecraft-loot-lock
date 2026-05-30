@@ -35,6 +35,7 @@ This skill is used directly by humans and also as a handoff step from the build 
 - PR descriptions: bullet points under "What's included:" header
 - Always link the PR Development section to the active issue via `Closes #<issue-number>` in the PR body
 - Pre-commit must complete successfully: format, test, build
+- Run `./gradlew spotlessApply` before staging so CI `spotlessCheck` stays green
 - No emoji in commit messages or PR titles
 
 ## Related Skills
