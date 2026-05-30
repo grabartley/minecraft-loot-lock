@@ -3,6 +3,8 @@ plugins {
 	id 'maven-publish'
 }
 
+import java.nio.charset.StandardCharsets
+
 version = project.mod_version
 group = project.maven_group
 
@@ -54,6 +56,39 @@ processResources {
 
 tasks.withType(JavaCompile).configureEach {
 	it.options.release = 17
+}
+
+tasks.register("verifyMainSourceSideSafety") {
+	group = "verification"
+	description = "Fails if src/main references client-only classes"
+
+	doLast {
+		def disallowedPatterns = [
+			"net.minecraft.client.",
+			"com.grahambartley.client."
+		]
+		def mainJava = fileTree("src/main/java") {
+			include "**/*.java"
+		}
+		def violations = []
+
+		mainJava.each { file ->
+			def text = file.getText(StandardCharsets.UTF_8.name())
+			disallowedPatterns.each { pattern ->
+				if (text.contains(pattern)) {
+					violations << "${file}: contains '${pattern}'"
+				}
+			}
+		}
+
+		if (!violations.isEmpty()) {
+			throw new GradleException("Main source set side-safety violations found:\n" + violations.join("\n"))
+		}
+	}
+}
+
+tasks.named("check") {
+	dependsOn("verifyMainSourceSideSafety")
 }
 
 java {

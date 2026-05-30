@@ -39,6 +39,9 @@ jobs:
       - name: Run tests with coverage
         run: ./gradlew check --configuration-cache --build-cache
 
+      - name: Dedicated server smoke boot
+        run: timeout 120s ./gradlew runServer --no-daemon --stacktrace --args="nogui" || test $? -eq 124
+
       - name: Run game tests
         run: ./gradlew runGametestServer --no-daemon --stacktrace
         continue-on-error: true
