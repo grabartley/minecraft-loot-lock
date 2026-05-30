@@ -1,10 +1,12 @@
 package com.grahambartley;
 
 import com.grahambartley.config.ConfigManager;
+import com.grahambartley.command.LootLockCommand;
 import com.grahambartley.server.PickupGuard;
 import com.grahambartley.server.ServerLifecycleHooks;
 import com.grahambartley.server.ServerPlayerDataManager;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.util.WorldSavePath;
 import org.slf4j.Logger;
@@ -19,6 +21,8 @@ public class LootLock implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
+		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> LootLockCommand.register(dispatcher));
+
 		ServerLifecycleEvents.SERVER_STARTED.register(server -> {
 			Path worldDir = server.getSavePath(WorldSavePath.ROOT).normalize();
 			ConfigManager configManager = new ConfigManager(worldDir);
