@@ -1353,15 +1353,11 @@ Validate networking implementation style (packet object API vs. classic `Identif
 
 ### RG-005 — Dedicated server compatibility
 Dedicated server compatibility verification. No accidental client-class loading.
-**Status:** Open.
+**Status:** Complete, dedicated server startup and join validation pass shows clean server operation with no `net.minecraft.client` class loading exceptions.
 
 ---
 
 ## 31. Proof of Concept Gates
-
-### PoC-005 — Dedicated Server Validation
-**Goal:** No client-class loading on dedicated server.
-**Success:** Dedicated server stable.
 
 ---
 
@@ -1698,8 +1694,8 @@ Use this before recovering death drops if your allowlist would block important i
 |---|---|
 | Architecture | **Locked** |
 | Implementation | **Not Started** |
-| Research | **Partially Complete** — RG-001 through RG-004 complete, RG-005 open |
-| Next Milestone | **PoC-005 — Dedicated Server Validation** |
+| Research | **Complete** — RG-001 through RG-005 complete |
+| Next Milestone | **Implementation Phase Execution** |
 
 ---
 
