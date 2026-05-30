@@ -1,6 +1,8 @@
 package com.grahambartley.data;
 
+import com.grahambartley.api.PickupDecision;
 import net.minecraft.item.Item;
+import net.minecraft.util.Identifier;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -60,6 +62,26 @@ public final class LootLockProfile {
 			case DENYLIST -> matched;
 			case ALLOWLIST -> !matched;
 		};
+	}
+
+	public PickupDecision evaluate(Identifier itemId) {
+		if (!enabled) {
+			return PickupDecision.ALLOW;
+		}
+
+		boolean matched = getCompiledRuleSet().contains(itemId);
+		boolean reject = switch (mode) {
+			case DENYLIST -> matched;
+			case ALLOWLIST -> !matched;
+		};
+
+		if (!reject) {
+			return PickupDecision.ALLOW;
+		}
+
+		return rejectedItemAction == RejectedItemAction.DELETE
+			? PickupDecision.REJECT_DELETE
+			: PickupDecision.REJECT_LEAVE;
 	}
 
 	public UUID getId() {
