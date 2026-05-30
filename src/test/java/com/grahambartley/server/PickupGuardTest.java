@@ -186,27 +186,39 @@ class PickupGuardTest {
 	}
 
 	@Test
-	void tryNotifyWithPlayerStampsCooldown() {
+	void tryNotifyRespectsCooldownWhenStamped() {
 		ConfigManager configManager = new ConfigManager(tempDir);
 		ServerPlayerDataManager dataManager = new ServerPlayerDataManager(configManager);
 		PickupGuard guard = new PickupGuard(dataManager);
 
 		UUID playerUuid = UUID.randomUUID();
+		guard.stampNotificationCooldown(playerUuid, 100);
 
-		assertTrue(guard.tryNotify(playerUuid, null, false, 100));
-		assertFalse(guard.hasNotificationCooldown(playerUuid), "null player should not stamp cooldown");
+		assertFalse(guard.tryNotify(playerUuid, null, false, 100));
 	}
 
 	@Test
-	void clearNotificationCooldownRemovesTracking() {
+	void tryNotifyAllowsAfterCooldownExpires() {
 		ConfigManager configManager = new ConfigManager(tempDir);
 		ServerPlayerDataManager dataManager = new ServerPlayerDataManager(configManager);
 		PickupGuard guard = new PickupGuard(dataManager);
 
 		UUID playerUuid = UUID.randomUUID();
+		guard.stampNotificationCooldown(playerUuid, 100);
 
-		assertFalse(guard.hasNotificationCooldown(playerUuid));
+		assertTrue(guard.tryNotify(playerUuid, null, false, 140));
+	}
 
+	@Test
+	void clearNotificationCooldownRemovesStampedTracking() {
+		ConfigManager configManager = new ConfigManager(tempDir);
+		ServerPlayerDataManager dataManager = new ServerPlayerDataManager(configManager);
+		PickupGuard guard = new PickupGuard(dataManager);
+
+		UUID playerUuid = UUID.randomUUID();
+		guard.stampNotificationCooldown(playerUuid, 100);
+
+		assertTrue(guard.hasNotificationCooldown(playerUuid));
 		guard.clearNotificationCooldown(playerUuid);
 		assertFalse(guard.hasNotificationCooldown(playerUuid));
 	}
@@ -218,5 +230,32 @@ class PickupGuardTest {
 		PickupGuard guard = new PickupGuard(dataManager);
 
 		guard.clearNotificationCooldown(UUID.randomUUID());
+	}
+
+	@Test
+	void stampNotificationCooldownTracksTick() {
+		ConfigManager configManager = new ConfigManager(tempDir);
+		ServerPlayerDataManager dataManager = new ServerPlayerDataManager(configManager);
+		PickupGuard guard = new PickupGuard(dataManager);
+
+		UUID playerUuid = UUID.randomUUID();
+		guard.stampNotificationCooldown(playerUuid, 42);
+
+		assertTrue(guard.hasNotificationCooldown(playerUuid));
+		assertEquals(42, guard.getNotificationCooldownTick(playerUuid));
+	}
+
+	@Test
+	void notificationCooldownsArePerPlayer() {
+		ConfigManager configManager = new ConfigManager(tempDir);
+		ServerPlayerDataManager dataManager = new ServerPlayerDataManager(configManager);
+		PickupGuard guard = new PickupGuard(dataManager);
+
+		UUID playerA = UUID.randomUUID();
+		UUID playerB = UUID.randomUUID();
+		guard.stampNotificationCooldown(playerA, 100);
+
+		assertTrue(guard.hasNotificationCooldown(playerA));
+		assertFalse(guard.hasNotificationCooldown(playerB));
 	}
 }

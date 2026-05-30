@@ -82,4 +82,8 @@ public final class PickupGuard {
 	Long getNotificationCooldownTick(UUID playerUuid) {
 		return lastNotificationTick.get(playerUuid);
 	}
+
+	void stampNotificationCooldown(UUID playerUuid, long currentTick) {
+		lastNotificationTick.put(playerUuid, currentTick);
+	}
 }
