@@ -220,7 +220,7 @@ For Fabric API around 1.20, `ServerPlayNetworking` is server-side play-stage net
 
 For 1.20.1, use the Fabric networking API appropriate to the selected Fabric API version. In API docs for the 0.81 / 0.82 era, both classic `Identifier` + `PacketByteBuf` style and packet object-based APIs are present. The implementation should choose one style and keep it consistent across all packets.
 
-**Recommendation for 1.20.1:** use Fabric's packet object API if available in the selected dependency; otherwise use classic channels with `Identifier` and `PacketByteBuf`.
+**Recommendation for 1.20.1:** use classic channels with `Identifier` and `PacketByteBuf` for v1 consistency. PoC-004 confirms this style is available and sufficient for revision-guarded mutation flows.
 
 ### 8.2 Inventory insertion
 Yarn 1.20.1 exposes `PlayerInventory.insertStack(ItemStack)` and `PlayerInventory.insertStack(int, ItemStack)`. These are defensive guard candidates, but they are broad hooks and may catch insertions from more than ground item pickup.
@@ -1349,7 +1349,7 @@ Validate `PersistentState` implementation. PoC has not yet been completed.
 
 ### RG-004 — Networking implementation style
 Validate networking implementation style (packet object API vs. classic `Identifier` + `PacketByteBuf`) for the selected Fabric API version on 1.20.1.
-**Status:** Open.
+**Status:** Complete, classic `Identifier` + `PacketByteBuf` style validated with client-server roundtrip and stale revision rejection.
 
 ### RG-005 — Dedicated server compatibility
 Dedicated server compatibility verification. No accidental client-class loading.
@@ -1358,10 +1358,6 @@ Dedicated server compatibility verification. No accidental client-class loading.
 ---
 
 ## 31. Proof of Concept Gates
-
-### PoC-004 — Networking Validation
-**Goal:** Client / server sync functions.
-**Success:** Profile updates synchronize correctly.
 
 ### PoC-005 — Dedicated Server Validation
 **Goal:** No client-class loading on dedicated server.
@@ -1702,8 +1698,8 @@ Use this before recovering death drops if your allowlist would block important i
 |---|---|
 | Architecture | **Locked** |
 | Implementation | **Not Started** |
-| Research | **Partially Complete** — RG-001 through RG-003 complete, RG-004 and RG-005 open |
-| Next Milestone | **PoC-004 — Networking Validation** |
+| Research | **Partially Complete** — RG-001 through RG-004 complete, RG-005 open |
+| Next Milestone | **PoC-005 — Dedicated Server Validation** |
 
 ---
 
