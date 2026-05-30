@@ -11,6 +11,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+// All access must be on the server main thread.
+// Fabric lifecycle events (JOIN, DISCONNECT, SERVER_STOPPING, END_SERVER_TICK)
+// all fire on the main thread. Adding command handlers, async chat, or
+// networking callbacks that touch this cache requires synchronization.
 public final class ServerPlayerDataManager {
 	private static final Logger LOGGER = LoggerFactory.getLogger(ServerPlayerDataManager.class);
 	static final long SAVE_DEBOUNCE_TICKS = 40;
@@ -38,14 +42,17 @@ public final class ServerPlayerDataManager {
 		}
 	}
 
-	public void flushAll() {
+	public int flushAll() {
+		int saved = 0;
 		for (Map.Entry<UUID, CachedEntry> entry : cache.entrySet()) {
 			if (entry.getValue().dirty) {
 				configManager.savePlayerData(entry.getValue().data);
 				entry.getValue().dirty = false;
+				saved++;
 				LOGGER.debug("Flushed player data for {} (revision {})", entry.getKey(), entry.getValue().data.getRevision());
 			}
 		}
+		return saved;
 	}
 
 	public void tick(MinecraftServer server) {

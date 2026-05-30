@@ -28,9 +28,8 @@ public final class ServerLifecycleHooks {
 		});
 
 		ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
-			int dirtyCount = playerDataManager.getCacheSize();
-			playerDataManager.flushAll();
-			LOGGER.info("Flushed player data for {} player(s) on server shutdown", dirtyCount);
+			int flushed = playerDataManager.flushAll();
+			LOGGER.info("Flushed player data for {} player(s) on server shutdown", flushed);
 		});
 
 		ServerTickEvents.END_SERVER_TICK.register(server -> {

@@ -130,20 +130,6 @@ class ServerPlayerDataManagerTest {
 	}
 
 	@Test
-	void tickSavesAfterDebounceThreshold() {
-		ConfigManager configManager = new ConfigManager(tempDir);
-		ServerPlayerDataManager manager = new ServerPlayerDataManager(configManager);
-		UUID playerUuid = UUID.randomUUID();
-
-		manager.getOrLoad(playerUuid);
-		manager.markDirty(playerUuid, 0);
-
-		manager.tick(ServerPlayerDataManager.SAVE_DEBOUNCE_TICKS);
-
-		assertFalse(manager.isDirty(playerUuid));
-	}
-
-	@Test
 	void tickDoesNotSaveBeforeDebounceThreshold() {
 		ConfigManager configManager = new ConfigManager(tempDir);
 		ServerPlayerDataManager manager = new ServerPlayerDataManager(configManager);
@@ -182,7 +168,7 @@ class ServerPlayerDataManagerTest {
 		manager.getOrLoad(playerUuid2);
 
 		manager.markDirty(playerUuid1, 0);
-		manager.markDirty(playerUuid2, 100);
+		manager.markDirty(playerUuid2, 39);
 
 		manager.tick(ServerPlayerDataManager.SAVE_DEBOUNCE_TICKS);
 
@@ -207,6 +193,37 @@ class ServerPlayerDataManagerTest {
 
 		assertFalse(manager.isDirty(playerUuid1));
 		assertFalse(manager.isDirty(playerUuid2));
+	}
+
+	@Test
+	void flushAllOnlySavesDirtyEntries() {
+		ConfigManager configManager = new ConfigManager(tempDir);
+		ServerPlayerDataManager manager = new ServerPlayerDataManager(configManager);
+		UUID dirtyUuid = UUID.randomUUID();
+		UUID cleanUuid = UUID.randomUUID();
+
+		manager.getOrLoad(dirtyUuid);
+		manager.getOrLoad(cleanUuid);
+		manager.markDirty(dirtyUuid, 0);
+
+		int saved = manager.flushAll();
+
+		assertFalse(manager.isDirty(dirtyUuid));
+		assertFalse(manager.isDirty(cleanUuid));
+		assertEquals(1, saved);
+	}
+
+	@Test
+	void markDirtyOnCacheMissIsNoOp() {
+		ConfigManager configManager = new ConfigManager(tempDir);
+		ServerPlayerDataManager manager = new ServerPlayerDataManager(configManager);
+		UUID playerUuid = UUID.randomUUID();
+
+		assertEquals(0, manager.getCacheSize());
+		manager.markDirty(playerUuid, 100);
+
+		assertEquals(0, manager.getCacheSize());
+		assertFalse(manager.isDirty(playerUuid));
 	}
 
 	@Test
