@@ -61,18 +61,19 @@ tasks.withType(JavaCompile).configureEach {
 tasks.register("verifyMainSourceSideSafety") {
 	group = "verification"
 	description = "Fails if src/main references client-only classes"
+	def mainJavaFiles = fileTree("src/main/java") {
+		include "**/*.java"
+	}
+	inputs.files(mainJavaFiles)
 
 	doLast {
 		def disallowedPatterns = [
 			"net.minecraft.client.",
 			"com.grahambartley.client."
 		]
-		def mainJava = fileTree("src/main/java") {
-			include "**/*.java"
-		}
 		def violations = []
 
-		mainJava.each { file ->
+		inputs.files.files.each { file ->
 			def text = file.getText(StandardCharsets.UTF_8.name())
 			disallowedPatterns.each { pattern ->
 				if (text.contains(pattern)) {
