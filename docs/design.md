@@ -252,17 +252,17 @@ Fabric template source sets:
 ```json
 {
   "schemaVersion": 1,
-  "id": "lootlock",
+  "id": "loot-lock",
   "version": "${version}",
   "name": "LootLock",
   "description": "Configurable item pickup filtering for Minecraft.",
   "environment": "*",
   "entrypoints": {
-    "main": ["com.lootlock.LootLock"],
-    "client": ["com.lootlock.client.LootLockClient"]
+    "main": ["com.grahambartley.LootLock"],
+    "client": ["com.grahambartley.client.LootLockClient"]
   },
   "mixins": [
-    "lootlock.mixins.json"
+    "loot-lock.mixins.json"
   ],
   "depends": {
     "fabricloader": ">=0.14.21",
@@ -282,7 +282,7 @@ Fabric template source sets:
 This structure is **architecture-locked**.
 
 ```
-com.lootlock
+com.grahambartley
 ├── LootLock.java
 ├── LootLockConstants.java
 │
@@ -338,7 +338,7 @@ com.lootlock
     ├── TextUtil.java
     └── HashUtil.java
 
-com.lootlock.client
+com.grahambartley.client
 ├── LootLockClient.java
 ├── keybind
 │   └── LootLockKeybinds.java
@@ -831,19 +831,19 @@ Deleted 4x Egg
 ## 18. Networking Design
 
 ### 18.1 Channel naming
-Use namespace `lootlock`.
+Use namespace `loot-lock`.
 
 ```
-lootlock:hello_c2s
-lootlock:hello_s2c
-lootlock:sync_player_data_s2c
-lootlock:update_profile_c2s
-lootlock:activate_profile_c2s
-lootlock:delete_profile_c2s
-lootlock:create_profile_c2s
-lootlock:request_sync_c2s
-lootlock:blocked_notice_s2c
-lootlock:server_capabilities_s2c
+loot-lock:hello_c2s
+loot-lock:hello_s2c
+loot-lock:sync_player_data_s2c
+loot-lock:update_profile_c2s
+loot-lock:activate_profile_c2s
+loot-lock:delete_profile_c2s
+loot-lock:create_profile_c2s
+loot-lock:request_sync_c2s
+loot-lock:blocked_notice_s2c
+loot-lock:server_capabilities_s2c
 ```
 
 ### 18.2 Compatibility handshake
@@ -1490,7 +1490,7 @@ These PoC snippets are intentionally minimal and instrumentation-heavy. Reuse ar
 ### Phase 0 — Project setup
 **Deliverables:**
 - Fabric 1.20.1 project.
-- Mod ID `lootlock`.
+- Mod ID `loot-lock`.
 - Main / client entrypoints.
 - Empty mixin config.
 - Logger.
