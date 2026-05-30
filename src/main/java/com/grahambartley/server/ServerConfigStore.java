@@ -1,4 +1,3 @@
 package com.grahambartley.server;
 
-public final class ServerConfigStore {
-}
+public final class ServerConfigStore {}

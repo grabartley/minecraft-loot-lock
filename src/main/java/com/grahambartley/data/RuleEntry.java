@@ -1,4 +1,3 @@
 package com.grahambartley.data;
 
-public record RuleEntry(String itemId) {
-}
+public record RuleEntry(String itemId) {}

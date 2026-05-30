@@ -21,12 +21,12 @@ description: Build or implement a feature for the LootLock mod, optionally from 
 1. Run the `worktree` skill to create a fresh isolated branch worktree, then perform all implementation and validation work inside that worktree.
 2. Capture scope from the request.
 3. If an issue number or URL is provided, read it first with gh:
-   - `gh issue view <number> --repo grabartley/minecraft-loot-lock`
-   - Extract acceptance criteria, constraints, and references.
+- `gh issue view <number> --repo grabartley/minecraft-loot-lock`
+- Extract acceptance criteria, constraints, and references.
 4. If no issue is provided, create one before coding:
-   - Create a scoped issue with context, task list, and acceptance criteria.
-   - Add it to the project board.
-   - Use this issue as the tracking artifact for all subsequent status moves.
+- Create a scoped issue with context, task list, and acceptance criteria.
+- Add it to the project board.
+- Use this issue as the tracking artifact for all subsequent status moves.
 5. Move the issue to `In progress`.
 6. Implement the feature.
 7. Run relevant automated tests and a local validation pass for changed behavior.
@@ -39,16 +39,16 @@ description: Build or implement a feature for the LootLock mod, optionally from 
 ## Board Status Policy
 
 - Use these exact status values from project `grabartley/projects/2`:
-  - `Backlog`: issue created, not started
-  - `Ready`: scoped and ready to start
-  - `In progress`: active implementation
-  - `QA testing`: implementation complete, awaiting human validation
-  - `Done`: human-only final move after QA signoff
+- `Backlog`: issue created, not started
+- `Ready`: scoped and ready to start
+- `In progress`: active implementation
+- `QA testing`: implementation complete, awaiting human validation
+- `Done`: human-only final move after QA signoff
 
 - Required transitions for build flow:
-  - Start work: set to `In progress`
-  - After PR creation and QA handoff: set to `QA testing`
-  - Do not move to `Done` inside this skill
+- Start work: set to `In progress`
+- After PR creation and QA handoff: set to `QA testing`
+- Do not move to `Done` inside this skill
 
 ## Issue Creation Template (when issue not provided)
 

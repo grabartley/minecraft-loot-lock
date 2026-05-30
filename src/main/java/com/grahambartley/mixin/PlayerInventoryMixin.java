@@ -1,4 +1,3 @@
 package com.grahambartley.mixin;
 
-public final class PlayerInventoryMixin {
-}
+public final class PlayerInventoryMixin {}

@@ -5,5 +5,5 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.server.network.ServerPlayerEntity;
 
 public interface RuleEngine {
-	PickupDecision evaluate(ServerPlayerEntity player, ItemStack stack, RuleContext context);
+  PickupDecision evaluate(ServerPlayerEntity player, ItemStack stack, RuleContext context);
 }

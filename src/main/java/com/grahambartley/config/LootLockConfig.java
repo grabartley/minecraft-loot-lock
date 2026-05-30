@@ -1,4 +1,3 @@
 package com.grahambartley.config;
 
-public final class LootLockConfig {
-}
+public final class LootLockConfig {}

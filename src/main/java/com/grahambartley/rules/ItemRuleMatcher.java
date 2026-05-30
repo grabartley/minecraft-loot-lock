@@ -1,4 +1,3 @@
 package com.grahambartley.rules;
 
-public final class ItemRuleMatcher {
-}
+public final class ItemRuleMatcher {}

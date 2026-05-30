@@ -251,27 +251,27 @@ Fabric template source sets:
 
 ```json
 {
-  "schemaVersion": 1,
-  "id": "loot-lock",
-  "version": "${version}",
-  "name": "LootLock",
-  "description": "Configurable item pickup filtering for Minecraft.",
-  "environment": "*",
-  "entrypoints": {
-    "main": ["com.grahambartley.LootLock"],
-    "client": ["com.grahambartley.client.LootLockClient"]
-  },
-  "mixins": [
-    "loot-lock.mixins.json"
-  ],
-  "depends": {
-    "fabricloader": ">=0.14.21",
-    "minecraft": "1.20.1",
-    "fabric-api": "*"
-  },
-  "suggests": {
-    "modmenu": "*"
-  }
+"schemaVersion": 1,
+"id": "loot-lock",
+"version": "${version}",
+"name": "LootLock",
+"description": "Configurable item pickup filtering for Minecraft.",
+"environment": "*",
+"entrypoints": {
+	"main": ["com.grahambartley.LootLock"],
+	"client": ["com.grahambartley.client.LootLockClient"]
+},
+"mixins": [
+	"loot-lock.mixins.json"
+],
+"depends": {
+	"fabricloader": ">=0.14.21",
+	"minecraft": "1.20.1",
+	"fabric-api": "*"
+},
+"suggests": {
+	"modmenu": "*"
+}
 }
 ```
 
@@ -333,10 +333,10 @@ com.grahambartley
 │   └── PlayerInventoryMixin.java
 │
 └── util
-    ├── IdentifierUtil.java
-    ├── RegistryUtil.java
-    ├── TextUtil.java
-    └── HashUtil.java
+	├── IdentifierUtil.java
+	├── RegistryUtil.java
+	├── TextUtil.java
+	└── HashUtil.java
 
 com.grahambartley.client
 ├── LootLockClient.java
@@ -356,7 +356,7 @@ com.grahambartley.client
 ├── hud
 │   └── LootLockHud.java
 └── modmenu
-    └── LootLockModMenuIntegration.java
+	└── LootLockModMenuIntegration.java
 ```
 
 ---
@@ -397,8 +397,8 @@ com.grahambartley.client
 
 ```java
 public enum FilterMode {
-    DENYLIST,
-    ALLOWLIST
+	DENYLIST,
+	ALLOWLIST
 }
 ```
 
@@ -410,8 +410,8 @@ Behavior:
 
 ```java
 public enum RejectedItemAction {
-    LEAVE_ON_GROUND,
-    DELETE
+	LEAVE_ON_GROUND,
+	DELETE
 }
 ```
 
@@ -423,7 +423,7 @@ v1 only supports exact item ID rules.
 
 ```java
 public record RuleEntry(
-    String itemId
+	String itemId
 ) {}
 ```
 
@@ -436,12 +436,12 @@ Validation:
 
 ```java
 public final class RuleSet {
-    private final Set<Identifier> itemIds;
+	private final Set<Identifier> itemIds;
 
-    public boolean contains(Item item) {
-        Identifier id = Registries.ITEM.getId(item);
-        return itemIds.contains(id);
-    }
+	public boolean contains(Item item) {
+		Identifier id = Registries.ITEM.getId(item);
+		return itemIds.contains(id);
+	}
 }
 ```
 
@@ -451,15 +451,15 @@ Rules must be compiled after loading profile data. **Do not parse strings during
 
 ```java
 public final class LootLockProfile {
-    private UUID id;
-    private String name;
-    private FilterMode mode;
-    private RejectedItemAction rejectedItemAction;
-    private boolean enabled;
-    private List<RuleEntry> rules;
+	private UUID id;
+	private String name;
+	private FilterMode mode;
+	private RejectedItemAction rejectedItemAction;
+	private boolean enabled;
+	private List<RuleEntry> rules;
 
-    // runtime compiled:
-    private transient RuleSet compiledRuleSet;
+	// runtime compiled:
+	private transient RuleSet compiledRuleSet;
 }
 ```
 
@@ -483,12 +483,12 @@ Because empty allowlist can lock pickup entirely, UI must display a warning.
 
 ```java
 public final class LootLockPlayerData {
-    private int schemaVersion;
-    private UUID playerUuid;
-    private UUID activeProfileId;
-    private List<LootLockProfile> profiles;
-    private boolean clientCanEdit;
-    private long revision;
+	private int schemaVersion;
+	private UUID playerUuid;
+	private UUID activeProfileId;
+	private List<LootLockProfile> profiles;
+	private boolean clientCanEdit;
+	private long revision;
 }
 ```
 
@@ -524,12 +524,12 @@ Client config contains UI preferences only:
 
 ```json
 {
-  "schemaVersion": 1,
-  "openScreenKey": "key.keyboard.o",
-  "cycleProfileKey": "key.keyboard.p",
-  "showBlockedToast": true,
-  "showHudIndicator": true,
-  "lastOpenedProfileId": "..."
+"schemaVersion": 1,
+"openScreenKey": "key.keyboard.o",
+"cycleProfileKey": "key.keyboard.p",
+"showBlockedToast": true,
+"showHudIndicator": true,
+"lastOpenedProfileId": "..."
 }
 ```
 
@@ -537,25 +537,25 @@ Client config contains UI preferences only:
 
 ```json
 {
-  "schemaVersion": 1,
-  "playerUuid": "00000000-0000-0000-0000-000000000000",
-  "activeProfileId": "11111111-1111-1111-1111-111111111111",
-  "revision": 12,
-  "profiles": [
-    {
-      "id": "11111111-1111-1111-1111-111111111111",
-      "name": "Mining",
-      "mode": "DENYLIST",
-      "rejectedItemAction": "LEAVE_ON_GROUND",
-      "enabled": true,
-      "rules": [
-        {"itemId": "minecraft:cobblestone"},
-        {"itemId": "minecraft:granite"},
-        {"itemId": "minecraft:diorite"},
-        {"itemId": "minecraft:andesite"}
-      ]
-    }
-  ]
+"schemaVersion": 1,
+"playerUuid": "00000000-0000-0000-0000-000000000000",
+"activeProfileId": "11111111-1111-1111-1111-111111111111",
+"revision": 12,
+"profiles": [
+	{
+	"id": "11111111-1111-1111-1111-111111111111",
+	"name": "Mining",
+	"mode": "DENYLIST",
+	"rejectedItemAction": "LEAVE_ON_GROUND",
+	"enabled": true,
+	"rules": [
+		{"itemId": "minecraft:cobblestone"},
+		{"itemId": "minecraft:granite"},
+		{"itemId": "minecraft:diorite"},
+		{"itemId": "minecraft:andesite"}
+	]
+	}
+]
 }
 ```
 
@@ -590,13 +590,13 @@ Save player data:
 
 ```java
 public interface RuleEngine {
-    PickupDecision evaluate(ServerPlayerEntity player, ItemStack stack, RuleContext context);
+	PickupDecision evaluate(ServerPlayerEntity player, ItemStack stack, RuleContext context);
 }
 
 public enum PickupDecision {
-    ALLOW,
-    REJECT_LEAVE,
-    REJECT_DELETE
+	ALLOW,
+	REJECT_LEAVE,
+	REJECT_DELETE
 }
 ```
 
@@ -604,16 +604,16 @@ public enum PickupDecision {
 
 ```java
 public record RuleContext(
-    World world,
-    @Nullable ItemEntity sourceEntity,
-    PickupSource source
+	World world,
+	@Nullable ItemEntity sourceEntity,
+	PickupSource source
 ) {}
 
 public enum PickupSource {
-    ITEM_ENTITY_COLLISION,
-    INVENTORY_INSERT_GUARD,
-    COMMAND_TEST,
-    FUTURE_UNKNOWN
+	ITEM_ENTITY_COLLISION,
+	INVENTORY_INSERT_GUARD,
+	COMMAND_TEST,
+	FUTURE_UNKNOWN
 }
 ```
 
@@ -624,24 +624,24 @@ LootLockPlayerData data = playerDataManager.get(player);
 LootLockProfile profile = data.getActiveProfile();
 
 if profile == null:
-    return ALLOW
+	return ALLOW
 if !profile.enabled:
-    return ALLOW
+	return ALLOW
 
 Identifier itemId = Registries.ITEM.getId(stack.getItem());
 boolean matched = profile.compiledRuleSet().contains(itemId);
 
 boolean reject = switch(profile.mode()) {
-    case DENYLIST  -> matched;
-    case ALLOWLIST -> !matched;
+	case DENYLIST  -> matched;
+	case ALLOWLIST -> !matched;
 };
 
 if !reject:
-    return ALLOW
+	return ALLOW
 
 return profile.rejectedItemAction() == DELETE
-    ? REJECT_DELETE
-    : REJECT_LEAVE;
+	? REJECT_DELETE
+	: REJECT_LEAVE;
 ```
 
 ### 14.4 Performance
@@ -716,36 +716,36 @@ Each player owns profiles.
 ```java
 @Mixin(ItemEntity.class)
 public abstract class ItemEntityMixin {
-    @Inject(
-        method = "onPlayerCollision",
-        at = @At("HEAD"),
-        cancellable = true
-    )
-    private void lootlock$beforePickup(PlayerEntity player, CallbackInfo ci) {
-        if (player.getWorld().isClient()) return;
-        if (!(player instanceof ServerPlayerEntity serverPlayer)) return;
+	@Inject(
+		method = "onPlayerCollision",
+		at = @At("HEAD"),
+		cancellable = true
+	)
+	private void lootlock$beforePickup(PlayerEntity player, CallbackInfo ci) {
+		if (player.getWorld().isClient()) return;
+		if (!(player instanceof ServerPlayerEntity serverPlayer)) return;
 
-        ItemEntity itemEntity = (ItemEntity)(Object)this;
-        ItemStack stack = itemEntity.getStack();
+		ItemEntity itemEntity = (ItemEntity)(Object)this;
+		ItemStack stack = itemEntity.getStack();
 
-        PickupDecision decision = LootLockServer.PICKUP_GUARD.evaluate(
-            serverPlayer,
-            stack,
-            itemEntity
-        );
+		PickupDecision decision = LootLockServer.PICKUP_GUARD.evaluate(
+			serverPlayer,
+			stack,
+			itemEntity
+		);
 
-        if (decision == PickupDecision.ALLOW) return;
+		if (decision == PickupDecision.ALLOW) return;
 
-        if (decision == PickupDecision.REJECT_DELETE) {
-            itemEntity.discard();
-            LootLockServer.PICKUP_GUARD.notifyBlocked(serverPlayer, stack, true);
-        } else {
-            // Leave entity in world; cancel vanilla pickup.
-            LootLockServer.PICKUP_GUARD.notifyBlocked(serverPlayer, stack, false);
-        }
+		if (decision == PickupDecision.REJECT_DELETE) {
+			itemEntity.discard();
+			LootLockServer.PICKUP_GUARD.notifyBlocked(serverPlayer, stack, true);
+		} else {
+			// Leave entity in world; cancel vanilla pickup.
+			LootLockServer.PICKUP_GUARD.notifyBlocked(serverPlayer, stack, false);
+		}
 
-        ci.cancel();
-    }
+		ci.cancel();
+	}
 }
 ```
 
@@ -868,8 +868,8 @@ For stability in 1.20.1, define explicit read/write helpers:
 
 ```java
 public interface LootLockPacket {
-    Identifier id();
-    void write(PacketByteBuf buf);
+	Identifier id();
+	void write(PacketByteBuf buf);
 }
 ```
 
@@ -1109,10 +1109,10 @@ Use **draft editing**:
 
 ```java
 public final class ClientLootLockState {
-    private boolean serverSupportsLootLock;
-    private boolean synced;
-    private LootLockPlayerData snapshot;
-    private ServerPolicyDto policy;
+	private boolean serverSupportsLootLock;
+	private boolean synced;
+	private LootLockPlayerData snapshot;
+	private ServerPolicyDto policy;
 }
 ```
 
@@ -1131,14 +1131,14 @@ Server administrators control:
 
 ```json
 {
-  "schemaVersion": 1,
-  "allowClientEditing": true,
-  "allowDeleteRejectedItems": true,
-  "maxProfilesPerPlayer": 16,
-  "maxRulesPerProfile": 4096,
-  "enableCommands": true,
-  "sendBlockedNotices": true,
-  "saveDebounceTicks": 40
+"schemaVersion": 1,
+"allowClientEditing": true,
+"allowDeleteRejectedItems": true,
+"maxProfilesPerPlayer": 16,
+"maxRulesPerProfile": 4096,
+"enableCommands": true,
+"sendBlockedNotices": true,
+"saveDebounceTicks": 40
 }
 ```
 
@@ -1380,24 +1380,24 @@ Reference example:
 ```java
 @Inject(method = "onPlayerCollision", at = @At("HEAD"), cancellable = true)
 private void lootlock$runPickupPoc(PlayerEntity player, CallbackInfo ci) {
-    if (!FabricLoader.getInstance().isDevelopmentEnvironment() || player.getWorld().isClient()) {
-        return;
-    }
+	if (!FabricLoader.getInstance().isDevelopmentEnvironment() || player.getWorld().isClient()) {
+		return;
+	}
 
-    ItemEntity itemEntity = (ItemEntity) (Object) this;
-    Identifier itemId = Registries.ITEM.getId(itemEntity.getStack().getItem());
-    boolean rejectDelete = REJECT_DELETE_ITEM_ID.equals(itemId);
-    boolean rejectLeave = REJECT_LEAVE_ITEM_ID.equals(itemId);
+	ItemEntity itemEntity = (ItemEntity) (Object) this;
+	Identifier itemId = Registries.ITEM.getId(itemEntity.getStack().getItem());
+	boolean rejectDelete = REJECT_DELETE_ITEM_ID.equals(itemId);
+	boolean rejectLeave = REJECT_LEAVE_ITEM_ID.equals(itemId);
 
-    if (rejectDelete) {
-        ci.cancel();
-        itemEntity.discard();
-        return;
-    }
+	if (rejectDelete) {
+		ci.cancel();
+		itemEntity.discard();
+		return;
+	}
 
-    if (rejectLeave) {
-        ci.cancel();
-    }
+	if (rejectLeave) {
+		ci.cancel();
+	}
 }
 ```
 
@@ -1421,12 +1421,12 @@ Reference data shape example:
 public record PlayerRecord(String activeProfileId, int revision) {}
 
 public PlayerRecord getOrCreate(UUID uuid) {
-    return players.computeIfAbsent(uuid, ignored -> new PlayerRecord("default", 0));
+	return players.computeIfAbsent(uuid, ignored -> new PlayerRecord("default", 0));
 }
 
 public void put(UUID uuid, PlayerRecord record) {
-    players.put(uuid, record);
-    markDirty();
+	players.put(uuid, record);
+	markDirty();
 }
 ```
 
@@ -1434,12 +1434,12 @@ Corruption handling reference:
 
 ```java
 try {
-    NbtIo.readCompressed(dataFile.toFile());
+	NbtIo.readCompressed(dataFile.toFile());
 } catch (IOException ex) {
-    Path backupFile = dataFile.resolveSibling(
-        LootLockPersistentState.STATE_KEY + ".broken." + DateTimeFormatter.ISO_INSTANT.format(Instant.now()).replace(':', '-') + ".dat"
-    );
-    Files.move(dataFile, backupFile, StandardCopyOption.REPLACE_EXISTING);
+	Path backupFile = dataFile.resolveSibling(
+		LootLockPersistentState.STATE_KEY + ".broken." + DateTimeFormatter.ISO_INSTANT.format(Instant.now()).replace(':', '-') + ".dat"
+	);
+	Files.move(dataFile, backupFile, StandardCopyOption.REPLACE_EXISTING);
 }
 ```
 
@@ -1450,9 +1450,9 @@ Files:
 
 Key reference behaviors:
 - Classic channels via `Identifier` + `PacketByteBuf`:
-  - `loot-lock:poc4_hello_s2c`
-  - `loot-lock:poc4_rev_update_c2s`
-  - `loot-lock:poc4_rev_result_s2c`
+- `loot-lock:poc4_hello_s2c`
+- `loot-lock:poc4_rev_update_c2s`
+- `loot-lock:poc4_rev_result_s2c`
 - Server sends hello revision on join.
 - Client sends duplicate revision probe intentionally for idempotency/stale-test behavior.
 - Server accepts only when `claimedRevision == currentRevision`, then increments revision.
@@ -1464,8 +1464,8 @@ Reference server mutation gate example:
 boolean accepted = claimedRevision == currentRevision;
 int newRevision = currentRevision;
 if (accepted) {
-    newRevision = currentRevision + 1;
-    state.put(player.getUuid(), new LootLockPersistentState.PlayerRecord(current.activeProfileId(), newRevision));
+	newRevision = currentRevision + 1;
+	state.put(player.getUuid(), new LootLockPersistentState.PlayerRecord(current.activeProfileId(), newRevision));
 }
 ```
 
@@ -1716,25 +1716,25 @@ Test with:
 ### 35.3 Denylist example — Farming
 ```
 Profile:
-  Name: Farming
-  Mode: Denylist
-  Rules:
-    - minecraft:wheat_seeds
-    - minecraft:egg
-  Action: Leave on ground
+Name: Farming
+Mode: Denylist
+Rules:
+	- minecraft:wheat_seeds
+	- minecraft:egg
+Action: Leave on ground
 ```
 **Result:** Seeds and eggs do not enter your inventory.
 
 ### 35.4 Allowlist example — Rare Mining
 ```
 Profile:
-  Name: Rare Mining
-  Mode: Allowlist
-  Rules:
-    - minecraft:diamond
-    - minecraft:emerald
-    - minecraft:ancient_debris
-  Action: Leave on ground
+Name: Rare Mining
+Mode: Allowlist
+Rules:
+	- minecraft:diamond
+	- minecraft:emerald
+	- minecraft:ancient_debris
+Action: Leave on ground
 ```
 **Result:** Only listed items enter inventory.
 
