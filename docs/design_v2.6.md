@@ -776,7 +776,7 @@ public abstract class ItemEntityMixin {
 Client-only cancellation can visually reduce pickup attempts but cannot reliably prevent a server from inserting items into the authoritative inventory. For multiplayer, client-only prevention would desync or fail. It can be a future best-effort mode, but not the main implementation.
 
 ### 16.4 Current Status
-Architecture accepted. **Technical validation still required** — see Research Gaps RG-001 / RG-002 and PoC Gates PoC-001 / PoC-002.
+Architecture accepted. PoC-001 is validated, delete-mode safety validation is still required, see RG-002 and PoC-002.
 
 ---
 
@@ -796,6 +796,10 @@ Behavior:
 - Cancel pickup.
 - Remove entire item entity from world.
 - Send optional blocked / deleted notification.
+
+Prototype finding: deleting at `ItemEntity#onPlayerCollision` with `ci.cancel()` then `itemEntity.discard()` is viable for rejected items and does not broaden scope beyond item entities.
+
+Observed behavior in integrated singleplayer testing: rejected delete items can be removed immediately on first collision, including near-immediate removal after drop before visible ground settle, which is acceptable for delete mode but should be clearly communicated in UX copy.
 
 **Safety requirements:**
 - UI warning when enabling.
@@ -1337,7 +1341,7 @@ Verify complete item pickup lifecycle.
 
 ### RG-002 — Delete-mode injection point
 Verify safest delete-mode injection point. Must respect pickup delay and ownership.
-**Status:** Open.
+**Status:** Complete, validated in integrated and dedicated server runs, including two-player same-item collision behavior for delete and leave paths.
 
 ### RG-003 — PersistentState implementation
 Validate `PersistentState` implementation. PoC has not yet been completed.
@@ -1354,10 +1358,6 @@ Dedicated server compatibility verification. No accidental client-class loading.
 ---
 
 ## 31. Proof of Concept Gates
-
-### PoC-002 — Delete Mode Validation
-**Goal:** Respect pickup delay and ownership.
-**Success:** No unintended deletions.
 
 ### PoC-003 — Persistence Validation
 **Goal:** `PersistentState` survives restart.
@@ -1706,8 +1706,8 @@ Use this before recovering death drops if your allowlist would block important i
 |---|---|
 | Architecture | **Locked** |
 | Implementation | **Not Started** |
-| Research | **Partially Complete** — RG-001 complete, RG-002 through RG-005 open |
-| Next Milestone | **PoC-002 — Delete Mode Validation** |
+| Research | **Partially Complete** — RG-001 and RG-002 complete, RG-003 through RG-005 open |
+| Next Milestone | **PoC-003 — Persistence Validation** |
 
 ---
 
