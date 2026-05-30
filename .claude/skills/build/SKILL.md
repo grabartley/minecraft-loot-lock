@@ -10,10 +10,11 @@ description: Build or implement a feature for the LootLock mod, optionally from 
 1. Always tie build work to a GitHub issue.
 2. Run the `worktree` skill first before any issue moves, coding, or validation.
 3. Keep issue project status in sync during execution.
-4. Run the pr skill as part of build after validation passes.
-5. Move issue to `QA testing` only after PR is opened and CI is running.
-6. After PR creation and `QA testing` transition, always provide a detailed manual QA checklist to the developer.
-7. Stop at QA testing, human performs final verification and moves to Done.
+4. All code changes require unit tests. Test classes must mirror the production class name under test with a `Test` suffix and live in the same package structure under `src/test/java`.
+5. Run the pr skill as part of build after validation passes.
+6. Move issue to `QA testing` only after PR is opened and CI is running.
+7. After PR creation and `QA testing` transition, always provide a detailed manual QA checklist to the developer.
+8. Stop at QA testing, human performs final verification and moves to Done.
 
 ## Workflow
 
