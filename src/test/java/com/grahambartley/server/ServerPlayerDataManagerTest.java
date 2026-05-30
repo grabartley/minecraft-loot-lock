@@ -66,12 +66,13 @@ class ServerPlayerDataManagerTest {
 		ServerPlayerDataManager manager = new ServerPlayerDataManager(configManager);
 		UUID playerUuid = UUID.randomUUID();
 
-		manager.getOrLoad(playerUuid);
-		assertFalse(manager.isDirty(playerUuid));
+		LootLockPlayerData data = manager.getOrLoad(playerUuid);
+		assertTrue(manager.isDirty(playerUuid));
 
 		manager.markDirty(playerUuid, 100);
 
 		assertTrue(manager.isDirty(playerUuid));
+		assertEquals(1, data.getRevision());
 	}
 
 	@Test
@@ -204,6 +205,8 @@ class ServerPlayerDataManagerTest {
 
 		manager.getOrLoad(dirtyUuid);
 		manager.getOrLoad(cleanUuid);
+		// Both are dirty after fresh getOrLoad. Flush to persist, then re-mark just one.
+		manager.flushAll();
 		manager.markDirty(dirtyUuid, 0);
 
 		int saved = manager.flushAll();

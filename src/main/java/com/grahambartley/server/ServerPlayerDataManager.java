@@ -69,6 +69,7 @@ public final class ServerPlayerDataManager {
 			LootLockPlayerData data = configManager.loadPlayerData(playerUuid);
 			data.compileProfiles();
 			entry = new CachedEntry(data);
+			entry.dirty = true;
 			cache.put(playerUuid, entry);
 			LOGGER.debug("Loaded player data for {} (revision {})", playerUuid, data.getRevision());
 		}
