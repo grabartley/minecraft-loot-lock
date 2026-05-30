@@ -10,21 +10,18 @@ This skill is used directly by humans and also as a handoff step from the build 
 
 ## Workflow
 
-1. `git fetch origin main` - get latest main
-2. `git worktree add -b <branch-name> ./.claude/worktrees/loot-lock-<branch-name> origin/main`
-- Branch name: short kebab-case describing the change (e.g. `add-profile-validation`)
-3. `cd ./.claude/worktrees/loot-lock-<branch-name>` - make all changes in the worktree
-4. Stage: `git add <files>`
-5. Format: `./gradlew spotlessApply`
-6. Test: `./gradlew test`
-7. Build: `./gradlew clean build`
-8. Commit: `git commit -m "<type>: <short lowercase descriptive present tense message>"`
+1. Run the `worktree` skill first to create and enter a fresh worktree.
+2. Stage: `git add <files>`
+3. Format: `./gradlew spotlessApply`
+4. Test: `./gradlew test`
+5. Build: `./gradlew clean build`
+6. Commit: `git commit -m "<type>: <short lowercase descriptive present tense message>"`
 - Types: feat, fix, refactor, test, docs, chore
-9. Push: `git push origin <branch-name>`
-10. Create PR: `gh pr create --repo grabartley/minecraft-loot-lock --base main --head <branch-name> --title "<title>" --body "<body>"`
+7. Push: `git push origin <branch-name>`
+8. Create PR: `gh pr create --repo grabartley/minecraft-loot-lock --base main --head <branch-name> --title "<title>" --body "<body>"`
 	- Title: `<type>: <description>` (same style as commit message)
 	- Body: one-liner summary, then "**What's included:**" with bullet points
-11. After merge, clean up: `cd ../loot-lock && git worktree remove ./.claude/worktrees/loot-lock-<branch-name>`
+9. After merge, clean up: `cd ../loot-lock && git worktree remove ./.claude/worktrees/loot-lock-<branch-name>`
 
 ## Conventions
 
@@ -37,6 +34,10 @@ This skill is used directly by humans and also as a handoff step from the build 
 - PR descriptions: bullet points under "What's included:" header
 - Pre-commit must complete successfully: format, test, build
 - No emoji in commit messages or PR titles
+
+## Related Skills
+
+- worktree, used first for fresh branch and isolated directory setup
 
 ## Build Skill Integration
 
