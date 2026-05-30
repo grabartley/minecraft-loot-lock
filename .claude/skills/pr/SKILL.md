@@ -21,6 +21,7 @@ This skill is used directly by humans and also as a handoff step from the build 
 8. Create PR: `gh pr create --repo grabartley/minecraft-loot-lock --base main --head <branch-name> --title "<title>" --body "<body>"`
 	- Title: `<type>: <description>` (same style as commit message)
 	- Body: one-liner summary, then "**What's included:**" with bullet points
+	- Always include a closing reference like `Closes #<issue-number>` so the PR Development section is linked to the issue being worked on
 9. After merge, clean up: `cd ../loot-lock && git worktree remove ./.claude/worktrees/loot-lock-<branch-name>`
 
 ## Conventions
@@ -32,6 +33,7 @@ This skill is used directly by humans and also as a handoff step from the build 
 - Commit messages: `<type>: <lowercase description>`, no period at end
 - Types: feat, fix, refactor, test, docs, chore
 - PR descriptions: bullet points under "What's included:" header
+- Always link the PR Development section to the active issue via `Closes #<issue-number>` in the PR body
 - Pre-commit must complete successfully: format, test, build
 - No emoji in commit messages or PR titles
 
