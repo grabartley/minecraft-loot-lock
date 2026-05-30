@@ -7,13 +7,12 @@ import com.grahambartley.data.LootLockProfile;
 import com.grahambartley.data.RejectedItemAction;
 import com.grahambartley.server.ServerPlayerDataManager;
 import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.context.CommandContext;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
-
-import java.util.Locale;
 
 public final class LootLockCommand {
     private LootLockCommand() {
@@ -21,6 +20,8 @@ public final class LootLockCommand {
 
     public static void register(CommandDispatcher<ServerCommandSource> dispatcher) {
         dispatcher.register(CommandManager.literal("lootlock")
+            .requires(ServerCommandSource::isExecutedByPlayer)
+            .executes(LootLockCommand::help)
             .then(CommandManager.literal("status")
                 .executes(LootLockCommand::status))
             .then(CommandManager.literal("enable")
@@ -36,6 +37,7 @@ public final class LootLockCommand {
                 .then(CommandManager.literal("leave")
                     .executes(context -> setAction(context, RejectedItemAction.LEAVE_ON_GROUND)))
                 .then(CommandManager.literal("delete")
+                    .executes(LootLockCommand::deleteConfirmHelp)
                     .then(CommandManager.literal("confirm")
                         .executes(context -> setAction(context, RejectedItemAction.DELETE))))));
     }
@@ -48,26 +50,20 @@ public final class LootLockCommand {
         return action == RejectedItemAction.DELETE ? "delete" : "leave";
     }
 
-    static FilterMode parseMode(String value) {
-        if (value == null) {
-            return null;
-        }
-        return switch (value.toLowerCase(Locale.ROOT)) {
-            case "denylist" -> FilterMode.DENYLIST;
-            case "allowlist" -> FilterMode.ALLOWLIST;
-            default -> null;
-        };
+    private static int help(CommandContext<ServerCommandSource> context) {
+        context.getSource().sendFeedback(() -> Text.literal("LootLock commands:"), false);
+        context.getSource().sendFeedback(() -> Text.literal("- /lootlock status"), false);
+        context.getSource().sendFeedback(() -> Text.literal("- /lootlock enable"), false);
+        context.getSource().sendFeedback(() -> Text.literal("- /lootlock disable"), false);
+        context.getSource().sendFeedback(() -> Text.literal("- /lootlock mode denylist|allowlist"), false);
+        context.getSource().sendFeedback(() -> Text.literal("- /lootlock action leave"), false);
+        context.getSource().sendFeedback(() -> Text.literal("- /lootlock action delete confirm"), false);
+        return 1;
     }
 
-    static RejectedItemAction parseAction(String value) {
-        if (value == null) {
-            return null;
-        }
-        return switch (value.toLowerCase(Locale.ROOT)) {
-            case "leave" -> RejectedItemAction.LEAVE_ON_GROUND;
-            case "delete" -> RejectedItemAction.DELETE;
-            default -> null;
-        };
+    private static int deleteConfirmHelp(CommandContext<ServerCommandSource> context) {
+        context.getSource().sendFeedback(() -> Text.literal("Add 'confirm' to set rejected-item action to delete."), false);
+        return 1;
     }
 
     private static int status(CommandContext<ServerCommandSource> context) {
@@ -132,7 +128,7 @@ public final class LootLockCommand {
         ServerPlayerEntity player;
         try {
             player = source.getPlayerOrThrow();
-        } catch (Exception ex) {
+        } catch (CommandSyntaxException ex) {
             source.sendError(Text.literal("This command can only be used by a player."));
             return null;
         }
