@@ -580,7 +580,7 @@ Save player data:
 **Preferred Architecture:** `PersistentState`.
 **Purpose:** Authoritative server storage.
 **Potential Alternative:** World-scoped JSON (as detailed above).
-**Current Status:** Provisional Architecture Decision — `PersistentState` proof-of-concept has not yet been completed (see RG-003 / PoC-003).
+**Current Status:** Validated for v1 direction. `PersistentState` prototype survives restart and recovers from corrupt state files by backing up broken data and recreating clean state (see RG-003).
 
 ---
 
@@ -1345,7 +1345,7 @@ Verify safest delete-mode injection point. Must respect pickup delay and ownersh
 
 ### RG-003 — PersistentState implementation
 Validate `PersistentState` implementation. PoC has not yet been completed.
-**Status:** Open.
+**Status:** Complete, prototype persists per-player state across restart and safely handles corruption by moving bad files to `.broken.<timestamp>.dat` before state reinitialization.
 
 ### RG-004 — Networking implementation style
 Validate networking implementation style (packet object API vs. classic `Identifier` + `PacketByteBuf`) for the selected Fabric API version on 1.20.1.
@@ -1358,10 +1358,6 @@ Dedicated server compatibility verification. No accidental client-class loading.
 ---
 
 ## 31. Proof of Concept Gates
-
-### PoC-003 — Persistence Validation
-**Goal:** `PersistentState` survives restart.
-**Success:** Data restored correctly.
 
 ### PoC-004 — Networking Validation
 **Goal:** Client / server sync functions.
@@ -1706,8 +1702,8 @@ Use this before recovering death drops if your allowlist would block important i
 |---|---|
 | Architecture | **Locked** |
 | Implementation | **Not Started** |
-| Research | **Partially Complete** — RG-001 and RG-002 complete, RG-003 through RG-005 open |
-| Next Milestone | **PoC-003 — Persistence Validation** |
+| Research | **Partially Complete** — RG-001 through RG-003 complete, RG-004 and RG-005 open |
+| Next Milestone | **PoC-004 — Networking Validation** |
 
 ---
 
