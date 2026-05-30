@@ -776,7 +776,7 @@ public abstract class ItemEntityMixin {
 Client-only cancellation can visually reduce pickup attempts but cannot reliably prevent a server from inserting items into the authoritative inventory. For multiplayer, client-only prevention would desync or fail. It can be a future best-effort mode, but not the main implementation.
 
 ### 16.4 Current Status
-Architecture accepted. PoC-001 is validated, delete-mode safety validation is still required, see RG-002 and PoC-002.
+Architecture accepted. PoC-001 and PoC-002 are validated in integrated, dedicated, and two-player test runs.
 
 ---
 
@@ -1361,6 +1361,130 @@ Dedicated server compatibility verification. No accidental client-class loading.
 
 ---
 
+## 31.1 PoC Reference Code Appendix (Throwaway Research Code)
+
+The following references capture local PoC implementation code that is intentionally not part of final production design, but is valuable as implementation guidance.
+
+### PoC-001 / PoC-002 pickup interception and reject behavior
+File: `src/main/java/com/grahambartley/mixin/ItemEntityPickupPoCMixin.java`
+
+Key reference behaviors:
+- Injects at `ItemEntity#onPlayerCollision` HEAD with `cancellable = true`.
+- Uses dev-environment and server-side guard before applying PoC logic.
+- Uses fixed probes: `minecraft:egg` => reject + leave, `minecraft:snowball` => reject + delete.
+- Logs collision count and delta ticks per item UUID to trace repeated collisions.
+- Delete path does `ci.cancel()` then `itemEntity.discard()`.
+
+Reference example:
+
+```java
+@Inject(method = "onPlayerCollision", at = @At("HEAD"), cancellable = true)
+private void lootlock$runPickupPoc(PlayerEntity player, CallbackInfo ci) {
+    if (!FabricLoader.getInstance().isDevelopmentEnvironment() || player.getWorld().isClient()) {
+        return;
+    }
+
+    ItemEntity itemEntity = (ItemEntity) (Object) this;
+    Identifier itemId = Registries.ITEM.getId(itemEntity.getStack().getItem());
+    boolean rejectDelete = REJECT_DELETE_ITEM_ID.equals(itemId);
+    boolean rejectLeave = REJECT_LEAVE_ITEM_ID.equals(itemId);
+
+    if (rejectDelete) {
+        ci.cancel();
+        itemEntity.discard();
+        return;
+    }
+
+    if (rejectLeave) {
+        ci.cancel();
+    }
+}
+```
+
+Mixin registration reference:
+- `src/main/resources/loot-lock.mixins.json` includes `ItemEntityPickupPoCMixin` in `mixins`.
+
+### PoC-003 persistence prototype
+Files:
+- `src/main/java/com/grahambartley/persistence/LootLockPersistentState.java`
+- `src/main/java/com/grahambartley/LootLock.java`
+
+Key reference behaviors:
+- Stores per-player `activeProfileId` and `revision` under state key `lootlock_player_data`.
+- Uses `PersistentStateManager#getOrCreate(...)` with `fromNbt` and `writeNbt`.
+- Upsert pattern increments revision on join/respawn to prove write path and dirty marking.
+- Corruption guard checks compressed NBT read, then moves corrupt file to `.broken.<timestamp>.dat`.
+
+Reference data shape example:
+
+```java
+public record PlayerRecord(String activeProfileId, int revision) {}
+
+public PlayerRecord getOrCreate(UUID uuid) {
+    return players.computeIfAbsent(uuid, ignored -> new PlayerRecord("default", 0));
+}
+
+public void put(UUID uuid, PlayerRecord record) {
+    players.put(uuid, record);
+    markDirty();
+}
+```
+
+Corruption handling reference:
+
+```java
+try {
+    NbtIo.readCompressed(dataFile.toFile());
+} catch (IOException ex) {
+    Path backupFile = dataFile.resolveSibling(
+        LootLockPersistentState.STATE_KEY + ".broken." + DateTimeFormatter.ISO_INSTANT.format(Instant.now()).replace(':', '-') + ".dat"
+    );
+    Files.move(dataFile, backupFile, StandardCopyOption.REPLACE_EXISTING);
+}
+```
+
+### PoC-004 networking prototype
+Files:
+- `src/main/java/com/grahambartley/LootLock.java`
+- `src/client/java/com/grahambartley/client/LootLockClient.java`
+
+Key reference behaviors:
+- Classic channels via `Identifier` + `PacketByteBuf`:
+  - `loot-lock:poc4_hello_s2c`
+  - `loot-lock:poc4_rev_update_c2s`
+  - `loot-lock:poc4_rev_result_s2c`
+- Server sends hello revision on join.
+- Client sends duplicate revision probe intentionally for idempotency/stale-test behavior.
+- Server accepts only when `claimedRevision == currentRevision`, then increments revision.
+- Server returns `{accepted, claimed, current, newRevision}` result payload.
+
+Reference server mutation gate example:
+
+```java
+boolean accepted = claimedRevision == currentRevision;
+int newRevision = currentRevision;
+if (accepted) {
+    newRevision = currentRevision + 1;
+    state.put(player.getUuid(), new LootLockPersistentState.PlayerRecord(current.activeProfileId(), newRevision));
+}
+```
+
+### PoC-005 dedicated server safety verification references
+Validation references:
+- Dedicated server boot and client join execute without client-class loading exceptions.
+- Source-set boundary check confirms no `net.minecraft.client` imports in `src/main/java`.
+
+Practical reference command:
+
+```bash
+rg "net\.minecraft\.client" src/main/java
+```
+
+### Important note for implementation phase
+These PoC snippets are intentionally minimal and instrumentation-heavy. Reuse architectural direction, not exact code. Production implementation should remove probe item IDs, noisy PoC logging, and forced revision bump patterns used only for validation.
+
+---
+
 ## 32. Implementation Phases
 
 ### Phase 0 — Project setup
@@ -1699,4 +1823,4 @@ Use this before recovering death drops if your allowlist would block important i
 
 ---
 
-*This document is the authoritative project specification until the research gaps in Section 30 are resolved and a final v3 architecture document is produced.*
+*This document is the authoritative project specification for implementation kickoff, and should be superseded by v3 architecture notes only when implementation discoveries require design changes.*
