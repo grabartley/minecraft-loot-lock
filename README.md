@@ -1,7 +1,7 @@
 # LootLock
 
 [![Build](https://github.com/grabartley/minecraft-loot-lock/actions/workflows/build.yml/badge.svg)](https://github.com/grabartley/minecraft-loot-lock/actions/workflows/build.yml)
-[![License: CC0-1.0](https://img.shields.io/badge/license-CC0--1.0-lightgrey.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
 
 LootLock is a server-authoritative Fabric mod that filters item pickups per player, so everyone can keep the loot they want and ignore the rest without micromanaging inventory every minute.
 
@@ -119,4 +119,4 @@ GitHub Releases is the source of truth for version history and changelogs:
 
 ## License
 
-This project is licensed under `CC0-1.0`. See `LICENSE` for details.
+This project is licensed under `MIT`. See `LICENSE` for details.

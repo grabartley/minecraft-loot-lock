@@ -12,7 +12,7 @@
 		"issues": "https://github.com/grabartley/minecraft-loot-lock/issues",
 		"sources": "https://github.com/grabartley/minecraft-loot-lock"
 	},
-	"license": "CC0-1.0",
+	"license": "MIT",
 	"icon": "assets/loot-lock/icon.png",
 	"environment": "*",
 	"entrypoints": {
