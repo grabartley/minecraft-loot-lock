@@ -50,6 +50,8 @@ public final class ClientLootLockState {
   }
 
   public Optional<LootLockPlayerData> getSnapshot() {
+    // Snapshot stays mutable by design for upcoming draft-edit workflows.
+    // Read-only UI paths should treat this as immutable and copy before mutation.
     return Optional.ofNullable(snapshot);
   }
 
