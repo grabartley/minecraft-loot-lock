@@ -20,6 +20,9 @@
 		"client": [
 			"com.grahambartley.client.LootLockClient"
 		],
+		"modmenu": [
+			"com.grahambartley.client.modmenu.LootLockModMenuIntegration"
+		],
 		"fabric-datagen": [
 			"com.grahambartley.client.LootLockDataGenerator"
 		]
@@ -36,5 +39,8 @@
 		"minecraft": "~1.20.1",
 		"java": ">=17",
 		"fabric-api": "*"
+	},
+	"suggests": {
+		"modmenu": "*"
 	}
 }
