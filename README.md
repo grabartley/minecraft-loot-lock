@@ -8,21 +8,33 @@ In busy survival worlds, inventory chaos is real. LootLock gives each player cus
 
 ## Capabilities
 
+- Allowlist and denylist filtering so players can tune pickup behavior fast.
+- Leave on ground and delete rejected-item actions, with safety confirmations for delete flows.
 - Per-player profiles with independent pickup behavior.
-- Two filter modes: allowlist and denylist.
-- Two rejected-item actions: leave item on ground or delete item entity.
 - Rule management by command and in-game UI.
 - Server-authoritative state with client sync and stale-update protection.
-- Safety rails for destructive behavior, including explicit delete-mode confirmations.
 - Dedicated-server safe architecture, client-only code isolated to `src/client`.
 - Works for players with and without the client mod installed.
+
+## First Release Version
+
+The first public release line for this project is `0.21.0`.
 
 ## How It Works
 
 1. The server evaluates item pickup events against the active player profile.
 2. If a rule allows pickup, behavior stays vanilla.
 3. If a rule rejects pickup, LootLock applies the configured reject action.
-4. Client installs receive synced state and editing tools, server-only players can still fully manage via commands.
+4. Client installs receive synced state and editing tools, server-only players can still use management commands when they have operator permissions.
+
+## Controls
+
+LootLock ships with two keybinds that default to unbound:
+
+- Open UI
+- Cycle Profile
+
+Set these in `Controls > LootLock` before first use.
 
 ## Commands at a Glance
 
@@ -35,29 +47,29 @@ LootLock ships command coverage for day-to-day admin and player use, including:
 
 Use `/lootlock` in-game to explore the full command tree.
 
+## Permissions
+
+- Operator permission level `2` is required for policy and profile mutation command paths.
+- Players without the client mod can still interact through commands when operator permissions are granted.
+
 ## Compatibility
 
 - Minecraft: `1.20.1`
 - Java: `17+`
+- Fabric API: `0.92.9+1.20.1` minimum
 - Environments: dedicated server and client-supported multiplayer
 - Side model: server-authoritative, optional client UX enhancements
 
-## Required and Optional Dependencies
+## Dependencies
 
-### Runtime Required
-
-- Fabric Loader: `0.19.2` or newer
-- Fabric API: `0.92.9+1.20.1`
-
-### Runtime Optional
-
-- Mod Menu: `7.2.2` (for launcher-side discoverability and settings entrypoint)
-
-### Development Toolchain
-
-- Yarn mappings: `1.20.1+build.10`
-- Fabric Loom: `1.16-SNAPSHOT`
-- JUnit Jupiter: `5.10.2`
+| Dependency | Version | Requirement | Purpose |
+| --- | --- | --- | --- |
+| Fabric Loader | `>=0.19.2` | Required runtime | Mod loader |
+| Fabric API | `>=0.92.9+1.20.1` | Required runtime | Fabric hooks and APIs |
+| Mod Menu | `>=7.2.2` | Optional runtime | Client mod discoverability and settings entrypoint |
+| Yarn mappings | `1.20.1+build.10` | Dev toolchain | Named mappings for development |
+| Fabric Loom | `1.16-SNAPSHOT` | Dev toolchain | Build and remap pipeline |
+| JUnit Jupiter | `5.10.2` | Dev toolchain | Unit testing |
 
 ## Installation
 
@@ -80,12 +92,12 @@ Use `/lootlock` in-game to explore the full command tree.
 
 On join, LootLock performs a lightweight capability handshake:
 
-1. Server sends capabilities packet if the client supports LootLock channels.
-2. Client responds with hello packet including version/schema context.
-3. Server sends authoritative player snapshot.
-4. Client may request additional snapshots after conflicts or reconnect flows.
+1. Server sends `loot-lock:server_capabilities_s2c` when `ServerPlayNetworking.canSend` confirms LootLock channels are supported.
+2. Client responds with `loot-lock:hello_c2s`, including mod and schema context.
+3. Server sends `loot-lock:sync_player_data_s2c` with the authoritative player snapshot.
+4. Client can request another snapshot at any time using `loot-lock:request_sync_c2s`.
 
-If a player does not have the client mod, server-side pickup enforcement and command management continue to work normally.
+If a player does not have the client mod, `ServerPlayNetworking.canSend` is false for LootLock channels, no handshake packets are sent, and server-side pickup enforcement plus operator command management still work normally.
 
 ## Side-Safety and Validation Guardrails
 
@@ -96,9 +108,11 @@ If a player does not have the client mod, server-side pickup enforcement and com
 - Full test suite: `./gradlew test`
 - Dedicated server smoke boot: `timeout 120s ./gradlew runServer --no-daemon --stacktrace --args="nogui" || test $? -eq 124`
 
-## First Release Version
+## Version History
 
-The first public release line for this project is `0.21.0`.
+GitHub Releases is the source of truth for version history and changelogs:
+
+`https://github.com/grabartley/minecraft-loot-lock/releases`
 
 ## License
 
