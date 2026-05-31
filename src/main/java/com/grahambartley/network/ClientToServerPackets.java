@@ -246,19 +246,31 @@ public final class ClientToServerPackets {
   }
 
   private static void handleUpdateProfile(ServerPlayerEntity player, UpdateProfilePayload payload) {
+    if (LootLock.PLAYER_DATA_MANAGER == null) {
+      return;
+    }
     applyAndSync(player, applyUpdateProfile(LootLock.PLAYER_DATA_MANAGER.get(player), payload));
   }
 
   private static void handleActivateProfile(
       ServerPlayerEntity player, ActivateProfilePayload payload) {
+    if (LootLock.PLAYER_DATA_MANAGER == null) {
+      return;
+    }
     applyAndSync(player, applyActivateProfile(LootLock.PLAYER_DATA_MANAGER.get(player), payload));
   }
 
   private static void handleCreateProfile(ServerPlayerEntity player, CreateProfilePayload payload) {
+    if (LootLock.PLAYER_DATA_MANAGER == null) {
+      return;
+    }
     applyAndSync(player, applyCreateProfile(LootLock.PLAYER_DATA_MANAGER.get(player), payload));
   }
 
   private static void handleDeleteProfile(ServerPlayerEntity player, DeleteProfilePayload payload) {
+    if (LootLock.PLAYER_DATA_MANAGER == null) {
+      return;
+    }
     applyAndSync(player, applyDeleteProfile(LootLock.PLAYER_DATA_MANAGER.get(player), payload));
   }
 
