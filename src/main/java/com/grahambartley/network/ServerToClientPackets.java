@@ -43,6 +43,7 @@ public final class ServerToClientPackets {
     }
 
     LootLockPlayerData data = LootLock.PLAYER_DATA_MANAGER.get(player);
+    // For v0.1.0, GUI/profile edits are OP-only. clientCanEdit mirrors operator status.
     ServerPlayNetworking.send(
         player,
         PacketIds.SYNC_PLAYER_DATA_S2C,

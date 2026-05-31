@@ -271,6 +271,8 @@ public final class ClientToServerPackets {
   }
 
   private static void handleUpdateProfile(ServerPlayerEntity player, UpdateProfilePayload payload) {
+    // Defense-in-depth: clientCanEdit already reflects operator status in sync payload,
+    // but we guard explicitly at the packet boundary.
     if (!isOperator(player)) {
       ServerToClientPackets.sendAuthoritativeSync(player);
       return;
@@ -328,7 +330,10 @@ public final class ClientToServerPackets {
     }
     ServerPolicyService.updateAllowDeleteRejectedItems(
         player.getServer(), payload.allowDeleteRejectedItems());
-    ServerToClientPackets.sendAuthoritativeSync(player);
+    for (ServerPlayerEntity connectedPlayer :
+        player.getServer().getPlayerManager().getPlayerList()) {
+      ServerToClientPackets.sendAuthoritativeSync(connectedPlayer);
+    }
   }
 
   private static void applyAndSync(ServerPlayerEntity player, MutationResult result) {

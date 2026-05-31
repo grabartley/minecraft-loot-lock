@@ -12,6 +12,7 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.function.Consumer;
 import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.screen.ConfirmScreen;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.text.Text;
@@ -165,6 +166,23 @@ public final class LootLockMainScreen extends Screen {
     if (!LootLockClient.getState().isAllowDeleteRejectedItems()) {
       return;
     }
+    if (shouldConfirmEnableDelete()) {
+      this.client.setScreen(
+          new ConfirmScreen(
+              confirmed -> {
+                if (this.client == null) {
+                  return;
+                }
+                this.client.setScreen(this);
+                if (confirmed) {
+                  mutateActiveProfile(
+                      profile -> profile.setRejectedItemAction(RejectedItemAction.DELETE));
+                }
+              },
+              Text.literal("Enable delete mode?"),
+              Text.literal("Rejected items will be deleted instead of left on ground.")));
+      return;
+    }
     mutateActiveProfile(
         profile ->
             profile.setRejectedItemAction(
@@ -176,6 +194,26 @@ public final class LootLockMainScreen extends Screen {
   private void toggleServerPolicyDelete() {
     ClientMutationSync.sendServerPolicyUpdateRequest(
         !LootLockClient.getState().isAllowDeleteRejectedItems());
+  }
+
+  private boolean shouldConfirmEnableDelete() {
+    if (this.client == null) {
+      return false;
+    }
+    Optional<LootLockPlayerData> dataOptional = LootLockClient.getState().getSnapshot();
+    if (dataOptional.isEmpty()) {
+      return false;
+    }
+    Optional<LootLockProfile> activeProfile = dataOptional.get().getActiveProfile();
+    if (activeProfile.isEmpty()) {
+      return false;
+    }
+    if (activeProfile.get().getRejectedItemAction() == RejectedItemAction.DELETE) {
+      return false;
+    }
+    return LootLockClient.getClientSettingsManager()
+        .getSettingsCopy()
+        .isConfirmBeforeEnablingDelete();
   }
 
   private void toggleEnabled() {
