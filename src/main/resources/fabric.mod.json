@@ -8,9 +8,11 @@
 		"Graham Bartley"
 	],
 	"contact": {
+		"homepage": "https://github.com/grabartley/minecraft-loot-lock",
+		"issues": "https://github.com/grabartley/minecraft-loot-lock/issues",
 		"sources": "https://github.com/grabartley/minecraft-loot-lock"
 	},
-	"license": "CC0-1.0",
+	"license": "MIT",
 	"icon": "assets/loot-lock/icon.png",
 	"environment": "*",
 	"entrypoints": {
@@ -38,9 +40,9 @@
 		"fabricloader": ">=0.19.2",
 		"minecraft": "~1.20.1",
 		"java": ">=17",
-		"fabric-api": "*"
+		"fabric-api": ">=0.92.9+1.20.1"
 	},
 	"suggests": {
-		"modmenu": "*"
+		"modmenu": ">=7.2.2"
 	}
 }
