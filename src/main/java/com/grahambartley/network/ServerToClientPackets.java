@@ -15,9 +15,6 @@ import net.minecraft.network.PacketByteBuf;
 import net.minecraft.server.network.ServerPlayerEntity;
 
 public final class ServerToClientPackets {
-  private static final int MAX_PROFILE_NAME_LENGTH = 64;
-  private static final int MAX_RULE_ID_LENGTH = 256;
-
   private ServerToClientPackets() {}
 
   public static void sendServerCapabilities(ServerPlayerEntity player) {
@@ -82,26 +79,26 @@ public final class ServerToClientPackets {
 
   private static void writeProfile(PacketByteBuf buf, LootLockProfile profile) {
     buf.writeUuid(profile.getId());
-    buf.writeString(profile.getName(), MAX_PROFILE_NAME_LENGTH);
+    buf.writeString(profile.getName(), PacketLimits.MAX_PROFILE_NAME_LENGTH);
     buf.writeEnumConstant(profile.getMode());
     buf.writeEnumConstant(profile.getRejectedItemAction());
     buf.writeBoolean(profile.isEnabled());
     buf.writeVarInt(profile.getRules().size());
     for (RuleEntry rule : profile.getRules()) {
-      buf.writeString(rule.itemId(), MAX_RULE_ID_LENGTH);
+      buf.writeString(rule.itemId(), PacketLimits.MAX_RULE_ID_LENGTH);
     }
   }
 
   private static LootLockProfile readProfile(PacketByteBuf buf) {
     UUID profileId = buf.readUuid();
-    String profileName = buf.readString(MAX_PROFILE_NAME_LENGTH);
+    String profileName = buf.readString(PacketLimits.MAX_PROFILE_NAME_LENGTH);
     FilterMode mode = buf.readEnumConstant(FilterMode.class);
     RejectedItemAction action = buf.readEnumConstant(RejectedItemAction.class);
     boolean enabled = buf.readBoolean();
     int ruleCount = buf.readVarInt();
     List<RuleEntry> rules = new ArrayList<>(ruleCount);
     for (int i = 0; i < ruleCount; i++) {
-      rules.add(new RuleEntry(buf.readString(MAX_RULE_ID_LENGTH)));
+      rules.add(new RuleEntry(buf.readString(PacketLimits.MAX_RULE_ID_LENGTH)));
     }
     return new LootLockProfile(profileId, profileName, mode, action, enabled, rules);
   }
