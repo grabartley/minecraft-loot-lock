@@ -109,6 +109,8 @@ public final class LootLockPlayerData {
     if (revision < 0) {
       throw new IllegalArgumentException("revision must be >= 0");
     }
+    // Monotonic revision is a server-side invariant for authoritative mutable
+    // player state. Client snapshots replace whole objects per sync.
     if (revision < this.revision) {
       throw new IllegalArgumentException(
           "revision cannot decrease: current=" + this.revision + ", requested=" + revision);
