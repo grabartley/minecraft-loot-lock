@@ -8,6 +8,10 @@ public final class PacketIds {
   public static final Identifier SYNC_PLAYER_DATA_S2C = id("sync_player_data_s2c");
   public static final Identifier REQUEST_SYNC_C2S = id("request_sync_c2s");
   public static final Identifier SERVER_CAPABILITIES_S2C = id("server_capabilities_s2c");
+  public static final Identifier UPDATE_PROFILE_C2S = id("update_profile_c2s");
+  public static final Identifier ACTIVATE_PROFILE_C2S = id("activate_profile_c2s");
+  public static final Identifier CREATE_PROFILE_C2S = id("create_profile_c2s");
+  public static final Identifier DELETE_PROFILE_C2S = id("delete_profile_c2s");
 
   private PacketIds() {}
 

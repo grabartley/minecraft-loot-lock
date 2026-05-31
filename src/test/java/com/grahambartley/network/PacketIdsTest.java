@@ -13,6 +13,10 @@ class PacketIdsTest {
     assertEquals("loot-lock:sync_player_data_s2c", PacketIds.SYNC_PLAYER_DATA_S2C.toString());
     assertEquals("loot-lock:request_sync_c2s", PacketIds.REQUEST_SYNC_C2S.toString());
     assertEquals("loot-lock:server_capabilities_s2c", PacketIds.SERVER_CAPABILITIES_S2C.toString());
+    assertEquals("loot-lock:update_profile_c2s", PacketIds.UPDATE_PROFILE_C2S.toString());
+    assertEquals("loot-lock:activate_profile_c2s", PacketIds.ACTIVATE_PROFILE_C2S.toString());
+    assertEquals("loot-lock:create_profile_c2s", PacketIds.CREATE_PROFILE_C2S.toString());
+    assertEquals("loot-lock:delete_profile_c2s", PacketIds.DELETE_PROFILE_C2S.toString());
   }
 
   @Test
@@ -22,7 +26,11 @@ class PacketIdsTest {
                 PacketIds.HELLO_C2S,
                 PacketIds.SYNC_PLAYER_DATA_S2C,
                 PacketIds.REQUEST_SYNC_C2S,
-                PacketIds.SERVER_CAPABILITIES_S2C)
+                PacketIds.SERVER_CAPABILITIES_S2C,
+                PacketIds.UPDATE_PROFILE_C2S,
+                PacketIds.ACTIVATE_PROFILE_C2S,
+                PacketIds.CREATE_PROFILE_C2S,
+                PacketIds.DELETE_PROFILE_C2S)
             .allMatch(id -> "loot-lock".equals(id.getNamespace())));
   }
 }
