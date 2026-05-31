@@ -83,7 +83,7 @@ public final class SettingsScreen extends Screen {
             .dimensions(left, top + 128, 97, 20)
             .build());
     addDrawableChild(
-        ButtonWidget.builder(Text.literal("Back"), button -> close())
+        ButtonWidget.builder(Text.literal("Cancel"), button -> close())
             .dimensions(left + 103, top + 128, 97, 20)
             .build());
   }
