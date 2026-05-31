@@ -6,7 +6,7 @@ plugins {
 
 import java.nio.charset.StandardCharsets
 
-version = project.mod_version
+version = project.findProperty("version") ?: project.mod_version
 group = project.maven_group
 
 repositories {
