@@ -3,15 +3,17 @@ package com.grahambartley.server;
 import com.grahambartley.api.PickupDecision;
 import com.grahambartley.data.LootLockPlayerData;
 import com.grahambartley.data.LootLockProfile;
+import com.grahambartley.network.ServerToClientPackets;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import net.minecraft.item.ItemStack;
 import net.minecraft.registry.Registries;
 import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
-import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,6 +23,7 @@ public final class PickupGuard {
 
   private final ServerPlayerDataManager playerDataManager;
   private final Map<UUID, Long> lastNotificationTick = new HashMap<>();
+  private final Map<UUID, BlockedNotificationAccumulator> blockedAccumulators = new HashMap<>();
 
   public PickupGuard(ServerPlayerDataManager playerDataManager) {
     this.playerDataManager = playerDataManager;
@@ -44,45 +47,65 @@ public final class PickupGuard {
 
   public boolean tryNotify(
       ServerPlayerEntity player, ItemStack stack, boolean deleted, long currentTick) {
-    return tryNotify(player.getUuid(), stack, deleted, currentTick, player);
-  }
+    List<BlockedNotice> notices =
+        recordBlockedCollision(
+            player.getUuid(),
+            Registries.ITEM.getId(stack.getItem()),
+            stack.getCount(),
+            deleted,
+            currentTick);
 
-  public boolean tryNotify(UUID playerUuid, ItemStack stack, boolean deleted, long currentTick) {
-    return tryNotify(playerUuid, stack, deleted, currentTick, null);
-  }
-
-  private boolean tryNotify(
-      UUID playerUuid,
-      ItemStack stack,
-      boolean deleted,
-      long currentTick,
-      @Nullable ServerPlayerEntity player) {
-    Long lastTick = lastNotificationTick.get(playerUuid);
-
-    if (lastTick != null && (currentTick - lastTick) < NOTIFICATION_COOLDOWN_TICKS) {
+    if (notices.isEmpty()) {
       return false;
     }
 
-    if (player != null) {
-      String message =
-          deleted
-              ? String.format(
-                  "§7[LootLock] §cDeleted %dx %s",
-                  stack.getCount(), stack.getItem().getName().getString())
-              : String.format(
-                  "§7[LootLock] §eBlocked %dx %s",
-                  stack.getCount(), stack.getItem().getName().getString());
-
-      player.sendMessage(Text.literal(message), true);
-      LOGGER.debug("{} for player {}", message, playerUuid);
-      lastNotificationTick.put(playerUuid, currentTick);
+    for (BlockedNotice notice : notices) {
+      if (!ServerToClientPackets.sendBlockedNotice(
+          player, notice.itemId(), notice.count(), notice.deleted())) {
+        String verb = notice.deleted() ? "Deleted" : "Blocked";
+        player.sendMessage(
+            net.minecraft.text.Text.literal(
+                String.format("[LootLock] %s %dx %s", verb, notice.count(), notice.itemId())),
+            true);
+      }
+      LOGGER.debug(
+          "{} {}x{} for player {}",
+          notice.deleted() ? "Deleted" : "Blocked",
+          notice.count(),
+          notice.itemId(),
+          player.getUuid());
     }
 
     return true;
   }
 
+  public boolean tryNotify(UUID playerUuid, ItemStack stack, boolean deleted, long currentTick) {
+    Identifier itemId =
+        stack == null ? new Identifier("minecraft", "air") : Registries.ITEM.getId(stack.getItem());
+    return !recordBlockedCollision(
+            playerUuid, itemId, stack == null ? 1 : stack.getCount(), deleted, currentTick)
+        .isEmpty();
+  }
+
+  List<BlockedNotice> recordBlockedCollision(
+      UUID playerUuid, Identifier itemId, int count, boolean deleted, long currentTick) {
+    Long lastTick = lastNotificationTick.get(playerUuid);
+    BlockedNotificationAccumulator accumulator =
+        blockedAccumulators.computeIfAbsent(
+            playerUuid, ignored -> new BlockedNotificationAccumulator());
+    accumulator.accumulate(itemId, Math.max(1, count), deleted);
+
+    if (lastTick != null && (currentTick - lastTick) < NOTIFICATION_COOLDOWN_TICKS) {
+      return List.of();
+    }
+
+    lastNotificationTick.put(playerUuid, currentTick);
+    return accumulator.drain();
+  }
+
   void clearNotificationCooldown(UUID playerUuid) {
     lastNotificationTick.remove(playerUuid);
+    blockedAccumulators.remove(playerUuid);
   }
 
   boolean hasNotificationCooldown(UUID playerUuid) {
@@ -95,5 +118,30 @@ public final class PickupGuard {
 
   void stampNotificationCooldown(UUID playerUuid, long currentTick) {
     lastNotificationTick.put(playerUuid, currentTick);
+  }
+
+  record BlockedNotice(Identifier itemId, int count, boolean deleted) {}
+
+  private static final class BlockedNotificationAccumulator {
+    private final Map<String, BlockedNotice> pending = new LinkedHashMap<>();
+
+    void accumulate(Identifier itemId, int count, boolean deleted) {
+      String key = itemId + ":" + deleted;
+      BlockedNotice existing = pending.get(key);
+      if (existing == null) {
+        pending.put(key, new BlockedNotice(itemId, count, deleted));
+        return;
+      }
+      pending.put(key, new BlockedNotice(itemId, existing.count() + count, deleted));
+    }
+
+    List<BlockedNotice> drain() {
+      if (pending.isEmpty()) {
+        return List.of();
+      }
+      List<BlockedNotice> drained = new ArrayList<>(pending.values());
+      pending.clear();
+      return drained;
+    }
   }
 }

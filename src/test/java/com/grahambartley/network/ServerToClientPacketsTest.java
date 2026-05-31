@@ -12,6 +12,7 @@ import com.grahambartley.data.RuleEntry;
 import java.util.List;
 import java.util.UUID;
 import net.minecraft.network.PacketByteBuf;
+import net.minecraft.util.Identifier;
 import org.junit.jupiter.api.Test;
 
 class ServerToClientPacketsTest {
@@ -90,5 +91,17 @@ class ServerToClientPacketsTest {
 
     assertNull(decoded.activeProfileId());
     assertEquals(1, decoded.profiles().size());
+  }
+
+  @Test
+  void blockedNoticePayloadRoundTrips() {
+    Identifier itemId = Identifier.of("minecraft", "wheat_seeds");
+    PacketByteBuf encoded = ServerToClientPackets.writeBlockedNoticePayload(itemId, 16, false);
+    ServerToClientPackets.BlockedNoticePayload decoded =
+        ServerToClientPackets.readBlockedNoticePayload(encoded);
+
+    assertEquals(itemId, decoded.itemId());
+    assertEquals(16, decoded.count());
+    assertFalse(decoded.deleted());
   }
 }

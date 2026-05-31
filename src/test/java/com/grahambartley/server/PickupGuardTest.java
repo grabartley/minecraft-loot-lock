@@ -187,7 +187,7 @@ class PickupGuardTest {
   }
 
   @Test
-  void tryNotifyWithNullPlayerReturnsTrueAndSkipsCooldownStamp() {
+  void tryNotifyWithNullPlayerReturnsTrueAndStampsCooldown() {
     ConfigManager configManager = new ConfigManager(tempDir);
     ServerPlayerDataManager dataManager = new ServerPlayerDataManager(configManager);
     PickupGuard guard = new PickupGuard(dataManager);
@@ -195,7 +195,7 @@ class PickupGuardTest {
     UUID playerUuid = UUID.randomUUID();
 
     assertTrue(guard.tryNotify(playerUuid, null, false, 100));
-    assertFalse(guard.hasNotificationCooldown(playerUuid));
+    assertTrue(guard.hasNotificationCooldown(playerUuid));
   }
 
   @Test
@@ -208,6 +208,30 @@ class PickupGuardTest {
     guard.stampNotificationCooldown(playerUuid, 100);
 
     assertFalse(guard.tryNotify(playerUuid, null, false, 100));
+  }
+
+  @Test
+  void recordBlockedCollisionAggregatesDuringCooldown() {
+    ConfigManager configManager = new ConfigManager(tempDir);
+    ServerPlayerDataManager dataManager = new ServerPlayerDataManager(configManager);
+    PickupGuard guard = new PickupGuard(dataManager);
+
+    UUID playerUuid = UUID.randomUUID();
+    Identifier cobblestone = Identifier.of("minecraft", "cobblestone");
+
+    List<PickupGuard.BlockedNotice> first =
+        guard.recordBlockedCollision(playerUuid, cobblestone, 1, false, 100);
+    assertEquals(1, first.size());
+    assertEquals(1, first.get(0).count());
+
+    List<PickupGuard.BlockedNotice> second =
+        guard.recordBlockedCollision(playerUuid, cobblestone, 2, false, 110);
+    assertTrue(second.isEmpty());
+
+    List<PickupGuard.BlockedNotice> third =
+        guard.recordBlockedCollision(playerUuid, cobblestone, 3, false, 140);
+    assertEquals(1, third.size());
+    assertEquals(5, third.get(0).count());
   }
 
   @Test

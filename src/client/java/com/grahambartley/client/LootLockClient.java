@@ -2,6 +2,8 @@ package com.grahambartley.client;
 
 import com.grahambartley.LootLock;
 import com.grahambartley.client.config.ClientSettingsManager;
+import com.grahambartley.client.hud.BlockedNoticePresenter;
+import com.grahambartley.client.keybind.LootLockKeybinds;
 import com.grahambartley.client.state.ClientLootLockState;
 import com.grahambartley.network.ClientToServerPackets;
 import com.grahambartley.network.PacketIds;
@@ -40,6 +42,7 @@ public class LootLockClient implements ClientModInitializer {
         });
 
     ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> STATE.clear());
+    LootLockKeybinds.register();
 
     ClientPlayNetworking.registerGlobalReceiver(
         PacketIds.SERVER_CAPABILITIES_S2C,
@@ -78,6 +81,21 @@ public class LootLockClient implements ClientModInitializer {
                     payload.revision(),
                     payload.profiles().size());
               });
+        });
+
+    ClientPlayNetworking.registerGlobalReceiver(
+        PacketIds.BLOCKED_NOTICE_S2C,
+        (client, handler, buf, responseSender) -> {
+          ServerToClientPackets.BlockedNoticePayload payload =
+              ServerToClientPackets.readBlockedNoticePayload(buf);
+          client.execute(
+              () ->
+                  BlockedNoticePresenter.show(
+                      client,
+                      clientSettingsManager.getSettingsCopy(),
+                      payload.itemId(),
+                      payload.count(),
+                      payload.deleted()));
         });
   }
 }
