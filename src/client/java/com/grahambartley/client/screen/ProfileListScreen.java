@@ -1,12 +1,16 @@
 package com.grahambartley.client.screen;
 
 import com.grahambartley.client.LootLockClient;
+import com.grahambartley.client.state.ClientLootLockState;
+import com.grahambartley.client.state.ClientLootLockState.ClientDraftSaveRequest;
 import com.grahambartley.data.LootLockPlayerData;
 import com.grahambartley.data.LootLockProfile;
+import com.grahambartley.network.ClientDraftSync;
 import com.grahambartley.network.ClientToServerPackets;
 import com.grahambartley.network.PacketIds;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Consumer;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
@@ -17,7 +21,11 @@ import net.minecraft.text.Text;
 public final class ProfileListScreen extends Screen {
   private final Screen parent;
   private TextFieldWidget nameField;
+  private ButtonWidget createButton;
+  private ButtonWidget renameButton;
+  private ButtonWidget duplicateButton;
   private ButtonWidget deleteButton;
+  private ButtonWidget activateButton;
   private int selectedIndex;
 
   public ProfileListScreen(Screen parent) {
@@ -35,35 +43,40 @@ public final class ProfileListScreen extends Screen {
     nameField.setMaxLength(ProfileNameValidator.MAX_UI_PROFILE_NAME_LENGTH);
     addDrawableChild(nameField);
 
-    addDrawableChild(
-        ButtonWidget.builder(Text.literal("Create"), button -> createProfile())
-            .dimensions(left, top + 148, 64, 20)
-            .build());
-    addDrawableChild(
-        ButtonWidget.builder(Text.literal("Rename"), button -> renameProfile())
-            .dimensions(left + 68, top + 148, 64, 20)
-            .build());
-    addDrawableChild(
-        ButtonWidget.builder(Text.literal("Duplicate"), button -> duplicateProfile())
-            .dimensions(left + 136, top + 148, 64, 20)
-            .build());
+    createButton =
+        addDrawableChild(
+            ButtonWidget.builder(Text.literal("Create"), button -> createProfile())
+                .dimensions(left, top + 148, 64, 20)
+                .build());
+    renameButton =
+        addDrawableChild(
+            ButtonWidget.builder(Text.literal("Rename"), button -> renameProfile())
+                .dimensions(left + 68, top + 148, 64, 20)
+                .build());
+    duplicateButton =
+        addDrawableChild(
+            ButtonWidget.builder(Text.literal("Duplicate"), button -> duplicateProfile())
+                .dimensions(left + 136, top + 148, 64, 20)
+                .build());
 
     deleteButton =
         addDrawableChild(
             ButtonWidget.builder(Text.literal("Delete"), button -> deleteProfile())
                 .dimensions(left, top + 172, 97, 20)
                 .build());
-    addDrawableChild(
-        ButtonWidget.builder(Text.literal("Activate"), button -> activateProfile())
-            .dimensions(left + 103, top + 172, 97, 20)
-            .build());
+    activateButton =
+        addDrawableChild(
+            ButtonWidget.builder(Text.literal("Activate"), button -> activateProfile())
+                .dimensions(left + 103, top + 172, 97, 20)
+                .build());
 
     addDrawableChild(
         ButtonWidget.builder(Text.literal("Back"), button -> close())
             .dimensions(left, top + 196, 200, 20)
             .build());
 
-    refreshDeleteButton();
+    seedSelectionFromSnapshot();
+    refreshButtonState();
   }
 
   @Override
@@ -76,6 +89,7 @@ public final class ProfileListScreen extends Screen {
     if (dataOptional.isEmpty()) {
       context.drawTextWithShadow(
           textRenderer, Text.literal("No synced data"), this.width / 2 - 100, 40, 0xE06666);
+      refreshButtonState();
       return;
     }
 
@@ -108,7 +122,14 @@ public final class ProfileListScreen extends Screen {
         this.width / 2 - 100,
         listTop + 114,
         0xB0B0B0);
-    refreshDeleteButton();
+    context.drawTextWithShadow(
+        textRenderer,
+        Text.literal("Showing first 5 profiles"),
+        this.width / 2 - 100,
+        listTop + 96,
+        0x8F8F8F);
+
+    refreshButtonState();
   }
 
   @Override
@@ -133,6 +154,7 @@ public final class ProfileListScreen extends Screen {
     if (index >= 0 && index < profiles.size()) {
       selectedIndex = index;
       nameField.setText(ProfileNameValidator.sanitize(profiles.get(index).getName()));
+      refreshButtonState();
       return true;
     }
 
@@ -216,36 +238,61 @@ public final class ProfileListScreen extends Screen {
             dataOptional.get().getRevision(), profiles.get(selectedIndex).getId()));
   }
 
-  private void mutateSelectedProfile(java.util.function.Consumer<LootLockProfile> mutator) {
-    Optional<LootLockPlayerData> dataOptional = LootLockClient.getState().getSnapshot();
-    if (dataOptional.isEmpty() || !ClientPlayNetworking.canSend(PacketIds.UPDATE_PROFILE_C2S)) {
+  private void mutateSelectedProfile(Consumer<LootLockProfile> mutator) {
+    ClientLootLockState state = LootLockClient.getState();
+    Optional<LootLockPlayerData> dataOptional = state.getSnapshot();
+    if (dataOptional.isEmpty()) {
       return;
     }
     List<LootLockProfile> profiles = dataOptional.get().getProfiles();
     if (selectedIndex < 0 || selectedIndex >= profiles.size()) {
       return;
     }
-    LootLockProfile profile = profiles.get(selectedIndex);
-    LootLockProfile cloned =
-        new LootLockProfile(
-            profile.getId(),
-            profile.getName(),
-            profile.getMode(),
-            profile.getRejectedItemAction(),
-            profile.isEnabled(),
-            profile.getRules());
-    mutator.accept(cloned);
-    if (!ProfileNameValidator.isValid(cloned.getName())) {
+
+    LootLockProfile selected = profiles.get(selectedIndex);
+    Optional<ClientDraftSaveRequest> saveRequest =
+        state
+            .beginDraft(selected.getId())
+            .map(
+                draft -> {
+                  mutator.accept(draft.getDraft());
+                  return state.buildSaveRequest();
+                })
+            .orElse(Optional.empty());
+
+    if (saveRequest.isEmpty()
+        || !ProfileNameValidator.isValid(saveRequest.get().profile().getName())) {
       return;
     }
-    ClientPlayNetworking.send(
-        PacketIds.UPDATE_PROFILE_C2S,
-        ClientToServerPackets.writeUpdateProfilePayload(dataOptional.get().getRevision(), cloned));
+    ClientDraftSync.sendSaveRequest(saveRequest.get());
   }
 
-  private void refreshDeleteButton() {
+  private void seedSelectionFromSnapshot() {
     Optional<LootLockPlayerData> dataOptional = LootLockClient.getState().getSnapshot();
-    deleteButton.active =
+    if (dataOptional.isEmpty() || dataOptional.get().getProfiles().isEmpty()) {
+      selectedIndex = -1;
+      return;
+    }
+
+    selectedIndex = 0;
+    nameField.setText(
+        ProfileNameValidator.sanitize(dataOptional.get().getProfiles().get(0).getName()));
+  }
+
+  private void refreshButtonState() {
+    Optional<LootLockPlayerData> dataOptional = LootLockClient.getState().getSnapshot();
+    boolean editable = dataOptional.map(LootLockPlayerData::isClientCanEdit).orElse(false);
+    boolean canDelete =
         dataOptional.map(data -> ProfileUiController.canDelete(data.getProfiles())).orElse(false);
+    boolean hasSelection =
+        dataOptional
+            .map(data -> selectedIndex >= 0 && selectedIndex < data.getProfiles().size())
+            .orElse(false);
+
+    createButton.active = editable;
+    renameButton.active = editable && hasSelection;
+    duplicateButton.active = editable && hasSelection;
+    activateButton.active = editable && hasSelection;
+    deleteButton.active = editable && hasSelection && canDelete;
   }
 }

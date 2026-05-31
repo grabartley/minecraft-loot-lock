@@ -2,13 +2,17 @@ package com.grahambartley.client.screen;
 
 import com.grahambartley.client.LootLockClient;
 import com.grahambartley.client.state.ClientLootLockState;
+import com.grahambartley.client.state.ClientLootLockState.ClientDraftSaveRequest;
 import com.grahambartley.data.FilterMode;
 import com.grahambartley.data.LootLockPlayerData;
 import com.grahambartley.data.LootLockProfile;
 import com.grahambartley.data.RejectedItemAction;
+import com.grahambartley.network.ClientDraftSync;
 import com.grahambartley.network.ClientToServerPackets;
 import com.grahambartley.network.PacketIds;
+import java.util.Locale;
 import java.util.Optional;
+import java.util.function.Consumer;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
@@ -21,6 +25,9 @@ public final class LootLockMainScreen extends Screen {
   private ButtonWidget modeButton;
   private ButtonWidget actionButton;
   private ButtonWidget enabledButton;
+  private ButtonWidget editRulesButton;
+  private ButtonWidget settingsButton;
+  private ButtonWidget importExportButton;
 
   public LootLockMainScreen(Screen parent) {
     super(Text.literal("LootLock"));
@@ -56,10 +63,11 @@ public final class LootLockMainScreen extends Screen {
                 .dimensions(left, rowY + 72, 200, 20)
                 .build());
 
-    addDrawableChild(
-        ButtonWidget.builder(Text.literal("Edit Rules"), button -> {})
-            .dimensions(left, rowY + 104, 97, 20)
-            .build());
+    editRulesButton =
+        addDrawableChild(
+            ButtonWidget.builder(Text.literal("Edit Rules"), button -> {})
+                .dimensions(left, rowY + 104, 97, 20)
+                .build());
     addDrawableChild(
         ButtonWidget.builder(
                 Text.literal("Profiles"),
@@ -67,14 +75,16 @@ public final class LootLockMainScreen extends Screen {
             .dimensions(left + 103, rowY + 104, 97, 20)
             .build());
 
-    addDrawableChild(
-        ButtonWidget.builder(Text.literal("Settings"), button -> {})
-            .dimensions(left, rowY + 128, 97, 20)
-            .build());
-    addDrawableChild(
-        ButtonWidget.builder(Text.literal("Import / Export"), button -> {})
-            .dimensions(left + 103, rowY + 128, 97, 20)
-            .build());
+    settingsButton =
+        addDrawableChild(
+            ButtonWidget.builder(Text.literal("Settings"), button -> {})
+                .dimensions(left, rowY + 128, 97, 20)
+                .build());
+    importExportButton =
+        addDrawableChild(
+            ButtonWidget.builder(Text.literal("Import / Export"), button -> {})
+                .dimensions(left + 103, rowY + 128, 97, 20)
+                .build());
 
     addDrawableChild(
         ButtonWidget.builder(Text.literal("Done"), button -> close())
@@ -98,6 +108,8 @@ public final class LootLockMainScreen extends Screen {
       context.drawTextWithShadow(
           textRenderer, Text.literal("Waiting for sync..."), this.width / 2 - 100, 52, 0xE0AA4A);
     }
+
+    refreshButtons();
   }
 
   @Override
@@ -117,21 +129,14 @@ public final class LootLockMainScreen extends Screen {
       return;
     }
 
-    int currentIndex = 0;
-    for (int i = 0; i < data.getProfiles().size(); i++) {
-      LootLockProfile profile = data.getProfiles().get(i);
-      if (profile != null && profile.getId().equals(data.getActiveProfileId())) {
-        currentIndex = i;
-        break;
-      }
-    }
-    LootLockProfile next = data.getProfiles().get((currentIndex + 1) % data.getProfiles().size());
-    if (next == null || !ClientPlayNetworking.canSend(PacketIds.ACTIVATE_PROFILE_C2S)) {
+    Optional<java.util.UUID> nextProfileId =
+        ProfileUiController.nextProfileId(data.getProfiles(), data.getActiveProfileId());
+    if (nextProfileId.isEmpty() || !ClientPlayNetworking.canSend(PacketIds.ACTIVATE_PROFILE_C2S)) {
       return;
     }
     ClientPlayNetworking.send(
         PacketIds.ACTIVATE_PROFILE_C2S,
-        ClientToServerPackets.writeActivateProfilePayload(data.getRevision(), next.getId()));
+        ClientToServerPackets.writeActivateProfilePayload(data.getRevision(), nextProfileId.get()));
   }
 
   private void toggleMode() {
@@ -156,29 +161,27 @@ public final class LootLockMainScreen extends Screen {
     mutateActiveProfile(profile -> profile.setEnabled(!profile.isEnabled()));
   }
 
-  private void mutateActiveProfile(java.util.function.Consumer<LootLockProfile> mutator) {
-    Optional<LootLockPlayerData> dataOptional = LootLockClient.getState().getSnapshot();
-    if (dataOptional.isEmpty() || !ClientPlayNetworking.canSend(PacketIds.UPDATE_PROFILE_C2S)) {
+  private void mutateActiveProfile(Consumer<LootLockProfile> mutator) {
+    ClientLootLockState state = LootLockClient.getState();
+    Optional<LootLockPlayerData> dataOptional = state.getSnapshot();
+    if (dataOptional.isEmpty()) {
       return;
     }
     LootLockPlayerData data = dataOptional.get();
-    Optional<LootLockProfile> profileOptional = data.getActiveProfile();
-    if (profileOptional.isEmpty()) {
+    Optional<ClientDraftSaveRequest> saveRequest =
+        state
+            .beginDraft(data.getActiveProfileId())
+            .map(
+                draft -> {
+                  mutator.accept(draft.getDraft());
+                  return state.buildSaveRequest();
+                })
+            .orElse(Optional.empty());
+
+    if (saveRequest.isEmpty()) {
       return;
     }
-    LootLockProfile profile = profileOptional.get();
-    LootLockProfile cloned =
-        new LootLockProfile(
-            profile.getId(),
-            profile.getName(),
-            profile.getMode(),
-            profile.getRejectedItemAction(),
-            profile.isEnabled(),
-            profile.getRules());
-    mutator.accept(cloned);
-    ClientPlayNetworking.send(
-        PacketIds.UPDATE_PROFILE_C2S,
-        ClientToServerPackets.writeUpdateProfilePayload(data.getRevision(), cloned));
+    ClientDraftSync.sendSaveRequest(saveRequest.get());
   }
 
   private void refreshButtons() {
@@ -193,6 +196,11 @@ public final class LootLockMainScreen extends Screen {
     actionButton.active = synced && editable && activeAvailable;
     enabledButton.active = synced && editable && activeAvailable;
 
+    // Intentionally disabled until follow-up issues implement these screens.
+    editRulesButton.active = false;
+    settingsButton.active = false;
+    importExportButton.active = false;
+
     if (dataOptional.isEmpty()) {
       return;
     }
@@ -205,8 +213,36 @@ public final class LootLockMainScreen extends Screen {
 
     LootLockProfile profile = activeProfile.get();
     activeProfileButton.setMessage(Text.literal("Active: " + profile.getName()));
-    modeButton.setMessage(Text.literal("Mode: " + profile.getMode().name()));
-    actionButton.setMessage(Text.literal("Action: " + profile.getRejectedItemAction().name()));
+    modeButton.setMessage(Text.literal("Mode: " + friendlyMode(profile.getMode())));
+    actionButton.setMessage(
+        Text.literal("Action: " + friendlyAction(profile.getRejectedItemAction())));
     enabledButton.setMessage(Text.literal("Enabled: " + (profile.isEnabled() ? "On" : "Off")));
+  }
+
+  private static String friendlyMode(FilterMode mode) {
+    return mode == null ? "Unknown" : titleCase(mode.name());
+  }
+
+  private static String friendlyAction(RejectedItemAction action) {
+    if (action == RejectedItemAction.LEAVE_ON_GROUND) {
+      return "Leave on ground";
+    }
+    return action == null ? "Unknown" : titleCase(action.name());
+  }
+
+  private static String titleCase(String raw) {
+    String normalized = raw.toLowerCase(Locale.ROOT).replace('_', ' ');
+    String[] parts = normalized.split(" ");
+    StringBuilder out = new StringBuilder();
+    for (String part : parts) {
+      if (part.isBlank()) {
+        continue;
+      }
+      if (!out.isEmpty()) {
+        out.append(' ');
+      }
+      out.append(Character.toUpperCase(part.charAt(0))).append(part.substring(1));
+    }
+    return out.toString();
   }
 }
