@@ -8,12 +8,9 @@ import com.grahambartley.data.LootLockPlayerData;
 import com.grahambartley.data.LootLockProfile;
 import com.grahambartley.data.RejectedItemAction;
 import com.grahambartley.network.ClientDraftSync;
-import com.grahambartley.network.ClientToServerPackets;
-import com.grahambartley.network.PacketIds;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.function.Consumer;
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
@@ -131,12 +128,10 @@ public final class LootLockMainScreen extends Screen {
 
     Optional<java.util.UUID> nextProfileId =
         ProfileUiController.nextProfileId(data.getProfiles(), data.getActiveProfileId());
-    if (nextProfileId.isEmpty() || !ClientPlayNetworking.canSend(PacketIds.ACTIVATE_PROFILE_C2S)) {
+    if (nextProfileId.isEmpty()) {
       return;
     }
-    ClientPlayNetworking.send(
-        PacketIds.ACTIVATE_PROFILE_C2S,
-        ClientToServerPackets.writeActivateProfilePayload(data.getRevision(), nextProfileId.get()));
+    ClientDraftSync.sendActivateRequest(data.getRevision(), nextProfileId.get());
   }
 
   private void toggleMode() {

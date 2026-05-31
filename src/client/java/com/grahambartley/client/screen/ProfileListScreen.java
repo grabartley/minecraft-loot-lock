@@ -6,12 +6,9 @@ import com.grahambartley.client.state.ClientLootLockState.ClientDraftSaveRequest
 import com.grahambartley.data.LootLockPlayerData;
 import com.grahambartley.data.LootLockProfile;
 import com.grahambartley.network.ClientDraftSync;
-import com.grahambartley.network.ClientToServerPackets;
-import com.grahambartley.network.PacketIds;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
@@ -170,7 +167,7 @@ public final class ProfileListScreen extends Screen {
 
   private void createProfile() {
     Optional<LootLockPlayerData> dataOptional = LootLockClient.getState().getSnapshot();
-    if (dataOptional.isEmpty() || !ClientPlayNetworking.canSend(PacketIds.CREATE_PROFILE_C2S)) {
+    if (dataOptional.isEmpty()) {
       return;
     }
     String name = ProfileNameValidator.sanitize(nameField.getText());
@@ -178,9 +175,7 @@ public final class ProfileListScreen extends Screen {
       return;
     }
     LootLockPlayerData data = dataOptional.get();
-    ClientPlayNetworking.send(
-        PacketIds.CREATE_PROFILE_C2S,
-        ClientToServerPackets.writeCreateProfilePayload(data.getRevision(), name, null));
+    ClientDraftSync.sendCreateRequest(data.getRevision(), name, null);
   }
 
   private void renameProfile() {
@@ -190,7 +185,7 @@ public final class ProfileListScreen extends Screen {
 
   private void duplicateProfile() {
     Optional<LootLockPlayerData> dataOptional = LootLockClient.getState().getSnapshot();
-    if (dataOptional.isEmpty() || !ClientPlayNetworking.canSend(PacketIds.CREATE_PROFILE_C2S)) {
+    if (dataOptional.isEmpty()) {
       return;
     }
     List<LootLockProfile> profiles = dataOptional.get().getProfiles();
@@ -199,15 +194,12 @@ public final class ProfileListScreen extends Screen {
     }
     LootLockProfile selected = profiles.get(selectedIndex);
     String duplicateName = ProfileUiController.nextDuplicateName(profiles, selected.getName());
-    ClientPlayNetworking.send(
-        PacketIds.CREATE_PROFILE_C2S,
-        ClientToServerPackets.writeCreateProfilePayload(
-            dataOptional.get().getRevision(), duplicateName, selected));
+    ClientDraftSync.sendCreateRequest(dataOptional.get().getRevision(), duplicateName, selected);
   }
 
   private void deleteProfile() {
     Optional<LootLockPlayerData> dataOptional = LootLockClient.getState().getSnapshot();
-    if (dataOptional.isEmpty() || !ClientPlayNetworking.canSend(PacketIds.DELETE_PROFILE_C2S)) {
+    if (dataOptional.isEmpty()) {
       return;
     }
     List<LootLockProfile> profiles = dataOptional.get().getProfiles();
@@ -217,25 +209,21 @@ public final class ProfileListScreen extends Screen {
       return;
     }
 
-    ClientPlayNetworking.send(
-        PacketIds.DELETE_PROFILE_C2S,
-        ClientToServerPackets.writeDeleteProfilePayload(
-            dataOptional.get().getRevision(), profiles.get(selectedIndex).getId()));
+    ClientDraftSync.sendDeleteRequest(
+        dataOptional.get().getRevision(), profiles.get(selectedIndex).getId());
   }
 
   private void activateProfile() {
     Optional<LootLockPlayerData> dataOptional = LootLockClient.getState().getSnapshot();
-    if (dataOptional.isEmpty() || !ClientPlayNetworking.canSend(PacketIds.ACTIVATE_PROFILE_C2S)) {
+    if (dataOptional.isEmpty()) {
       return;
     }
     List<LootLockProfile> profiles = dataOptional.get().getProfiles();
     if (selectedIndex < 0 || selectedIndex >= profiles.size()) {
       return;
     }
-    ClientPlayNetworking.send(
-        PacketIds.ACTIVATE_PROFILE_C2S,
-        ClientToServerPackets.writeActivateProfilePayload(
-            dataOptional.get().getRevision(), profiles.get(selectedIndex).getId()));
+    ClientDraftSync.sendActivateRequest(
+        dataOptional.get().getRevision(), profiles.get(selectedIndex).getId());
   }
 
   private void mutateSelectedProfile(Consumer<LootLockProfile> mutator) {
