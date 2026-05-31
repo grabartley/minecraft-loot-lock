@@ -25,6 +25,7 @@ public final class LootLockMainScreen extends Screen {
   private ButtonWidget editRulesButton;
   private ButtonWidget settingsButton;
   private ButtonWidget importExportButton;
+  private ButtonWidget policyDeleteToggleButton;
 
   public LootLockMainScreen(Screen parent) {
     super(Text.literal("LootLock"));
@@ -34,7 +35,7 @@ public final class LootLockMainScreen extends Screen {
   @Override
   protected void init() {
     int left = this.width / 2 - 100;
-    int totalHeight = 176;
+    int totalHeight = 200;
     int rowY = Math.max(34, (this.height - totalHeight) / 2);
 
     activeProfileButton =
@@ -88,9 +89,15 @@ public final class LootLockMainScreen extends Screen {
                 .dimensions(left + 103, rowY + 128, 97, 20)
                 .build());
 
+    policyDeleteToggleButton =
+        addDrawableChild(
+            ButtonWidget.builder(Text.literal("Policy: -"), button -> toggleServerPolicyDelete())
+                .dimensions(left, rowY + 152, 200, 20)
+                .build());
+
     addDrawableChild(
         ButtonWidget.builder(Text.literal("Done"), button -> close())
-            .dimensions(left, rowY + 156, 200, 20)
+            .dimensions(left, rowY + 180, 200, 20)
             .build());
 
     refreshButtons();
@@ -155,12 +162,20 @@ public final class LootLockMainScreen extends Screen {
   }
 
   private void toggleAction() {
+    if (!LootLockClient.getState().isAllowDeleteRejectedItems()) {
+      return;
+    }
     mutateActiveProfile(
         profile ->
             profile.setRejectedItemAction(
                 profile.getRejectedItemAction() == RejectedItemAction.LEAVE_ON_GROUND
                     ? RejectedItemAction.DELETE
                     : RejectedItemAction.LEAVE_ON_GROUND));
+  }
+
+  private void toggleServerPolicyDelete() {
+    ClientMutationSync.sendServerPolicyUpdateRequest(
+        !LootLockClient.getState().isAllowDeleteRejectedItems());
   }
 
   private void toggleEnabled() {
@@ -208,6 +223,7 @@ public final class LootLockMainScreen extends Screen {
     enabledButton.active = synced && editable && activeAvailable;
 
     editRulesButton.active = synced && editable && activeAvailable;
+    policyDeleteToggleButton.active = synced && editable;
     settingsButton.active = true;
     // Import/export UI is still pending follow-up implementation.
     importExportButton.active = false;
@@ -228,6 +244,12 @@ public final class LootLockMainScreen extends Screen {
     actionButton.setMessage(
         Text.literal("Action: " + friendlyAction(profile.getRejectedItemAction())));
     enabledButton.setMessage(Text.literal("Enabled: " + (profile.isEnabled() ? "On" : "Off")));
+    policyDeleteToggleButton.setMessage(
+        Text.literal(
+            "Policy Delete: "
+                + (LootLockClient.getState().isAllowDeleteRejectedItems()
+                    ? "Allowed"
+                    : "Blocked")));
   }
 
   private static String friendlyMode(FilterMode mode) {

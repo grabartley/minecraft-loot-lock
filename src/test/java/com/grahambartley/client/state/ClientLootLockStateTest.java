@@ -122,6 +122,7 @@ class ClientLootLockStateTest {
             initialPayload.revision() + 1,
             initialPayload.activeProfileId(),
             List.of(serverProfile),
+            true,
             true));
 
     ClientDraftProfile refreshed = state.getDraftProfile().orElseThrow();
@@ -134,6 +135,6 @@ class ClientLootLockStateTest {
     LootLockProfile profile = LootLockProfile.createDefault();
     UUID playerUuid = UUID.randomUUID();
     return new ServerToClientPackets.SyncPayload(
-        1, playerUuid, 7L, profile.getId(), List.of(profile), true);
+        1, playerUuid, 7L, profile.getId(), List.of(profile), true, true);
   }
 }

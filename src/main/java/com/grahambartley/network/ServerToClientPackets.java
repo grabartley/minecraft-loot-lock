@@ -43,10 +43,20 @@ public final class ServerToClientPackets {
     }
 
     LootLockPlayerData data = LootLock.PLAYER_DATA_MANAGER.get(player);
-    ServerPlayNetworking.send(player, PacketIds.SYNC_PLAYER_DATA_S2C, writeSyncPayload(data));
+    ServerPlayNetworking.send(
+        player,
+        PacketIds.SYNC_PLAYER_DATA_S2C,
+        writeSyncPayload(
+            data, player.hasPermissionLevel(2), LootLock.SERVER_CONFIG.allowDeleteRejectedItems()));
   }
 
   public static PacketByteBuf writeSyncPayload(LootLockPlayerData data) {
+    return writeSyncPayload(
+        data, data.isClientCanEdit(), LootLock.SERVER_CONFIG.allowDeleteRejectedItems());
+  }
+
+  public static PacketByteBuf writeSyncPayload(
+      LootLockPlayerData data, boolean clientCanEdit, boolean allowDeleteRejectedItems) {
     PacketByteBuf buf = PacketByteBufs.create();
     buf.writeVarInt(data.getSchemaVersion());
     buf.writeUuid(data.getPlayerUuid());
@@ -59,7 +69,8 @@ public final class ServerToClientPackets {
     for (LootLockProfile profile : data.getProfiles()) {
       writeProfile(buf, profile);
     }
-    buf.writeBoolean(data.isClientCanEdit());
+    buf.writeBoolean(clientCanEdit);
+    buf.writeBoolean(allowDeleteRejectedItems);
     return buf;
   }
 
@@ -98,8 +109,15 @@ public final class ServerToClientPackets {
       profiles.add(readProfile(buf));
     }
     boolean clientCanEdit = buf.readBoolean();
+    boolean allowDeleteRejectedItems = buf.readBoolean();
     return new SyncPayload(
-        schemaVersion, playerUuid, revision, activeProfileId, profiles, clientCanEdit);
+        schemaVersion,
+        playerUuid,
+        revision,
+        activeProfileId,
+        profiles,
+        clientCanEdit,
+        allowDeleteRejectedItems);
   }
 
   private static void writeProfile(PacketByteBuf buf, LootLockProfile profile) {
@@ -134,7 +152,8 @@ public final class ServerToClientPackets {
       long revision,
       UUID activeProfileId,
       List<LootLockProfile> profiles,
-      boolean clientCanEdit) {}
+      boolean clientCanEdit,
+      boolean allowDeleteRejectedItems) {}
 
   public record BlockedNoticePayload(Identifier itemId, int count, boolean deleted) {}
 }

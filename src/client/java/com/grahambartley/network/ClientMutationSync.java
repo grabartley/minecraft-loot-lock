@@ -57,4 +57,14 @@ public final class ClientMutationSync {
         ClientToServerPackets.writeDeleteProfilePayload(baseRevision, profileId));
     return true;
   }
+
+  public static boolean sendServerPolicyUpdateRequest(boolean allowDeleteRejectedItems) {
+    if (!ClientPlayNetworking.canSend(PacketIds.UPDATE_SERVER_POLICY_C2S)) {
+      return false;
+    }
+    ClientPlayNetworking.send(
+        PacketIds.UPDATE_SERVER_POLICY_C2S,
+        ClientToServerPackets.writeUpdateServerPolicyPayload(allowDeleteRejectedItems));
+    return true;
+  }
 }

@@ -10,6 +10,7 @@ import java.util.UUID;
 public final class ClientLootLockState {
   private boolean serverSupportsLootLock;
   private boolean synced;
+  private boolean allowDeleteRejectedItems;
   private LootLockPlayerData snapshot;
   private ClientDraftProfile draftProfile;
 
@@ -17,6 +18,7 @@ public final class ClientLootLockState {
     serverSupportsLootLock = false;
     synced = false;
     snapshot = null;
+    allowDeleteRejectedItems = true;
     draftProfile = null;
   }
 
@@ -38,6 +40,7 @@ public final class ClientLootLockState {
     serverSupportsLootLock = true;
     synced = true;
     snapshot = toSnapshot(payload);
+    allowDeleteRejectedItems = payload.allowDeleteRejectedItems();
     refreshDraftFromSnapshot();
   }
 
@@ -45,6 +48,7 @@ public final class ClientLootLockState {
     serverSupportsLootLock = false;
     synced = false;
     snapshot = null;
+    allowDeleteRejectedItems = true;
     draftProfile = null;
   }
 
@@ -54,6 +58,10 @@ public final class ClientLootLockState {
 
   public boolean isSynced() {
     return synced;
+  }
+
+  public boolean isAllowDeleteRejectedItems() {
+    return allowDeleteRejectedItems;
   }
 
   public Optional<LootLockPlayerData> getSnapshot() {

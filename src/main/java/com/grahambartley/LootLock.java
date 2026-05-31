@@ -33,8 +33,7 @@ public class LootLock implements ModInitializer {
           ConfigManager configManager = new ConfigManager(worldDir);
           SERVER_CONFIG = LootLockConfig.load(configManager.getPaths().getServerPolicyPath());
           PLAYER_DATA_MANAGER = new ServerPlayerDataManager(configManager);
-          PICKUP_GUARD =
-              new PickupGuard(PLAYER_DATA_MANAGER, SERVER_CONFIG.allowDeleteRejectedItems());
+          PICKUP_GUARD = new PickupGuard(PLAYER_DATA_MANAGER);
           ServerLifecycleHooks.initialize(PLAYER_DATA_MANAGER, PICKUP_GUARD);
           LOGGER.info("{} initialized (world: {})", LootLockConstants.MOD_NAME, worldDir);
         });
