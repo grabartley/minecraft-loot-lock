@@ -13,13 +13,10 @@ import java.util.UUID;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.network.PacketByteBuf;
+import net.minecraft.server.network.ServerPlayerEntity;
 
 public final class ClientToServerPackets {
   private static final int MAX_CLIENT_VERSION_LENGTH = 64;
-  private static final int MAX_PROFILE_NAME_LENGTH = 64;
-  private static final int MAX_RULE_ID_LENGTH = 256;
-  private static final int MAX_PROFILES = 64;
-  private static final int MAX_RULES_PER_PROFILE = 1024;
 
   private ClientToServerPackets() {}
 
@@ -112,7 +109,7 @@ public final class ClientToServerPackets {
       long baseRevision, String name, LootLockProfile copyFromProfile) {
     PacketByteBuf buf = PacketByteBufs.create();
     buf.writeVarLong(baseRevision);
-    buf.writeString(name == null ? "" : name, MAX_PROFILE_NAME_LENGTH);
+    buf.writeString(name == null ? "" : name, PacketLimits.MAX_PROFILE_NAME_LENGTH);
     buf.writeBoolean(copyFromProfile != null);
     if (copyFromProfile != null) {
       writeProfile(buf, copyFromProfile);
@@ -122,7 +119,7 @@ public final class ClientToServerPackets {
 
   static CreateProfilePayload readCreateProfilePayload(PacketByteBuf buf) {
     long baseRevision = buf.readVarLong();
-    String name = buf.readString(MAX_PROFILE_NAME_LENGTH);
+    String name = buf.readString(PacketLimits.MAX_PROFILE_NAME_LENGTH);
     LootLockProfile copyFrom = buf.readBoolean() ? readProfile(buf) : null;
     return new CreateProfilePayload(baseRevision, name, copyFrom);
   }
@@ -139,23 +136,26 @@ public final class ClientToServerPackets {
   }
 
   static MutationResult applyUpdateProfile(LootLockPlayerData data, UpdateProfilePayload payload) {
-    if (!isEditable(data) || isStale(data, payload.baseRevision())) {
-      return MutationResult.rejected();
+    if (!isEditable(data)) {
+      return MutationResult.rejected(MutationRejectionReason.NOT_EDITABLE);
+    }
+    if (isStale(data, payload.baseRevision())) {
+      return MutationResult.rejected(MutationRejectionReason.STALE);
     }
 
     if (payload.profile() == null || payload.profile().getId() == null) {
-      return MutationResult.rejected();
+      return MutationResult.rejected(MutationRejectionReason.INVALID);
     }
 
     List<LootLockProfile> profiles = new ArrayList<>(data.getProfiles());
     int profileIndex = indexOfProfile(profiles, payload.profile().getId());
     if (profileIndex < 0) {
-      return MutationResult.rejected();
+      return MutationResult.rejected(MutationRejectionReason.NOT_FOUND);
     }
 
     LootLockProfile sanitized = sanitizeProfile(payload.profile(), payload.profile().getId());
     if (sanitized == null) {
-      return MutationResult.rejected();
+      return MutationResult.rejected(MutationRejectionReason.INVALID);
     }
 
     profiles.set(profileIndex, sanitized);
@@ -168,12 +168,15 @@ public final class ClientToServerPackets {
 
   static MutationResult applyActivateProfile(
       LootLockPlayerData data, ActivateProfilePayload payload) {
-    if (!isEditable(data) || isStale(data, payload.baseRevision())) {
-      return MutationResult.rejected();
+    if (!isEditable(data)) {
+      return MutationResult.rejected(MutationRejectionReason.NOT_EDITABLE);
+    }
+    if (isStale(data, payload.baseRevision())) {
+      return MutationResult.rejected(MutationRejectionReason.STALE);
     }
 
     if (indexOfProfile(data.getProfiles(), payload.profileId()) < 0) {
-      return MutationResult.rejected();
+      return MutationResult.rejected(MutationRejectionReason.NOT_FOUND);
     }
 
     data.setActiveProfileId(payload.profileId());
@@ -181,18 +184,25 @@ public final class ClientToServerPackets {
   }
 
   static MutationResult applyCreateProfile(LootLockPlayerData data, CreateProfilePayload payload) {
-    if (!isEditable(data) || isStale(data, payload.baseRevision())) {
-      return MutationResult.rejected();
+    if (!isEditable(data)) {
+      return MutationResult.rejected(MutationRejectionReason.NOT_EDITABLE);
+    }
+    if (isStale(data, payload.baseRevision())) {
+      return MutationResult.rejected(MutationRejectionReason.STALE);
     }
 
     List<LootLockProfile> profiles = new ArrayList<>(data.getProfiles());
-    if (profiles.size() >= MAX_PROFILES) {
-      return MutationResult.rejected();
+    if (profiles.size() >= PacketLimits.MAX_PROFILES) {
+      return MutationResult.rejected(MutationRejectionReason.TOO_MANY);
     }
 
     String sanitizedName = sanitizeName(payload.name());
     if (sanitizedName.isBlank()) {
-      return MutationResult.rejected();
+      return MutationResult.rejected(MutationRejectionReason.INVALID);
+    }
+
+    if (hasDuplicateProfileName(profiles, sanitizedName)) {
+      return MutationResult.rejected(MutationRejectionReason.DUPLICATE_NAME);
     }
 
     LootLockProfile created =
@@ -200,30 +210,32 @@ public final class ClientToServerPackets {
             ? createDefaultProfile(sanitizedName)
             : cloneProfile(payload.copyFromProfile(), UUID.randomUUID(), sanitizedName);
     if (created == null) {
-      return MutationResult.rejected();
+      return MutationResult.rejected(MutationRejectionReason.INVALID);
     }
 
     profiles.add(created);
     data.setProfiles(profiles);
-    data.setActiveProfileId(created.getId());
     return MutationResult.applied();
   }
 
   static MutationResult applyDeleteProfile(LootLockPlayerData data, DeleteProfilePayload payload) {
-    if (!isEditable(data) || isStale(data, payload.baseRevision())) {
-      return MutationResult.rejected();
+    if (!isEditable(data)) {
+      return MutationResult.rejected(MutationRejectionReason.NOT_EDITABLE);
+    }
+    if (isStale(data, payload.baseRevision())) {
+      return MutationResult.rejected(MutationRejectionReason.STALE);
     }
 
     List<LootLockProfile> profiles = new ArrayList<>(data.getProfiles());
     if (profiles.size() <= 1) {
-      return MutationResult.rejected();
+      return MutationResult.rejected(MutationRejectionReason.INVALID);
     }
 
     boolean removed =
         profiles.removeIf(
             profile -> profile != null && payload.profileId().equals(profile.getId()));
     if (!removed) {
-      return MutationResult.rejected();
+      return MutationResult.rejected(MutationRejectionReason.NOT_FOUND);
     }
 
     data.setProfiles(profiles);
@@ -233,29 +245,34 @@ public final class ClientToServerPackets {
     return MutationResult.applied();
   }
 
-  private static void handleUpdateProfile(
-      net.minecraft.server.network.ServerPlayerEntity player, UpdateProfilePayload payload) {
+  private static void handleUpdateProfile(ServerPlayerEntity player, UpdateProfilePayload payload) {
     applyAndSync(player, applyUpdateProfile(LootLock.PLAYER_DATA_MANAGER.get(player), payload));
   }
 
   private static void handleActivateProfile(
-      net.minecraft.server.network.ServerPlayerEntity player, ActivateProfilePayload payload) {
+      ServerPlayerEntity player, ActivateProfilePayload payload) {
     applyAndSync(player, applyActivateProfile(LootLock.PLAYER_DATA_MANAGER.get(player), payload));
   }
 
-  private static void handleCreateProfile(
-      net.minecraft.server.network.ServerPlayerEntity player, CreateProfilePayload payload) {
+  private static void handleCreateProfile(ServerPlayerEntity player, CreateProfilePayload payload) {
     applyAndSync(player, applyCreateProfile(LootLock.PLAYER_DATA_MANAGER.get(player), payload));
   }
 
-  private static void handleDeleteProfile(
-      net.minecraft.server.network.ServerPlayerEntity player, DeleteProfilePayload payload) {
+  private static void handleDeleteProfile(ServerPlayerEntity player, DeleteProfilePayload payload) {
     applyAndSync(player, applyDeleteProfile(LootLock.PLAYER_DATA_MANAGER.get(player), payload));
   }
 
-  private static void applyAndSync(
-      net.minecraft.server.network.ServerPlayerEntity player, MutationResult result) {
+  private static void applyAndSync(ServerPlayerEntity player, MutationResult result) {
+    if (LootLock.PLAYER_DATA_MANAGER == null) {
+      return;
+    }
+    if (!result.success()) {
+      LootLock.LOGGER.debug(
+          "Rejected C2S profile mutation for {}: {}", player.getUuid(), result.reason());
+    }
     if (result.success()) {
+      // The manager returns the cached mutable player data entry, so these in-place mutations are
+      // persisted when markDirty is called.
       LootLock.PLAYER_DATA_MANAGER.markDirty(player);
     }
     ServerToClientPackets.sendAuthoritativeSync(player);
@@ -280,7 +297,18 @@ public final class ClientToServerPackets {
   }
 
   private static LootLockProfile sanitizeProfile(LootLockProfile profile, UUID profileId) {
+    // Profile ID is taken from the existing record, not payload data, to prevent ID-spoofing.
     return cloneProfile(profile, profileId, sanitizeName(profile.getName()));
+  }
+
+  private static boolean hasDuplicateProfileName(
+      List<LootLockProfile> profiles, String profileName) {
+    for (LootLockProfile profile : profiles) {
+      if (profile != null && profileName.equalsIgnoreCase(profile.getName())) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private static LootLockProfile cloneProfile(LootLockProfile source, UUID profileId, String name) {
@@ -290,7 +318,7 @@ public final class ClientToServerPackets {
 
     List<RuleEntry> sanitizedRules = new ArrayList<>();
     List<RuleEntry> rules = source.getRules() == null ? List.of() : source.getRules();
-    if (rules.size() > MAX_RULES_PER_PROFILE) {
+    if (rules.size() > PacketLimits.MAX_RULES_PER_PROFILE) {
       return null;
     }
 
@@ -299,7 +327,7 @@ public final class ClientToServerPackets {
         return null;
       }
       String itemId = rule.itemId().trim();
-      if (itemId.length() > MAX_RULE_ID_LENGTH) {
+      if (itemId.length() > PacketLimits.MAX_RULE_ID_LENGTH) {
         return null;
       }
       sanitizedRules.add(new RuleEntry(itemId));
@@ -330,7 +358,7 @@ public final class ClientToServerPackets {
       return "";
     }
     String sanitized = name.trim();
-    if (sanitized.length() > MAX_PROFILE_NAME_LENGTH) {
+    if (sanitized.length() > PacketLimits.MAX_PROFILE_NAME_LENGTH) {
       return "";
     }
     return sanitized;
@@ -338,26 +366,26 @@ public final class ClientToServerPackets {
 
   private static void writeProfile(PacketByteBuf buf, LootLockProfile profile) {
     buf.writeUuid(profile.getId());
-    buf.writeString(profile.getName(), MAX_PROFILE_NAME_LENGTH);
+    buf.writeString(profile.getName(), PacketLimits.MAX_PROFILE_NAME_LENGTH);
     buf.writeEnumConstant(profile.getMode());
     buf.writeEnumConstant(profile.getRejectedItemAction());
     buf.writeBoolean(profile.isEnabled());
     buf.writeVarInt(profile.getRules().size());
     for (RuleEntry rule : profile.getRules()) {
-      buf.writeString(rule.itemId(), MAX_RULE_ID_LENGTH);
+      buf.writeString(rule.itemId(), PacketLimits.MAX_RULE_ID_LENGTH);
     }
   }
 
   private static LootLockProfile readProfile(PacketByteBuf buf) {
     UUID profileId = buf.readUuid();
-    String profileName = buf.readString(MAX_PROFILE_NAME_LENGTH);
+    String profileName = buf.readString(PacketLimits.MAX_PROFILE_NAME_LENGTH);
     FilterMode mode = buf.readEnumConstant(FilterMode.class);
     RejectedItemAction action = buf.readEnumConstant(RejectedItemAction.class);
     boolean enabled = buf.readBoolean();
     int ruleCount = buf.readVarInt();
     List<RuleEntry> rules = new ArrayList<>(ruleCount);
     for (int i = 0; i < ruleCount; i++) {
-      rules.add(new RuleEntry(buf.readString(MAX_RULE_ID_LENGTH)));
+      rules.add(new RuleEntry(buf.readString(PacketLimits.MAX_RULE_ID_LENGTH)));
     }
     return new LootLockProfile(profileId, profileName, mode, action, enabled, rules);
   }
@@ -372,13 +400,23 @@ public final class ClientToServerPackets {
 
   record DeleteProfilePayload(long baseRevision, UUID profileId) {}
 
-  record MutationResult(boolean success) {
+  record MutationResult(boolean success, MutationRejectionReason reason) {
     static MutationResult applied() {
-      return new MutationResult(true);
+      return new MutationResult(true, MutationRejectionReason.NONE);
     }
 
-    static MutationResult rejected() {
-      return new MutationResult(false);
+    static MutationResult rejected(MutationRejectionReason reason) {
+      return new MutationResult(false, reason);
     }
+  }
+
+  enum MutationRejectionReason {
+    NONE,
+    STALE,
+    NOT_FOUND,
+    INVALID,
+    TOO_MANY,
+    NOT_EDITABLE,
+    DUPLICATE_NAME
   }
 }

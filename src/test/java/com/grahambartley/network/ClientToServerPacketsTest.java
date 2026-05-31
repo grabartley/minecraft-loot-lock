@@ -64,12 +64,14 @@ class ClientToServerPacketsTest {
             data, new ClientToServerPackets.UpdateProfilePayload(999L, replacement));
 
     assertFalse(result.success());
+    assertEquals(ClientToServerPackets.MutationRejectionReason.STALE, result.reason());
     assertNotEquals("Updated", data.getProfiles().get(0).getName());
   }
 
   @Test
-  void applyCreateProfileCreatesAndActivatesProfile() {
+  void applyCreateProfileCreatesWithoutChangingActiveProfile() {
     LootLockPlayerData data = createDataWithOneProfile();
+    UUID originalActiveProfileId = data.getActiveProfileId();
     data.setRevision(4L);
 
     ClientToServerPackets.MutationResult result =
@@ -79,7 +81,21 @@ class ClientToServerPacketsTest {
     assertTrue(result.success());
     assertEquals(2, data.getProfiles().size());
     assertEquals("Farming", data.getProfiles().get(1).getName());
-    assertEquals(data.getProfiles().get(1).getId(), data.getActiveProfileId());
+    assertEquals(originalActiveProfileId, data.getActiveProfileId());
+  }
+
+  @Test
+  void applyCreateProfileRejectsDuplicateNamesIgnoringCase() {
+    LootLockPlayerData data = createDataWithOneProfile();
+    data.setRevision(2L);
+
+    ClientToServerPackets.MutationResult result =
+        ClientToServerPackets.applyCreateProfile(
+            data, new ClientToServerPackets.CreateProfilePayload(2L, "default", null));
+
+    assertFalse(result.success());
+    assertEquals(ClientToServerPackets.MutationRejectionReason.DUPLICATE_NAME, result.reason());
+    assertEquals(1, data.getProfiles().size());
   }
 
   @Test
