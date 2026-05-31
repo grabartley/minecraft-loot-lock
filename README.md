@@ -1,4 +1,4 @@
-# LootLock
+![LootLock banner](.//src/main/resources/assets/loot-lock/banner.png)
 
 [![Build](https://github.com/grabartley/minecraft-loot-lock/actions/workflows/build.yml/badge.svg)](https://github.com/grabartley/minecraft-loot-lock/actions/workflows/build.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
@@ -19,9 +19,6 @@ In busy survival worlds, inventory chaos is real. LootLock gives each player cus
 - Dedicated-server safe architecture, client-only code isolated to `src/client`.
 - Works for players with and without the client mod installed.
 
-## First Release Version
-
-The first public release line for this project is `0.21.0`.
 
 ## How It Works
 

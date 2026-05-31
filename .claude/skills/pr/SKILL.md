@@ -10,7 +10,7 @@ This skill is used directly by humans and also as a handoff step from the build 
 
 ## Workflow
 
-1. Run the `worktree` skill first to create and enter a fresh worktree.
+1. Update gradle.properties mod_version based on semver update expected from this PR (using conventional commit type, refer to mathieudutour/github-tag-action@v6.2)
 2. Stage: `git add <files>`
 3. Format: `./gradlew spotlessApply`
 4. Test: `./gradlew test`
