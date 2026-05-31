@@ -69,6 +69,28 @@ class ClientToServerPacketsTest {
   }
 
   @Test
+  void applyUpdateProfileNormalizesDeleteWhenPolicyDisablesIt() {
+    LootLockPlayerData data = createDataWithOneProfile();
+    data.setRevision(6L);
+    LootLockProfile replacement =
+        new LootLockProfile(
+            data.getProfiles().get(0).getId(),
+            "Updated",
+            FilterMode.DENYLIST,
+            RejectedItemAction.DELETE,
+            true,
+            List.of(new RuleEntry("minecraft:stone")));
+
+    ClientToServerPackets.MutationResult result =
+        ClientToServerPackets.applyUpdateProfile(
+            data, new ClientToServerPackets.UpdateProfilePayload(6L, replacement), false);
+
+    assertTrue(result.success());
+    assertEquals(
+        RejectedItemAction.LEAVE_ON_GROUND, data.getProfiles().get(0).getRejectedItemAction());
+  }
+
+  @Test
   void applyCreateProfileCreatesWithoutChangingActiveProfile() {
     LootLockPlayerData data = createDataWithOneProfile();
     UUID originalActiveProfileId = data.getActiveProfileId();

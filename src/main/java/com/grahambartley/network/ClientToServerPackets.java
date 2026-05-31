@@ -137,6 +137,11 @@ public final class ClientToServerPackets {
   }
 
   static MutationResult applyUpdateProfile(LootLockPlayerData data, UpdateProfilePayload payload) {
+    return applyUpdateProfile(data, payload, true);
+  }
+
+  static MutationResult applyUpdateProfile(
+      LootLockPlayerData data, UpdateProfilePayload payload, boolean allowDeleteRejectedItems) {
     if (!isEditable(data)) {
       return MutationResult.rejected(MutationRejectionReason.NOT_EDITABLE);
     }
@@ -154,7 +159,8 @@ public final class ClientToServerPackets {
       return MutationResult.rejected(MutationRejectionReason.NOT_FOUND);
     }
 
-    LootLockProfile sanitized = sanitizeProfile(payload.profile(), payload.profile().getId());
+    LootLockProfile sanitized =
+        sanitizeProfile(payload.profile(), payload.profile().getId(), allowDeleteRejectedItems);
     if (sanitized == null) {
       return MutationResult.rejected(MutationRejectionReason.INVALID);
     }
@@ -209,7 +215,7 @@ public final class ClientToServerPackets {
     LootLockProfile created =
         payload.copyFromProfile() == null
             ? createDefaultProfile(sanitizedName)
-            : cloneProfile(payload.copyFromProfile(), UUID.randomUUID(), sanitizedName);
+            : cloneProfile(payload.copyFromProfile(), UUID.randomUUID(), sanitizedName, true);
     if (created == null) {
       return MutationResult.rejected(MutationRejectionReason.INVALID);
     }
@@ -250,7 +256,12 @@ public final class ClientToServerPackets {
     if (LootLock.PLAYER_DATA_MANAGER == null) {
       return;
     }
-    applyAndSync(player, applyUpdateProfile(LootLock.PLAYER_DATA_MANAGER.get(player), payload));
+    applyAndSync(
+        player,
+        applyUpdateProfile(
+            LootLock.PLAYER_DATA_MANAGER.get(player),
+            payload,
+            LootLock.SERVER_CONFIG.allowDeleteRejectedItems()));
   }
 
   private static void handleActivateProfile(
@@ -309,9 +320,11 @@ public final class ClientToServerPackets {
     return -1;
   }
 
-  private static LootLockProfile sanitizeProfile(LootLockProfile profile, UUID profileId) {
+  private static LootLockProfile sanitizeProfile(
+      LootLockProfile profile, UUID profileId, boolean allowDeleteRejectedItems) {
     // Profile ID is taken from the existing record, not payload data, to prevent ID-spoofing.
-    return cloneProfile(profile, profileId, sanitizeName(profile.getName()));
+    return cloneProfile(
+        profile, profileId, sanitizeName(profile.getName()), allowDeleteRejectedItems);
   }
 
   private static boolean hasDuplicateProfileName(
@@ -324,7 +337,8 @@ public final class ClientToServerPackets {
     return false;
   }
 
-  private static LootLockProfile cloneProfile(LootLockProfile source, UUID profileId, String name) {
+  private static LootLockProfile cloneProfile(
+      LootLockProfile source, UUID profileId, String name, boolean allowDeleteRejectedItems) {
     if (source == null || profileId == null || name.isBlank()) {
       return null;
     }
@@ -346,12 +360,18 @@ public final class ClientToServerPackets {
       sanitizedRules.add(new RuleEntry(itemId));
     }
 
+    RejectedItemAction action =
+        Optional.ofNullable(source.getRejectedItemAction())
+            .orElse(RejectedItemAction.LEAVE_ON_GROUND);
+    if (!allowDeleteRejectedItems && action == RejectedItemAction.DELETE) {
+      action = RejectedItemAction.LEAVE_ON_GROUND;
+    }
+
     return new LootLockProfile(
         profileId,
         name,
         Optional.ofNullable(source.getMode()).orElse(FilterMode.DENYLIST),
-        Optional.ofNullable(source.getRejectedItemAction())
-            .orElse(RejectedItemAction.LEAVE_ON_GROUND),
+        action,
         source.isEnabled(),
         sanitizedRules);
   }

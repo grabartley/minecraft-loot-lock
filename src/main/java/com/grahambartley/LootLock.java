@@ -2,6 +2,7 @@ package com.grahambartley;
 
 import com.grahambartley.command.LootLockCommand;
 import com.grahambartley.config.ConfigManager;
+import com.grahambartley.config.LootLockConfig;
 import com.grahambartley.network.LootLockNetworking;
 import com.grahambartley.server.PickupGuard;
 import com.grahambartley.server.ServerLifecycleHooks;
@@ -18,6 +19,7 @@ public class LootLock implements ModInitializer {
   public static final Logger LOGGER = LoggerFactory.getLogger(LootLockConstants.MOD_ID);
   public static ServerPlayerDataManager PLAYER_DATA_MANAGER;
   public static PickupGuard PICKUP_GUARD;
+  public static LootLockConfig SERVER_CONFIG = LootLockConfig.defaults();
 
   @Override
   public void onInitialize() {
@@ -29,8 +31,10 @@ public class LootLock implements ModInitializer {
         server -> {
           Path worldDir = server.getSavePath(WorldSavePath.ROOT).normalize();
           ConfigManager configManager = new ConfigManager(worldDir);
+          SERVER_CONFIG = LootLockConfig.load(configManager.getPaths().getServerPolicyPath());
           PLAYER_DATA_MANAGER = new ServerPlayerDataManager(configManager);
-          PICKUP_GUARD = new PickupGuard(PLAYER_DATA_MANAGER);
+          PICKUP_GUARD =
+              new PickupGuard(PLAYER_DATA_MANAGER, SERVER_CONFIG.allowDeleteRejectedItems());
           ServerLifecycleHooks.initialize(PLAYER_DATA_MANAGER, PICKUP_GUARD);
           LOGGER.info("{} initialized (world: {})", LootLockConstants.MOD_NAME, worldDir);
         });

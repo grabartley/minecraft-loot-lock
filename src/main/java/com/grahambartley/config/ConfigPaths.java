@@ -25,6 +25,10 @@ public final class ConfigPaths {
     return lootLockDir.resolve(PLAYERS_DIR);
   }
 
+  public Path getServerPolicyPath() {
+    return lootLockDir.resolve("server-policy.json");
+  }
+
   public Path getPlayerDataPath(UUID playerUuid) {
     return getPlayersDir().resolve(playerUuid.toString() + JSON_EXT);
   }

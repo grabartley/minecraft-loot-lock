@@ -23,11 +23,17 @@ public final class PickupGuard {
   private static final long NOTIFICATION_COOLDOWN_TICKS = 40;
 
   private final ServerPlayerDataManager playerDataManager;
+  private final boolean allowDeleteRejectedItems;
   private final Map<UUID, Long> lastNotificationTick = new HashMap<>();
   private final Map<UUID, BlockedNotificationAccumulator> blockedAccumulators = new HashMap<>();
 
   public PickupGuard(ServerPlayerDataManager playerDataManager) {
+    this(playerDataManager, true);
+  }
+
+  public PickupGuard(ServerPlayerDataManager playerDataManager, boolean allowDeleteRejectedItems) {
     this.playerDataManager = playerDataManager;
+    this.allowDeleteRejectedItems = allowDeleteRejectedItems;
   }
 
   public PickupDecision evaluate(ServerPlayerEntity player, ItemStack stack) {
@@ -43,7 +49,11 @@ public final class PickupGuard {
       return PickupDecision.ALLOW;
     }
 
-    return activeProfile.evaluate(itemId);
+    PickupDecision decision = activeProfile.evaluate(itemId);
+    if (!allowDeleteRejectedItems && decision == PickupDecision.REJECT_DELETE) {
+      return PickupDecision.REJECT_LEAVE;
+    }
+    return decision;
   }
 
   public boolean tryNotify(
