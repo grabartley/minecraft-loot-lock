@@ -51,4 +51,13 @@ class RuleListControllerTest {
     assertEquals(1, filtered.size());
     assertTrue(filtered.get(0).itemId().contains("diamond"));
   }
+
+  @Test
+  void toggleRuleAddsWhenMissingAndRemovesWhenPresent() {
+    List<RuleEntry> added = RuleListController.toggleRule(List.of(), "minecraft:stone");
+    List<RuleEntry> removed = RuleListController.toggleRule(added, "minecraft:stone");
+
+    assertEquals(1, added.size());
+    assertTrue(removed.isEmpty());
+  }
 }

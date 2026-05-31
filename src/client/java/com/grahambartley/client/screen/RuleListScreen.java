@@ -21,12 +21,21 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 
 public final class RuleListScreen extends Screen {
+  private static final int ROWS_PER_PAGE = 5;
+  private static final long CLEAR_CONFIRM_TIMEOUT_MS = 3000L;
+
   private final Screen parent;
   private TextFieldWidget searchField;
   private ButtonWidget removeButton;
   private ButtonWidget clearButton;
+  private ButtonWidget previousPageButton;
+  private ButtonWidget nextPageButton;
+  private List<RuleEntry> filteredRules = List.of();
+  private String lastFilterQuery = "";
   private int selectedIndex = -1;
+  private int pageStart;
   private boolean confirmClear;
+  private long clearConfirmExpiresAt;
 
   public RuleListScreen(Screen parent) {
     super(Text.literal("Rules"));
@@ -41,6 +50,12 @@ public final class RuleListScreen extends Screen {
     searchField =
         new TextFieldWidget(this.textRenderer, left, top, 200, 20, Text.literal("Search"));
     searchField.setMaxLength(80);
+    searchField.setChangedListener(
+        ignored -> {
+          selectedIndex = -1;
+          pageStart = 0;
+          invalidateFilter();
+        });
     addDrawableChild(searchField);
 
     addDrawableChild(
@@ -59,11 +74,22 @@ public final class RuleListScreen extends Screen {
             ButtonWidget.builder(Text.literal("Clear All"), button -> clearRulesWithConfirm())
                 .dimensions(left, top + 152, 200, 20)
                 .build());
+    previousPageButton =
+        addDrawableChild(
+            ButtonWidget.builder(Text.literal("Prev"), button -> previousPage())
+                .dimensions(left, top + 104, 97, 20)
+                .build());
+    nextPageButton =
+        addDrawableChild(
+            ButtonWidget.builder(Text.literal("Next"), button -> nextPage())
+                .dimensions(left + 103, top + 104, 97, 20)
+                .build());
     addDrawableChild(
         ButtonWidget.builder(Text.literal("Back"), button -> close())
             .dimensions(left, top + 176, 200, 20)
             .build());
-    refreshButtonState();
+    recomputeVisibleRules(activeProfile().orElse(null));
+    refreshButtonState(activeProfile().orElse(null), filteredRules);
   }
 
   @Override
@@ -72,22 +98,34 @@ public final class RuleListScreen extends Screen {
     super.render(context, mouseX, mouseY, delta);
     context.drawCenteredTextWithShadow(textRenderer, this.title, this.width / 2, 18, 0xFFFFFF);
 
+    if (confirmClear && System.currentTimeMillis() >= clearConfirmExpiresAt) {
+      resetClearConfirmation();
+    }
+
     Optional<LootLockProfile> profileOptional = activeProfile();
     if (profileOptional.isEmpty()) {
       context.drawTextWithShadow(
           textRenderer, Text.literal("No active profile"), this.width / 2 - 100, 40, 0xE06666);
-      refreshButtonState();
+      refreshButtonState(null, List.of());
       return;
     }
 
     LootLockProfile profile = profileOptional.get();
     List<RuleEntry> visible = visibleRules(profile);
     int listTop = this.height / 5 + 26;
-    for (int i = 0; i < visible.size() && i < 5; i++) {
-      RuleEntry rule = visible.get(i);
-      int color = i == selectedIndex ? 0xFFF3B0 : 0xDADADA;
+    for (int row = 0; row < ROWS_PER_PAGE; row++) {
+      int absoluteIndex = pageStart + row;
+      if (absoluteIndex >= visible.size()) {
+        break;
+      }
+      RuleEntry rule = visible.get(absoluteIndex);
+      int color = absoluteIndex == selectedIndex ? 0xFFF3B0 : 0xDADADA;
       context.drawTextWithShadow(
-          textRenderer, Text.literal(rule.itemId()), this.width / 2 - 98, listTop + i * 16, color);
+          textRenderer,
+          Text.literal(rule.itemId()),
+          this.width / 2 - 98,
+          listTop + row * 16,
+          color);
     }
 
     List<RuleEntry> unresolved =
@@ -116,7 +154,7 @@ public final class RuleListScreen extends Screen {
           this.height / 5 + 200,
           0xE06666);
     }
-    refreshButtonState();
+    refreshButtonState(profile, visible);
   }
 
   @Override
@@ -133,10 +171,12 @@ public final class RuleListScreen extends Screen {
     if (mouseX < left || mouseX > left + 200 || mouseY < listTop || mouseY > listTop + 80) {
       return false;
     }
-    int index = (int) ((mouseY - listTop) / 16);
-    if (index >= 0 && index < visibleRules(profileOptional.get()).size()) {
-      selectedIndex = index;
-      refreshButtonState();
+    int row = (int) ((mouseY - listTop) / 16);
+    int absoluteIndex = pageStart + row;
+    List<RuleEntry> visible = visibleRules(profileOptional.get());
+    if (absoluteIndex >= 0 && absoluteIndex < visible.size()) {
+      selectedIndex = absoluteIndex;
+      refreshButtonState(profileOptional.get(), visible);
       return true;
     }
     return false;
@@ -167,12 +207,12 @@ public final class RuleListScreen extends Screen {
   private void clearRulesWithConfirm() {
     if (!confirmClear) {
       confirmClear = true;
+      clearConfirmExpiresAt = System.currentTimeMillis() + CLEAR_CONFIRM_TIMEOUT_MS;
       clearButton.setMessage(Text.literal("Confirm Clear"));
       return;
     }
     saveRules(List.of());
-    confirmClear = false;
-    clearButton.setMessage(Text.literal("Clear All"));
+    resetClearConfirmation();
     selectedIndex = -1;
   }
 
@@ -182,11 +222,7 @@ public final class RuleListScreen extends Screen {
       return;
     }
     List<RuleEntry> rules = profileOptional.get().getRules();
-    boolean contains = rules.stream().anyMatch(rule -> rule.itemId().equals(itemId));
-    List<RuleEntry> next =
-        contains
-            ? RuleListController.withRuleRemoved(rules, itemId)
-            : RuleListController.withRuleAdded(rules, itemId);
+    List<RuleEntry> next = RuleListController.toggleRule(rules, itemId);
     saveRules(next);
   }
 
@@ -214,9 +250,11 @@ public final class RuleListScreen extends Screen {
   }
 
   private List<RuleEntry> visibleRules(LootLockProfile profile) {
-    List<RuleEntry> deduped = RuleListController.dedupeRules(profile.getRules());
-    return RuleListController.filterRules(
-        deduped, searchField == null ? "" : searchField.getText());
+    String query = searchField == null ? "" : searchField.getText();
+    if (!query.equals(lastFilterQuery)) {
+      recomputeVisibleRules(profile);
+    }
+    return filteredRules;
   }
 
   private boolean isResolvableItemId(String itemId) {
@@ -224,16 +262,52 @@ public final class RuleListScreen extends Screen {
     return identifier != null && Registries.ITEM.containsId(identifier);
   }
 
-  private void refreshButtonState() {
+  private void refreshButtonState(LootLockProfile profile, List<RuleEntry> visible) {
     Optional<LootLockPlayerData> dataOptional = LootLockClient.getState().getSnapshot();
     boolean editable = dataOptional.map(LootLockPlayerData::isClientCanEdit).orElse(false);
-    List<RuleEntry> visible =
-        dataOptional
-            .flatMap(LootLockPlayerData::getActiveProfile)
-            .map(this::visibleRules)
-            .orElse(new ArrayList<>());
     boolean validSelection = selectedIndex >= 0 && selectedIndex < visible.size();
     removeButton.active = editable && validSelection;
-    clearButton.active = editable;
+    clearButton.active =
+        editable
+            && profile != null
+            && !RuleListController.dedupeRules(profile.getRules()).isEmpty();
+    previousPageButton.active = pageStart > 0;
+    nextPageButton.active = pageStart + ROWS_PER_PAGE < visible.size();
+  }
+
+  private void previousPage() {
+    pageStart = Math.max(0, pageStart - ROWS_PER_PAGE);
+  }
+
+  private void nextPage() {
+    List<RuleEntry> visible = activeProfile().map(this::visibleRules).orElse(new ArrayList<>());
+    if (pageStart + ROWS_PER_PAGE < visible.size()) {
+      pageStart += ROWS_PER_PAGE;
+    }
+  }
+
+  private void invalidateFilter() {
+    lastFilterQuery = "__invalidate__";
+  }
+
+  private void recomputeVisibleRules(LootLockProfile profile) {
+    if (profile == null) {
+      filteredRules = List.of();
+      lastFilterQuery = searchField == null ? "" : searchField.getText();
+      return;
+    }
+    List<RuleEntry> deduped = RuleListController.dedupeRules(profile.getRules());
+    String query = searchField == null ? "" : searchField.getText();
+    filteredRules = RuleListController.filterRules(deduped, query);
+    lastFilterQuery = query;
+    if (selectedIndex >= filteredRules.size()) {
+      selectedIndex = -1;
+    }
+  }
+
+  private void resetClearConfirmation() {
+    confirmClear = false;
+    clearConfirmExpiresAt = 0L;
+    clearButton.setMessage(Text.literal("Clear All"));
   }
 }

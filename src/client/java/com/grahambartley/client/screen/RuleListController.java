@@ -78,6 +78,15 @@ public final class RuleListController {
     return updated;
   }
 
+  public static List<RuleEntry> toggleRule(List<RuleEntry> rules, String itemId) {
+    for (RuleEntry rule : dedupeRules(rules)) {
+      if (rule.itemId().equals(itemId)) {
+        return withRuleRemoved(rules, itemId);
+      }
+    }
+    return withRuleAdded(rules, itemId);
+  }
+
   private static String normalize(String value) {
     return value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
   }
