@@ -203,7 +203,10 @@ public final class LootLockCommand {
     context
         .getSource()
         .sendFeedback(
-            () -> Text.literal("Add 'confirm' to set rejected-item action to delete."), false);
+            () ->
+                Text.literal(
+                    "Delete mode permanently removes rejected dropped items. Run '/lootlock action delete confirm' to proceed."),
+            false);
     return 1;
   }
 
@@ -510,6 +513,14 @@ public final class LootLockCommand {
                         + state.profile.getName()
                         + "'."),
             false);
+    if (normalizedAction == RejectedItemAction.DELETE) {
+      context
+          .getSource()
+          .sendFeedback(
+              () ->
+                  Text.literal("Warning: delete mode permanently destroys rejected dropped items."),
+              false);
+    }
     sendStatus(context.getSource(), state.profile);
     return 1;
   }
