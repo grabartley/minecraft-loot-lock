@@ -36,4 +36,13 @@ class LootLockConfigTest {
     LootLockConfig config = LootLockConfig.load(policyPath);
     assertTrue(config.allowDeleteRejectedItems());
   }
+
+  @Test
+  void savePersistsPolicyFile() {
+    Path policyPath = tempDir.resolve("server-policy.json");
+    assertTrue(LootLockConfig.save(policyPath, new LootLockConfig(false)));
+
+    LootLockConfig loaded = LootLockConfig.load(policyPath);
+    assertFalse(loaded.allowDeleteRejectedItems());
+  }
 }

@@ -3,6 +3,7 @@ package com.grahambartley.network;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.grahambartley.data.FilterMode;
 import com.grahambartley.data.LootLockPlayerData;
@@ -50,6 +51,19 @@ class ServerToClientPacketsTest {
     assertEquals(2, decoded.profiles().get(0).getRules().size());
     assertEquals("minecraft:cobblestone", decoded.profiles().get(0).getRules().get(0).itemId());
     assertFalse(decoded.clientCanEdit());
+    assertTrue(decoded.allowDeleteRejectedItems());
+  }
+
+  @Test
+  void syncPayloadRoundTripsExplicitPolicyValue() {
+    UUID playerId = UUID.randomUUID();
+    LootLockPlayerData data = LootLockPlayerData.createDefault(playerId);
+
+    ServerToClientPackets.SyncPayload decoded =
+        ServerToClientPackets.readSyncPayload(
+            ServerToClientPackets.writeSyncPayload(data, true, false));
+
+    assertFalse(decoded.allowDeleteRejectedItems());
   }
 
   @Test

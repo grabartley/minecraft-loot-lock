@@ -19,6 +19,7 @@ public class LootLock implements ModInitializer {
   public static final Logger LOGGER = LoggerFactory.getLogger(LootLockConstants.MOD_ID);
   public static ServerPlayerDataManager PLAYER_DATA_MANAGER;
   public static PickupGuard PICKUP_GUARD;
+  // Updated at startup and mutated at runtime by server policy command and GUI paths.
   public static LootLockConfig SERVER_CONFIG = LootLockConfig.defaults();
 
   @Override
@@ -33,8 +34,7 @@ public class LootLock implements ModInitializer {
           ConfigManager configManager = new ConfigManager(worldDir);
           SERVER_CONFIG = LootLockConfig.load(configManager.getPaths().getServerPolicyPath());
           PLAYER_DATA_MANAGER = new ServerPlayerDataManager(configManager);
-          PICKUP_GUARD =
-              new PickupGuard(PLAYER_DATA_MANAGER, SERVER_CONFIG.allowDeleteRejectedItems());
+          PICKUP_GUARD = new PickupGuard(PLAYER_DATA_MANAGER);
           ServerLifecycleHooks.initialize(PLAYER_DATA_MANAGER, PICKUP_GUARD);
           LOGGER.info("{} initialized (world: {})", LootLockConstants.MOD_NAME, worldDir);
         });

@@ -6,6 +6,7 @@ import com.grahambartley.data.LootLockPlayerData;
 import com.grahambartley.data.LootLockProfile;
 import com.grahambartley.data.RejectedItemAction;
 import com.grahambartley.data.RuleEntry;
+import com.grahambartley.server.ServerPolicyService;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -67,6 +68,13 @@ public final class ClientToServerPackets {
         (server, player, handler, buf, responseSender) -> {
           DeleteProfilePayload payload = readDeleteProfilePayload(buf);
           server.execute(() -> handleDeleteProfile(player, payload));
+        });
+
+    ServerPlayNetworking.registerGlobalReceiver(
+        PacketIds.UPDATE_SERVER_POLICY_C2S,
+        (server, player, handler, buf, responseSender) -> {
+          UpdateServerPolicyPayload payload = readUpdateServerPolicyPayload(buf);
+          server.execute(() -> handleUpdateServerPolicy(player, payload));
         });
   }
 
@@ -134,6 +142,16 @@ public final class ClientToServerPackets {
 
   static DeleteProfilePayload readDeleteProfilePayload(PacketByteBuf buf) {
     return new DeleteProfilePayload(buf.readVarLong(), buf.readUuid());
+  }
+
+  public static PacketByteBuf writeUpdateServerPolicyPayload(boolean allowDeleteRejectedItems) {
+    PacketByteBuf buf = PacketByteBufs.create();
+    buf.writeBoolean(allowDeleteRejectedItems);
+    return buf;
+  }
+
+  static UpdateServerPolicyPayload readUpdateServerPolicyPayload(PacketByteBuf buf) {
+    return new UpdateServerPolicyPayload(buf.readBoolean());
   }
 
   static MutationResult applyUpdateProfile(LootLockPlayerData data, UpdateProfilePayload payload) {
@@ -253,6 +271,12 @@ public final class ClientToServerPackets {
   }
 
   private static void handleUpdateProfile(ServerPlayerEntity player, UpdateProfilePayload payload) {
+    // Defense-in-depth: clientCanEdit already reflects operator status in sync payload,
+    // but we guard explicitly at the packet boundary.
+    if (!isOperator(player)) {
+      ServerToClientPackets.sendAuthoritativeSync(player);
+      return;
+    }
     if (LootLock.PLAYER_DATA_MANAGER == null) {
       return;
     }
@@ -266,6 +290,10 @@ public final class ClientToServerPackets {
 
   private static void handleActivateProfile(
       ServerPlayerEntity player, ActivateProfilePayload payload) {
+    if (!isOperator(player)) {
+      ServerToClientPackets.sendAuthoritativeSync(player);
+      return;
+    }
     if (LootLock.PLAYER_DATA_MANAGER == null) {
       return;
     }
@@ -273,6 +301,10 @@ public final class ClientToServerPackets {
   }
 
   private static void handleCreateProfile(ServerPlayerEntity player, CreateProfilePayload payload) {
+    if (!isOperator(player)) {
+      ServerToClientPackets.sendAuthoritativeSync(player);
+      return;
+    }
     if (LootLock.PLAYER_DATA_MANAGER == null) {
       return;
     }
@@ -280,10 +312,28 @@ public final class ClientToServerPackets {
   }
 
   private static void handleDeleteProfile(ServerPlayerEntity player, DeleteProfilePayload payload) {
+    if (!isOperator(player)) {
+      ServerToClientPackets.sendAuthoritativeSync(player);
+      return;
+    }
     if (LootLock.PLAYER_DATA_MANAGER == null) {
       return;
     }
     applyAndSync(player, applyDeleteProfile(LootLock.PLAYER_DATA_MANAGER.get(player), payload));
+  }
+
+  private static void handleUpdateServerPolicy(
+      ServerPlayerEntity player, UpdateServerPolicyPayload payload) {
+    if (!isOperator(player)) {
+      ServerToClientPackets.sendAuthoritativeSync(player);
+      return;
+    }
+    ServerPolicyService.updateAllowDeleteRejectedItems(
+        player.getServer(), payload.allowDeleteRejectedItems());
+    for (ServerPlayerEntity connectedPlayer :
+        player.getServer().getPlayerManager().getPlayerList()) {
+      ServerToClientPackets.sendAuthoritativeSync(connectedPlayer);
+    }
   }
 
   private static void applyAndSync(ServerPlayerEntity player, MutationResult result) {
@@ -304,6 +354,10 @@ public final class ClientToServerPackets {
 
   private static boolean isEditable(LootLockPlayerData data) {
     return data != null && data.isClientCanEdit();
+  }
+
+  private static boolean isOperator(ServerPlayerEntity player) {
+    return player != null && player.hasPermissionLevel(2);
   }
 
   private static boolean isStale(LootLockPlayerData data, long baseRevision) {
@@ -432,6 +486,8 @@ public final class ClientToServerPackets {
   record CreateProfilePayload(long baseRevision, String name, LootLockProfile copyFromProfile) {}
 
   record DeleteProfilePayload(long baseRevision, UUID profileId) {}
+
+  record UpdateServerPolicyPayload(boolean allowDeleteRejectedItems) {}
 
   record MutationResult(boolean success, MutationRejectionReason reason) {
     static MutationResult applied() {

@@ -44,6 +44,22 @@ public final class LootLockConfig {
     }
   }
 
+  public static boolean save(Path path, LootLockConfig config) {
+    if (path == null || config == null) {
+      return false;
+    }
+
+    try {
+      Files.createDirectories(path.getParent());
+      JsonObject root = new JsonObject();
+      root.addProperty("allowDeleteRejectedItems", config.allowDeleteRejectedItems());
+      Files.writeString(path, GSON.toJson(root), StandardCharsets.UTF_8);
+      return true;
+    } catch (IOException ex) {
+      return false;
+    }
+  }
+
   public boolean allowDeleteRejectedItems() {
     return allowDeleteRejectedItems;
   }

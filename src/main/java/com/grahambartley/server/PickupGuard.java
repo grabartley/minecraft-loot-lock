@@ -1,5 +1,6 @@
 package com.grahambartley.server;
 
+import com.grahambartley.LootLock;
 import com.grahambartley.api.PickupDecision;
 import com.grahambartley.data.LootLockPlayerData;
 import com.grahambartley.data.LootLockProfile;
@@ -23,17 +24,11 @@ public final class PickupGuard {
   private static final long NOTIFICATION_COOLDOWN_TICKS = 40;
 
   private final ServerPlayerDataManager playerDataManager;
-  private final boolean allowDeleteRejectedItems;
   private final Map<UUID, Long> lastNotificationTick = new HashMap<>();
   private final Map<UUID, BlockedNotificationAccumulator> blockedAccumulators = new HashMap<>();
 
   public PickupGuard(ServerPlayerDataManager playerDataManager) {
-    this(playerDataManager, true);
-  }
-
-  public PickupGuard(ServerPlayerDataManager playerDataManager, boolean allowDeleteRejectedItems) {
     this.playerDataManager = playerDataManager;
-    this.allowDeleteRejectedItems = allowDeleteRejectedItems;
   }
 
   public PickupDecision evaluate(ServerPlayerEntity player, ItemStack stack) {
@@ -50,7 +45,8 @@ public final class PickupGuard {
     }
 
     PickupDecision decision = activeProfile.evaluate(itemId);
-    if (!allowDeleteRejectedItems && decision == PickupDecision.REJECT_DELETE) {
+    if (!LootLock.SERVER_CONFIG.allowDeleteRejectedItems()
+        && decision == PickupDecision.REJECT_DELETE) {
       return PickupDecision.REJECT_LEAVE;
     }
     return decision;

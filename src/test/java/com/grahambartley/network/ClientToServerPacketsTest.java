@@ -150,6 +150,15 @@ class ClientToServerPacketsTest {
     assertEquals(data.getProfiles().get(0).getId(), data.getActiveProfileId());
   }
 
+  @Test
+  void updateServerPolicyPayloadRoundTrips() {
+    PacketByteBuf buf = ClientToServerPackets.writeUpdateServerPolicyPayload(false);
+    ClientToServerPackets.UpdateServerPolicyPayload payload =
+        ClientToServerPackets.readUpdateServerPolicyPayload(buf);
+
+    assertFalse(payload.allowDeleteRejectedItems());
+  }
+
   private static LootLockPlayerData createDataWithOneProfile() {
     UUID playerId = UUID.randomUUID();
     LootLockPlayerData data = LootLockPlayerData.createDefault(playerId);

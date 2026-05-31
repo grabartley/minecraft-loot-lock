@@ -6,7 +6,9 @@ import com.grahambartley.data.LootLockPlayerData;
 import com.grahambartley.data.LootLockProfile;
 import com.grahambartley.data.RejectedItemAction;
 import com.grahambartley.data.RuleEntry;
+import com.grahambartley.network.ServerToClientPackets;
 import com.grahambartley.server.ServerPlayerDataManager;
+import com.grahambartley.server.ServerPolicyService;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
@@ -103,7 +105,21 @@ public final class LootLockCommand {
                             .executes(LootLockCommand::ruleClearConfirmHelp)
                             .then(
                                 CommandManager.literal("confirm")
-                                    .executes(LootLockCommand::ruleClearConfirm)))));
+                                    .executes(LootLockCommand::ruleClearConfirm))))
+            .then(
+                CommandManager.literal("policy")
+                    .requires(source -> source.hasPermissionLevel(2))
+                    .executes(LootLockCommand::policyStatus)
+                    .then(
+                        CommandManager.literal("allowDeleteRejectedItems")
+                            .then(
+                                CommandManager.literal("true")
+                                    .executes(
+                                        context -> setAllowDeleteRejectedItems(context, true)))
+                            .then(
+                                CommandManager.literal("false")
+                                    .executes(
+                                        context -> setAllowDeleteRejectedItems(context, false))))));
   }
 
   static String modeToken(FilterMode mode) {
@@ -143,6 +159,43 @@ public final class LootLockCommand {
     context.getSource().sendFeedback(() -> Text.literal("- /lootlock rule remove <item>"), false);
     context.getSource().sendFeedback(() -> Text.literal("- /lootlock rule list"), false);
     context.getSource().sendFeedback(() -> Text.literal("- /lootlock rule clear confirm"), false);
+    context
+        .getSource()
+        .sendFeedback(
+            () -> Text.literal("- /lootlock policy allowDeleteRejectedItems true|false"), false);
+    return 1;
+  }
+
+  private static int policyStatus(CommandContext<ServerCommandSource> context) {
+    context
+        .getSource()
+        .sendFeedback(
+            () ->
+                Text.literal(
+                    "allowDeleteRejectedItems="
+                        + LootLock.SERVER_CONFIG.allowDeleteRejectedItems()),
+            false);
+    return 1;
+  }
+
+  private static int setAllowDeleteRejectedItems(
+      CommandContext<ServerCommandSource> context, boolean allowDeleteRejectedItems) {
+    boolean updated =
+        ServerPolicyService.updateAllowDeleteRejectedItems(
+            context.getSource().getServer(), allowDeleteRejectedItems);
+    if (!updated) {
+      context.getSource().sendError(Text.literal("Failed to persist server policy update."));
+      return 0;
+    }
+    for (ServerPlayerEntity player :
+        context.getSource().getServer().getPlayerManager().getPlayerList()) {
+      ServerToClientPackets.sendAuthoritativeSync(player);
+    }
+    context
+        .getSource()
+        .sendFeedback(
+            () -> Text.literal("allowDeleteRejectedItems set to " + allowDeleteRejectedItems),
+            true);
     return 1;
   }
 

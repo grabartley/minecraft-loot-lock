@@ -12,6 +12,7 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.function.Consumer;
 import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.screen.ConfirmScreen;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.text.Text;
@@ -25,6 +26,7 @@ public final class LootLockMainScreen extends Screen {
   private ButtonWidget editRulesButton;
   private ButtonWidget settingsButton;
   private ButtonWidget importExportButton;
+  private ButtonWidget policyDeleteToggleButton;
 
   public LootLockMainScreen(Screen parent) {
     super(Text.literal("LootLock"));
@@ -34,7 +36,7 @@ public final class LootLockMainScreen extends Screen {
   @Override
   protected void init() {
     int left = this.width / 2 - 100;
-    int totalHeight = 176;
+    int totalHeight = 200;
     int rowY = Math.max(34, (this.height - totalHeight) / 2);
 
     activeProfileButton =
@@ -88,9 +90,15 @@ public final class LootLockMainScreen extends Screen {
                 .dimensions(left + 103, rowY + 128, 97, 20)
                 .build());
 
+    policyDeleteToggleButton =
+        addDrawableChild(
+            ButtonWidget.builder(Text.literal("Policy: -"), button -> toggleServerPolicyDelete())
+                .dimensions(left, rowY + 152, 200, 20)
+                .build());
+
     addDrawableChild(
         ButtonWidget.builder(Text.literal("Done"), button -> close())
-            .dimensions(left, rowY + 156, 200, 20)
+            .dimensions(left, rowY + 180, 200, 20)
             .build());
 
     refreshButtons();
@@ -155,12 +163,57 @@ public final class LootLockMainScreen extends Screen {
   }
 
   private void toggleAction() {
+    if (!LootLockClient.getState().isAllowDeleteRejectedItems()) {
+      return;
+    }
+    if (shouldConfirmEnableDelete()) {
+      this.client.setScreen(
+          new ConfirmScreen(
+              confirmed -> {
+                if (this.client == null) {
+                  return;
+                }
+                this.client.setScreen(this);
+                if (confirmed) {
+                  mutateActiveProfile(
+                      profile -> profile.setRejectedItemAction(RejectedItemAction.DELETE));
+                }
+              },
+              Text.literal("Enable delete mode?"),
+              Text.literal("Rejected items will be deleted instead of left on ground.")));
+      return;
+    }
     mutateActiveProfile(
         profile ->
             profile.setRejectedItemAction(
                 profile.getRejectedItemAction() == RejectedItemAction.LEAVE_ON_GROUND
                     ? RejectedItemAction.DELETE
                     : RejectedItemAction.LEAVE_ON_GROUND));
+  }
+
+  private void toggleServerPolicyDelete() {
+    ClientMutationSync.sendServerPolicyUpdateRequest(
+        !LootLockClient.getState().isAllowDeleteRejectedItems());
+  }
+
+  private boolean shouldConfirmEnableDelete() {
+    if (this.client == null) {
+      return false;
+    }
+    Optional<LootLockPlayerData> dataOptional = LootLockClient.getState().getSnapshot();
+    if (dataOptional.isEmpty()) {
+      return false;
+    }
+    Optional<LootLockProfile> activeProfile = dataOptional.get().getActiveProfile();
+    if (activeProfile.isEmpty()) {
+      return false;
+    }
+    if (activeProfile.get().getRejectedItemAction() == RejectedItemAction.DELETE) {
+      return false;
+    }
+    return LootLockClient.getClientSettingsManager()
+        .getSettingsCopy()
+        .isConfirmBeforeEnablingDelete();
   }
 
   private void toggleEnabled() {
@@ -208,6 +261,7 @@ public final class LootLockMainScreen extends Screen {
     enabledButton.active = synced && editable && activeAvailable;
 
     editRulesButton.active = synced && editable && activeAvailable;
+    policyDeleteToggleButton.active = synced && editable;
     settingsButton.active = true;
     // Import/export UI is still pending follow-up implementation.
     importExportButton.active = false;
@@ -228,6 +282,12 @@ public final class LootLockMainScreen extends Screen {
     actionButton.setMessage(
         Text.literal("Action: " + friendlyAction(profile.getRejectedItemAction())));
     enabledButton.setMessage(Text.literal("Enabled: " + (profile.isEnabled() ? "On" : "Off")));
+    policyDeleteToggleButton.setMessage(
+        Text.literal(
+            "Policy Delete: "
+                + (LootLockClient.getState().isAllowDeleteRejectedItems()
+                    ? "Allowed"
+                    : "Blocked")));
   }
 
   private static String friendlyMode(FilterMode mode) {

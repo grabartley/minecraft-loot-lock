@@ -5,8 +5,10 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.grahambartley.LootLock;
 import com.grahambartley.api.PickupDecision;
 import com.grahambartley.config.ConfigManager;
+import com.grahambartley.config.LootLockConfig;
 import com.grahambartley.data.FilterMode;
 import com.grahambartley.data.LootLockPlayerData;
 import com.grahambartley.data.LootLockProfile;
@@ -16,12 +18,18 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.UUID;
 import net.minecraft.util.Identifier;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 class PickupGuardTest {
 
   @TempDir Path tempDir;
+
+  @BeforeEach
+  void resetServerPolicy() {
+    LootLock.SERVER_CONFIG = LootLockConfig.defaults();
+  }
 
   @Test
   void constructorCreatesGuard() {
@@ -118,7 +126,8 @@ class PickupGuardTest {
   void evaluateDowngradesDeleteToLeaveWhenPolicyDisablesDelete() {
     ConfigManager configManager = new ConfigManager(tempDir);
     ServerPlayerDataManager dataManager = new ServerPlayerDataManager(configManager);
-    PickupGuard guard = new PickupGuard(dataManager, false);
+    LootLock.SERVER_CONFIG = new LootLockConfig(false);
+    PickupGuard guard = new PickupGuard(dataManager);
 
     UUID playerUuid = UUID.randomUUID();
     LootLockPlayerData playerData = dataManager.getOrLoad(playerUuid);
