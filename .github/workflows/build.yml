@@ -114,5 +114,6 @@ jobs:
           tag_name: v${{ steps.semver.outputs.new_version }}
           files: build/libs/*.jar
           generate_release_notes: true
+          prerelease: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
