@@ -22,56 +22,68 @@ public final class SettingsScreen extends Screen {
     int left = this.width / 2 - 100;
     int top = this.height / 4;
 
-    addDrawableChild(
-        ButtonWidget.builder(
-                Text.literal(blockedHudLabel()),
-                button -> {
-                  draft.setShowBlockedHudNotification(!draft.isShowBlockedHudNotification());
-                  button.setMessage(Text.literal(blockedHudLabel()));
-                })
-            .dimensions(left, top, 200, 20)
-            .build());
+    ButtonWidget blockedHudButton =
+        addDrawableChild(
+            ButtonWidget.builder(
+                    Text.literal(blockedHudLabel()),
+                    button -> {
+                      draft.setShowBlockedHudNotification(!draft.isShowBlockedHudNotification());
+                      button.setMessage(Text.literal(blockedHudLabel()));
+                    })
+                .dimensions(left, top, 200, 20)
+                .build());
 
-    addDrawableChild(
-        ButtonWidget.builder(
-                Text.literal(actionbarLabel()),
-                button -> {
-                  draft.setShowActionbarFallback(!draft.isShowActionbarFallback());
-                  button.setMessage(Text.literal(actionbarLabel()));
-                })
-            .dimensions(left, top + 24, 200, 20)
-            .build());
+    ButtonWidget actionbarButton =
+        addDrawableChild(
+            ButtonWidget.builder(
+                    Text.literal(actionbarLabel()),
+                    button -> {
+                      draft.setShowActionbarFallback(!draft.isShowActionbarFallback());
+                      button.setMessage(Text.literal(actionbarLabel()));
+                    })
+                .dimensions(left, top + 24, 200, 20)
+                .build());
 
-    addDrawableChild(
-        ButtonWidget.builder(
-                Text.literal(deleteConfirmLabel()),
-                button -> {
-                  draft.setConfirmBeforeEnablingDelete(!draft.isConfirmBeforeEnablingDelete());
-                  button.setMessage(Text.literal(deleteConfirmLabel()));
-                })
-            .dimensions(left, top + 48, 200, 20)
-            .build());
+    ButtonWidget deleteConfirmButton =
+        addDrawableChild(
+            ButtonWidget.builder(
+                    Text.literal(deleteConfirmLabel()),
+                    button -> {
+                      draft.setConfirmBeforeEnablingDelete(!draft.isConfirmBeforeEnablingDelete());
+                      button.setMessage(Text.literal(deleteConfirmLabel()));
+                    })
+                .dimensions(left, top + 48, 200, 20)
+                .build());
 
-    addDrawableChild(
-        ButtonWidget.builder(
-                Text.literal(profileToastLabel()),
-                button -> {
-                  draft.setEnableProfileCycleToast(!draft.isEnableProfileCycleToast());
-                  button.setMessage(Text.literal(profileToastLabel()));
-                })
-            .dimensions(left, top + 72, 200, 20)
-            .build());
+    ButtonWidget profileToastButton =
+        addDrawableChild(
+            ButtonWidget.builder(
+                    Text.literal(profileToastLabel()),
+                    button -> {
+                      draft.setEnableProfileCycleToast(!draft.isEnableProfileCycleToast());
+                      button.setMessage(Text.literal(profileToastLabel()));
+                    })
+                .dimensions(left, top + 72, 200, 20)
+                .build());
 
-    addDrawableChild(
-        ButtonWidget.builder(
-                Text.literal(scaleLabel()),
-                button -> {
-                  int next = draft.getUiScalePercent() >= 140 ? 80 : draft.getUiScalePercent() + 10;
-                  draft.setUiScalePercent(next);
-                  button.setMessage(Text.literal(scaleLabel()));
-                })
-            .dimensions(left, top + 96, 200, 20)
-            .build());
+    ButtonWidget uiScaleButton =
+        addDrawableChild(
+            ButtonWidget.builder(
+                    Text.literal(scaleLabel()),
+                    button -> {
+                      int next =
+                          draft.getUiScalePercent() >= 140 ? 80 : draft.getUiScalePercent() + 10;
+                      draft.setUiScalePercent(next);
+                      button.setMessage(Text.literal(scaleLabel()));
+                    })
+                .dimensions(left, top + 96, 200, 20)
+                .build());
+
+    blockedHudButton.active = false;
+    actionbarButton.active = false;
+    deleteConfirmButton.active = false;
+    profileToastButton.active = false;
+    uiScaleButton.active = false;
 
     addDrawableChild(
         ButtonWidget.builder(
@@ -97,29 +109,30 @@ public final class SettingsScreen extends Screen {
 
   @Override
   public void close() {
+    // Settings is a local draft, ESC and Cancel both discard unsaved draft changes.
     if (this.client != null) {
       this.client.setScreen(parent);
     }
   }
 
   private String blockedHudLabel() {
-    return "Show blocked HUD: " + onOff(draft.isShowBlockedHudNotification());
+    return "Show blocked HUD (coming in #35): " + onOff(draft.isShowBlockedHudNotification());
   }
 
   private String actionbarLabel() {
-    return "Show actionbar fallback: " + onOff(draft.isShowActionbarFallback());
+    return "Actionbar fallback (coming in #35): " + onOff(draft.isShowActionbarFallback());
   }
 
   private String deleteConfirmLabel() {
-    return "Confirm delete enable: " + onOff(draft.isConfirmBeforeEnablingDelete());
+    return "Confirm delete enable (coming in #36): " + onOff(draft.isConfirmBeforeEnablingDelete());
   }
 
   private String profileToastLabel() {
-    return "Profile cycle toast: " + onOff(draft.isEnableProfileCycleToast());
+    return "Profile cycle toast (coming soon): " + onOff(draft.isEnableProfileCycleToast());
   }
 
   private String scaleLabel() {
-    return "UI scale: " + draft.getUiScalePercent() + "%";
+    return "UI scale (coming soon): " + draft.getUiScalePercent() + "%";
   }
 
   private static String onOff(boolean enabled) {

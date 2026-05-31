@@ -204,10 +204,10 @@ public final class LootLockMainScreen extends Screen {
     actionButton.active = synced && editable && activeAvailable;
     enabledButton.active = synced && editable && activeAvailable;
 
-    // Intentionally disabled until follow-up issues implement these screens.
-    // Settings is implemented in this issue and stays enabled.
+    // Rule editing UI is still pending follow-up implementation.
     editRulesButton.active = false;
     settingsButton.active = true;
+    // Import/export UI is still pending follow-up implementation.
     importExportButton.active = false;
 
     if (dataOptional.isEmpty()) {
