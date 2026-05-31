@@ -179,8 +179,8 @@ public final class LootLockMainScreen extends Screen {
                       profile -> profile.setRejectedItemAction(RejectedItemAction.DELETE));
                 }
               },
-              Text.literal("Enable delete mode?"),
-              Text.literal("Rejected items will be deleted instead of left on ground.")));
+              Text.literal(deleteConfirmTitle()),
+              Text.literal(deleteConfirmMessage())));
       return;
     }
     mutateActiveProfile(
@@ -294,11 +294,22 @@ public final class LootLockMainScreen extends Screen {
     return mode == null ? "Unknown" : titleCase(mode.name());
   }
 
-  private static String friendlyAction(RejectedItemAction action) {
+  static String friendlyAction(RejectedItemAction action) {
     if (action == RejectedItemAction.LEAVE_ON_GROUND) {
       return "Leave on ground";
     }
+    if (action == RejectedItemAction.DELETE) {
+      return "Delete (permanent)";
+    }
     return action == null ? "Unknown" : titleCase(action.name());
+  }
+
+  static String deleteConfirmTitle() {
+    return "Enable delete mode?";
+  }
+
+  static String deleteConfirmMessage() {
+    return "Rejected dropped items are permanently deleted and cannot be recovered.";
   }
 
   private static String titleCase(String raw) {
