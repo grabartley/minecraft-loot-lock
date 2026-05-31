@@ -1,5 +1,7 @@
 # Networking Handshake (Issue #28)
 
+Status: Implemented
+
 This document describes the implemented initial join sync behavior.
 
 ## Flow

@@ -15,7 +15,6 @@ import net.minecraft.network.PacketByteBuf;
 import net.minecraft.server.network.ServerPlayerEntity;
 
 public final class ServerToClientPackets {
-  private static final int MAX_VERSION_LENGTH = 64;
   private static final int MAX_PROFILE_NAME_LENGTH = 64;
   private static final int MAX_RULE_ID_LENGTH = 256;
 
@@ -33,6 +32,13 @@ public final class ServerToClientPackets {
   }
 
   public static void sendAuthoritativeSync(ServerPlayerEntity player) {
+    if (player == null
+        || player.isRemoved()
+        || player.getServer() == null
+        || !player.getServerWorld().getPlayers().contains(player)) {
+      return;
+    }
+
     if (LootLock.PLAYER_DATA_MANAGER == null
         || !ServerPlayNetworking.canSend(player, PacketIds.SYNC_PLAYER_DATA_S2C)) {
       return;

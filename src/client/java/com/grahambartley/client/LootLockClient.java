@@ -38,7 +38,5 @@ public class LootLockClient implements ClientModInitializer {
                       payload.revision(),
                       payload.profiles().size()));
         });
-    ClientPlayNetworking.registerGlobalReceiver(
-        PacketIds.HELLO_S2C, (client, handler, buf, responseSender) -> {});
   }
 }
