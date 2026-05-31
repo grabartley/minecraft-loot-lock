@@ -1,8 +1,8 @@
-# Networking Handshake (Issue #28)
+# Networking Handshake and Initial Sync
 
 Status: Implemented
 
-This document describes the implemented initial join sync behavior.
+This document describes the implemented join-time networking handshake and authoritative sync behavior.
 
 ## Flow
 
