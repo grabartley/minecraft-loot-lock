@@ -79,10 +79,10 @@ public final class SettingsScreen extends Screen {
                 .dimensions(left, top + 96, 200, 20)
                 .build());
 
-    blockedHudButton.active = false;
-    actionbarButton.active = false;
+    blockedHudButton.active = true;
+    actionbarButton.active = true;
     deleteConfirmButton.active = false;
-    profileToastButton.active = false;
+    profileToastButton.active = true;
     uiScaleButton.active = false;
 
     addDrawableChild(
@@ -116,11 +116,11 @@ public final class SettingsScreen extends Screen {
   }
 
   private String blockedHudLabel() {
-    return "Show blocked HUD (coming in #35): " + onOff(draft.isShowBlockedHudNotification());
+    return "Show blocked toast: " + onOff(draft.isShowBlockedHudNotification());
   }
 
   private String actionbarLabel() {
-    return "Actionbar fallback (coming in #35): " + onOff(draft.isShowActionbarFallback());
+    return "Show blocked actionbar: " + onOff(draft.isShowActionbarFallback());
   }
 
   private String deleteConfirmLabel() {
@@ -128,7 +128,7 @@ public final class SettingsScreen extends Screen {
   }
 
   private String profileToastLabel() {
-    return "Profile cycle toast (coming soon): " + onOff(draft.isEnableProfileCycleToast());
+    return "Profile cycle toast: " + onOff(draft.isEnableProfileCycleToast());
   }
 
   private String scaleLabel() {

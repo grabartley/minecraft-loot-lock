@@ -13,6 +13,7 @@ import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.util.Identifier;
 
 public final class ServerToClientPackets {
   private ServerToClientPackets() {}
@@ -60,6 +61,30 @@ public final class ServerToClientPackets {
     }
     buf.writeBoolean(data.isClientCanEdit());
     return buf;
+  }
+
+  public static boolean sendBlockedNotice(
+      ServerPlayerEntity player, Identifier itemId, int count, boolean deleted) {
+    if (player == null || !ServerPlayNetworking.canSend(player, PacketIds.BLOCKED_NOTICE_S2C)) {
+      return false;
+    }
+
+    ServerPlayNetworking.send(
+        player, PacketIds.BLOCKED_NOTICE_S2C, writeBlockedNoticePayload(itemId, count, deleted));
+    return true;
+  }
+
+  public static PacketByteBuf writeBlockedNoticePayload(
+      Identifier itemId, int count, boolean deleted) {
+    PacketByteBuf buf = PacketByteBufs.create();
+    buf.writeIdentifier(itemId);
+    buf.writeVarInt(Math.max(1, count));
+    buf.writeBoolean(deleted);
+    return buf;
+  }
+
+  public static BlockedNoticePayload readBlockedNoticePayload(PacketByteBuf buf) {
+    return new BlockedNoticePayload(buf.readIdentifier(), buf.readVarInt(), buf.readBoolean());
   }
 
   public static SyncPayload readSyncPayload(PacketByteBuf buf) {
@@ -110,4 +135,6 @@ public final class ServerToClientPackets {
       UUID activeProfileId,
       List<LootLockProfile> profiles,
       boolean clientCanEdit) {}
+
+  public record BlockedNoticePayload(Identifier itemId, int count, boolean deleted) {}
 }
