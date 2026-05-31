@@ -5,7 +5,7 @@ import com.grahambartley.client.state.ClientLootLockState;
 import com.grahambartley.client.state.ClientLootLockState.ClientDraftSaveRequest;
 import com.grahambartley.data.LootLockPlayerData;
 import com.grahambartley.data.LootLockProfile;
-import com.grahambartley.network.ClientDraftSync;
+import com.grahambartley.network.ClientMutationSync;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -175,7 +175,7 @@ public final class ProfileListScreen extends Screen {
       return;
     }
     LootLockPlayerData data = dataOptional.get();
-    ClientDraftSync.sendCreateRequest(data.getRevision(), name, null);
+    ClientMutationSync.sendCreateRequest(data.getRevision(), name, null);
   }
 
   private void renameProfile() {
@@ -194,7 +194,7 @@ public final class ProfileListScreen extends Screen {
     }
     LootLockProfile selected = profiles.get(selectedIndex);
     String duplicateName = ProfileUiController.nextDuplicateName(profiles, selected.getName());
-    ClientDraftSync.sendCreateRequest(dataOptional.get().getRevision(), duplicateName, selected);
+    ClientMutationSync.sendCreateRequest(dataOptional.get().getRevision(), duplicateName, selected);
   }
 
   private void deleteProfile() {
@@ -209,7 +209,7 @@ public final class ProfileListScreen extends Screen {
       return;
     }
 
-    ClientDraftSync.sendDeleteRequest(
+    ClientMutationSync.sendDeleteRequest(
         dataOptional.get().getRevision(), profiles.get(selectedIndex).getId());
   }
 
@@ -222,7 +222,7 @@ public final class ProfileListScreen extends Screen {
     if (selectedIndex < 0 || selectedIndex >= profiles.size()) {
       return;
     }
-    ClientDraftSync.sendActivateRequest(
+    ClientMutationSync.sendActivateRequest(
         dataOptional.get().getRevision(), profiles.get(selectedIndex).getId());
   }
 
@@ -252,7 +252,7 @@ public final class ProfileListScreen extends Screen {
         || !ProfileNameValidator.isValid(saveRequest.get().profile().getName())) {
       return;
     }
-    ClientDraftSync.sendSaveRequest(saveRequest.get());
+    ClientMutationSync.sendSaveRequest(saveRequest.get());
   }
 
   private void seedSelectionFromSnapshot() {

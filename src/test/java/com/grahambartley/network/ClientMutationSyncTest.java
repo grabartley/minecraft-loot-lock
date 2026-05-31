@@ -5,24 +5,24 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import com.grahambartley.data.LootLockProfile;
 import org.junit.jupiter.api.Test;
 
-class ClientDraftSyncTest {
+class ClientMutationSyncTest {
   @Test
   void sendSaveRequestReturnsFalseForNullRequest() {
-    assertFalse(ClientDraftSync.sendSaveRequest(null));
+    assertFalse(ClientMutationSync.sendSaveRequest(null));
   }
 
   @Test
   void sendActivateRequestReturnsFalseForNullProfileId() {
-    assertFalse(ClientDraftSync.sendActivateRequest(1L, null));
+    assertFalse(ClientMutationSync.sendActivateRequest(1L, null));
   }
 
   @Test
   void sendCreateRequestReturnsFalseForNullName() {
-    assertFalse(ClientDraftSync.sendCreateRequest(1L, null, LootLockProfile.createDefault()));
+    assertFalse(ClientMutationSync.sendCreateRequest(1L, null, LootLockProfile.createDefault()));
   }
 
   @Test
   void sendDeleteRequestReturnsFalseForNullProfileId() {
-    assertFalse(ClientDraftSync.sendDeleteRequest(1L, null));
+    assertFalse(ClientMutationSync.sendDeleteRequest(1L, null));
   }
 }

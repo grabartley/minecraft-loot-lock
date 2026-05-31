@@ -5,8 +5,12 @@ import com.grahambartley.data.LootLockProfile;
 import java.util.UUID;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 
-public final class ClientDraftSync {
-  private ClientDraftSync() {}
+// sendSaveRequest uses the ClientDraftProfile lifecycle for multi-field
+// profile UPDATEs that capture baseRevision at edit-start time.
+// sendCreate/sendDelete/sendActivate are one-shot mutations with no
+// editing lifecycle, they capture the current revision at send time.
+public final class ClientMutationSync {
+  private ClientMutationSync() {}
 
   public static boolean sendSaveRequest(ClientDraftSaveRequest saveRequest) {
     if (saveRequest == null || !ClientPlayNetworking.canSend(PacketIds.UPDATE_PROFILE_C2S)) {

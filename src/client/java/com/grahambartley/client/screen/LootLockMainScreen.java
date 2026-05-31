@@ -7,7 +7,7 @@ import com.grahambartley.data.FilterMode;
 import com.grahambartley.data.LootLockPlayerData;
 import com.grahambartley.data.LootLockProfile;
 import com.grahambartley.data.RejectedItemAction;
-import com.grahambartley.network.ClientDraftSync;
+import com.grahambartley.network.ClientMutationSync;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -62,7 +62,7 @@ public final class LootLockMainScreen extends Screen {
 
     editRulesButton =
         addDrawableChild(
-            ButtonWidget.builder(Text.literal("Edit Rules"), button -> {})
+            ButtonWidget.builder(Text.literal("Edit Rules (soon)"), button -> {})
                 .dimensions(left, rowY + 104, 97, 20)
                 .build());
     addDrawableChild(
@@ -74,12 +74,12 @@ public final class LootLockMainScreen extends Screen {
 
     settingsButton =
         addDrawableChild(
-            ButtonWidget.builder(Text.literal("Settings"), button -> {})
+            ButtonWidget.builder(Text.literal("Settings (soon)"), button -> {})
                 .dimensions(left, rowY + 128, 97, 20)
                 .build());
     importExportButton =
         addDrawableChild(
-            ButtonWidget.builder(Text.literal("Import / Export"), button -> {})
+            ButtonWidget.builder(Text.literal("Import / Export (soon)"), button -> {})
                 .dimensions(left + 103, rowY + 128, 97, 20)
                 .build());
 
@@ -131,7 +131,7 @@ public final class LootLockMainScreen extends Screen {
     if (nextProfileId.isEmpty()) {
       return;
     }
-    ClientDraftSync.sendActivateRequest(data.getRevision(), nextProfileId.get());
+    ClientMutationSync.sendActivateRequest(data.getRevision(), nextProfileId.get());
   }
 
   private void toggleMode() {
@@ -176,7 +176,7 @@ public final class LootLockMainScreen extends Screen {
     if (saveRequest.isEmpty()) {
       return;
     }
-    ClientDraftSync.sendSaveRequest(saveRequest.get());
+    ClientMutationSync.sendSaveRequest(saveRequest.get());
   }
 
   private void refreshButtons() {
