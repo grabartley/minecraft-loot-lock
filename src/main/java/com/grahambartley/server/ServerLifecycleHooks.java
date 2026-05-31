@@ -1,5 +1,6 @@
 package com.grahambartley.server;
 
+import com.grahambartley.network.ServerToClientPackets;
 import java.util.UUID;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
@@ -18,6 +19,7 @@ public final class ServerLifecycleHooks {
         (handler, sender, server) -> {
           UUID playerUuid = handler.player.getUuid();
           playerDataManager.get(handler.player);
+          ServerToClientPackets.sendServerCapabilities(handler.player);
           LOGGER.debug("Player data initialized for {} on join", playerUuid);
         });
 
