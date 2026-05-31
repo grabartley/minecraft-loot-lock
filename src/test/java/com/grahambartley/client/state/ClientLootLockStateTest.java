@@ -62,6 +62,17 @@ class ClientLootLockStateTest {
     assertTrue(state.getSnapshot().isEmpty());
   }
 
+  @Test
+  void onServerCapabilitiesTrueMarksSupportedWithoutSyncing() {
+    ClientLootLockState state = new ClientLootLockState();
+
+    state.onServerCapabilities(true);
+
+    assertTrue(state.isServerSupportsLootLock());
+    assertFalse(state.isSynced());
+    assertTrue(state.getSnapshot().isEmpty());
+  }
+
   private static ServerToClientPackets.SyncPayload createPayload() {
     LootLockProfile profile = LootLockProfile.createDefault();
     UUID playerUuid = UUID.randomUUID();

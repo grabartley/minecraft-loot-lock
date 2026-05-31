@@ -23,7 +23,7 @@ public class LootLockClient implements ClientModInitializer {
     ClientPlayConnectionEvents.JOIN.register(
         (handler, sender, client) -> {
           STATE.onLogin();
-          if (STATE.shouldRequestSync(ClientPlayNetworking.canSend(PacketIds.REQUEST_SYNC_C2S))) {
+          if (ClientPlayNetworking.canSend(PacketIds.REQUEST_SYNC_C2S)) {
             ClientPlayNetworking.send(PacketIds.REQUEST_SYNC_C2S, PacketByteBufs.create());
           }
         });
@@ -35,15 +35,18 @@ public class LootLockClient implements ClientModInitializer {
         (client, handler, buf, responseSender) -> {
           boolean serverSupportsLootLock = buf.readBoolean();
           int schemaVersion = buf.readVarInt();
-          STATE.onServerCapabilities(serverSupportsLootLock);
           String modVersion =
               FabricLoader.getInstance()
                   .getModContainer("loot-lock")
                   .map(container -> container.getMetadata().getVersion().getFriendlyString())
                   .orElse("unknown");
-          ClientPlayNetworking.send(
-              PacketIds.HELLO_C2S,
-              ClientToServerPackets.writeHelloPayload(modVersion, schemaVersion));
+          client.execute(
+              () -> {
+                STATE.onServerCapabilities(serverSupportsLootLock);
+                ClientPlayNetworking.send(
+                    PacketIds.HELLO_C2S,
+                    ClientToServerPackets.writeHelloPayload(modVersion, schemaVersion));
+              });
         });
 
     ClientPlayNetworking.registerGlobalReceiver(

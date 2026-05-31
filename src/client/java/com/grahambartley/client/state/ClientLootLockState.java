@@ -28,6 +28,8 @@ public final class ClientLootLockState {
       return;
     }
 
+    // Sync is authoritative proof that the server supports LootLock, even if
+    // capabilities was delayed or not observed before this packet.
     serverSupportsLootLock = true;
     synced = true;
     snapshot = toSnapshot(payload);
@@ -37,10 +39,6 @@ public final class ClientLootLockState {
     serverSupportsLootLock = false;
     synced = false;
     snapshot = null;
-  }
-
-  public boolean shouldRequestSync(boolean canSendSyncPacket) {
-    return canSendSyncPacket;
   }
 
   public boolean isServerSupportsLootLock() {
