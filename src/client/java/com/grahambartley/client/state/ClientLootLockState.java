@@ -1,5 +1,6 @@
 package com.grahambartley.client.state;
 
+import com.grahambartley.LootLock;
 import com.grahambartley.data.LootLockPlayerData;
 import com.grahambartley.data.LootLockProfile;
 import com.grahambartley.network.ServerToClientPackets;
@@ -116,8 +117,19 @@ public final class ClientLootLockState {
             .findFirst();
 
     if (refreshed.isEmpty()) {
+      if (draftProfile.isDirty()) {
+        LootLock.LOGGER.debug(
+            "Discarding dirty client draft for profile {} due to server sync",
+            draftProfile.getProfileId());
+      }
       draftProfile = null;
       return;
+    }
+
+    if (draftProfile.isDirty()) {
+      LootLock.LOGGER.debug(
+          "Discarding dirty client draft for profile {} due to server sync",
+          draftProfile.getProfileId());
     }
 
     draftProfile =

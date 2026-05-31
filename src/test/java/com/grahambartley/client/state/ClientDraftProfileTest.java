@@ -1,6 +1,8 @@
 package com.grahambartley.client.state;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.grahambartley.data.FilterMode;
@@ -42,5 +44,30 @@ class ClientDraftProfileTest {
 
     assertEquals("Original", draft.getDraft().getName());
     assertEquals(1, draft.getDraft().getRules().size());
+  }
+
+  @Test
+  void noOpMutationsDoNotMarkDirty() {
+    LootLockProfile source = LootLockProfile.createDefault();
+    source.setRules(List.of());
+
+    ClientDraftProfile draft = new ClientDraftProfile(source.getId(), 2L, source);
+    draft.setName(source.getName());
+    draft.setMode(source.getMode());
+    draft.setRejectedItemAction(source.getRejectedItemAction());
+    draft.setEnabled(source.isEnabled());
+    draft.setRules(null);
+
+    assertFalse(draft.isDirty());
+  }
+
+  @Test
+  void constructorRejectsNullSourceProfile() {
+    IllegalArgumentException exception =
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> new ClientDraftProfile(UUID.randomUUID(), 1L, null));
+
+    assertEquals("source must not be null", exception.getMessage());
   }
 }

@@ -6,8 +6,10 @@ import com.grahambartley.data.RejectedItemAction;
 import com.grahambartley.data.RuleEntry;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
+// Mutable draft is intentionally exposed to UI callers for low-friction form binding.
 public final class ClientDraftProfile {
   private final UUID profileId;
   private final long baseRevision;
@@ -38,33 +40,58 @@ public final class ClientDraftProfile {
   }
 
   public void setName(String name) {
+    String before = draft.getName();
     draft.setName(name);
-    dirty = true;
+    if (!Objects.equals(before, draft.getName())) {
+      dirty = true;
+    }
   }
 
   public void setMode(FilterMode mode) {
+    FilterMode before = draft.getMode();
     draft.setMode(mode);
-    dirty = true;
+    if (before != draft.getMode()) {
+      dirty = true;
+    }
   }
 
   public void setRejectedItemAction(RejectedItemAction action) {
+    RejectedItemAction before = draft.getRejectedItemAction();
     draft.setRejectedItemAction(action);
-    dirty = true;
+    if (before != draft.getRejectedItemAction()) {
+      dirty = true;
+    }
   }
 
   public void setEnabled(boolean enabled) {
+    boolean before = draft.isEnabled();
     draft.setEnabled(enabled);
-    dirty = true;
+    if (before != draft.isEnabled()) {
+      dirty = true;
+    }
   }
 
   public void setRules(List<RuleEntry> rules) {
-    draft.setRules(rules == null ? List.of() : rules);
-    dirty = true;
+    List<RuleEntry> before = new ArrayList<>(draft.getRules());
+    List<RuleEntry> copiedRules = new ArrayList<>();
+    if (rules != null) {
+      for (RuleEntry rule : rules) {
+        copiedRules.add(new RuleEntry(rule.itemId()));
+      }
+    }
+    draft.setRules(copiedRules);
+    if (!before.equals(draft.getRules())) {
+      dirty = true;
+    }
   }
 
   private static LootLockProfile cloneProfile(LootLockProfile source) {
+    if (source == null) {
+      throw new IllegalArgumentException("source must not be null");
+    }
+
     List<RuleEntry> copiedRules = new ArrayList<>();
-    if (source != null && source.getRules() != null) {
+    if (source.getRules() != null) {
       for (RuleEntry rule : source.getRules()) {
         copiedRules.add(new RuleEntry(rule.itemId()));
       }
