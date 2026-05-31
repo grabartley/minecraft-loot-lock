@@ -10,15 +10,14 @@ This skill is used directly by humans and also as a handoff step from the build 
 
 ## Workflow
 
-1. Update gradle.properties mod_version based on semver update expected from this PR (using conventional commit type, refer to mathieudutour/github-tag-action@v6.2)
-2. Stage: `git add <files>`
-3. Format: `./gradlew spotlessApply`
-4. Test: `./gradlew test`
-5. Build: `./gradlew clean build`
-6. Commit: `git commit -m "<type>: <short lowercase descriptive present tense message>"`
+1. Stage: `git add <files>`
+2. Format: `./gradlew spotlessApply`
+3. Test: `./gradlew test`
+4. Build: `./gradlew clean build`
+5. Commit: `git commit -m "<type>: <short lowercase descriptive present tense message>"`
 - Types: feat, fix, refactor, test, docs, chore
-7. Push: `git push origin <branch-name>`
-8. Create PR with a body file to preserve markdown formatting and avoid shell interpolation issues:
+6. Push: `git push origin <branch-name>`
+7. Create PR with a body file to preserve markdown formatting and avoid shell interpolation issues:
 	- Write body markdown to a temp file (example: `.claude/tmp/pr-body.md`) and include real newlines.
 	- Create PR: `gh pr create --repo grabartley/minecraft-loot-lock --base main --head <branch-name> --title "<title>" --body-file .claude/tmp/pr-body.md`
 	- If updating an existing PR body, use: `gh pr edit <pr-number> --repo grabartley/minecraft-loot-lock --body-file .claude/tmp/pr-body.md`
@@ -26,7 +25,7 @@ This skill is used directly by humans and also as a handoff step from the build 
 	- Body: one-liner summary, then "**What's included:**" with bullet points
 	- Wrap class names, commands, and identifiers in backticks inside the markdown file, not inline shell args
 	- Always include a closing reference like `Closes #<issue-number>` so the PR Development section is linked to the issue being worked on
-9. After merge, clean up: `cd ../loot-lock && git worktree remove ./.claude/worktrees/loot-lock-<branch-name>`
+8. After merge, clean up: `cd ../loot-lock && git worktree remove ./.claude/worktrees/loot-lock-<branch-name>`
 
 ## Conventions
 

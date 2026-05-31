@@ -1,0 +1,5 @@
+# CODEOWNERS for minecraft-loot-lock
+# All changes require review and approval from the listed owner.
+# See https://docs.github.com/en/repositories/managing-your-repositories-settings-and-features/customizing-your-repository/about-code-owners
+
+* @grabartley
