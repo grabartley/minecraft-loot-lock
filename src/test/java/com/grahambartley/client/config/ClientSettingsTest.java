@@ -1,11 +1,20 @@
 package com.grahambartley.client.config;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 
 import org.junit.jupiter.api.Test;
 
 class ClientSettingsTest {
+  @Test
+  void defaultsDisableBlockedToastAndProfileCycleToast() {
+    ClientSettings settings = ClientSettings.defaults();
+
+    assertFalse(settings.isShowBlockedHudNotification());
+    assertFalse(settings.isEnableProfileCycleToast());
+  }
+
   @Test
   void uiScaleIsClampedToExpectedBounds() {
     ClientSettings settings = ClientSettings.defaults();

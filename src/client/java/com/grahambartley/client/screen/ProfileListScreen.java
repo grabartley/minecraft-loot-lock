@@ -16,6 +16,9 @@ import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.text.Text;
 
 public final class ProfileListScreen extends Screen {
+  private static final int PROFILE_ROW_HEIGHT = 20;
+  private static final int MIN_VISIBLE_PROFILE_ROWS = 5;
+
   private final Screen parent;
   private TextFieldWidget nameField;
   private ButtonWidget createButton;
@@ -24,6 +27,9 @@ public final class ProfileListScreen extends Screen {
   private ButtonWidget deleteButton;
   private ButtonWidget activateButton;
   private int selectedIndex;
+  private int listTop;
+  private int visibleProfileRows = MIN_VISIBLE_PROFILE_ROWS;
+  private int helperTextY;
 
   public ProfileListScreen(Screen parent) {
     super(Text.literal("Profiles"));
@@ -33,43 +39,52 @@ public final class ProfileListScreen extends Screen {
   @Override
   protected void init() {
     int left = this.width / 2 - 100;
-    int top = this.height / 5;
+    int backY = this.height - 28;
+    int actionRowY = this.height - 52;
+    int editRowY = this.height - 76;
+    int nameFieldY = this.height - 100;
+    helperTextY = nameFieldY - 10;
+    listTop = 36;
+    int availableListHeight = Math.max(PROFILE_ROW_HEIGHT, helperTextY - 12 - listTop);
+    visibleProfileRows =
+        Math.max(MIN_VISIBLE_PROFILE_ROWS, availableListHeight / PROFILE_ROW_HEIGHT);
 
     nameField =
-        new TextFieldWidget(this.textRenderer, left, top + 124, 200, 20, Text.literal("Name"));
+        new TextFieldWidget(this.textRenderer, left, nameFieldY, 200, 20, Text.literal("Name"));
     nameField.setMaxLength(ProfileNameValidator.MAX_UI_PROFILE_NAME_LENGTH);
     addDrawableChild(nameField);
+    setFocused(nameField);
 
     createButton =
         addDrawableChild(
             ButtonWidget.builder(Text.literal("Create"), button -> createProfile())
-                .dimensions(left, top + 148, 64, 20)
+                .dimensions(left, editRowY, 64, 20)
                 .build());
     renameButton =
         addDrawableChild(
             ButtonWidget.builder(Text.literal("Rename"), button -> renameProfile())
-                .dimensions(left + 68, top + 148, 64, 20)
+                .dimensions(left + 68, editRowY, 64, 20)
                 .build());
     duplicateButton =
         addDrawableChild(
             ButtonWidget.builder(Text.literal("Duplicate"), button -> duplicateProfile())
-                .dimensions(left + 136, top + 148, 64, 20)
+                .dimensions(left + 136, editRowY, 64, 20)
                 .build());
 
     deleteButton =
         addDrawableChild(
             ButtonWidget.builder(Text.literal("Delete"), button -> deleteProfile())
-                .dimensions(left, top + 172, 97, 20)
+                .dimensions(left, actionRowY, 97, 20)
                 .build());
     activateButton =
         addDrawableChild(
             ButtonWidget.builder(Text.literal("Activate"), button -> activateProfile())
-                .dimensions(left + 103, top + 172, 97, 20)
+                .dimensions(left + 103, actionRowY, 97, 20)
                 .build());
 
     addDrawableChild(
         ButtonWidget.builder(Text.literal("Back"), button -> close())
-            .dimensions(left, top + 196, 200, 20)
+            .dimensions(left, backY, 200, 20)
             .build());
 
     seedSelectionFromSnapshot();
@@ -91,8 +106,7 @@ public final class ProfileListScreen extends Screen {
     }
 
     List<LootLockProfile> profiles = dataOptional.get().getProfiles();
-    int listTop = this.height / 5;
-    for (int i = 0; i < profiles.size() && i < 5; i++) {
+    for (int i = 0; i < profiles.size() && i < visibleProfileRows; i++) {
       LootLockProfile profile = profiles.get(i);
       if (profile == null) {
         continue;
@@ -103,7 +117,7 @@ public final class ProfileListScreen extends Screen {
           textRenderer,
           Text.literal(prefix + profile.getName()),
           this.width / 2 - 98,
-          listTop + i * 20,
+          listTop + i * PROFILE_ROW_HEIGHT,
           color);
     }
 
@@ -111,19 +125,19 @@ public final class ProfileListScreen extends Screen {
         textRenderer,
         Text.literal("Click profile rows to select."),
         this.width / 2 - 100,
-        listTop + 106,
+        helperTextY - 8,
         0xB0B0B0);
     context.drawTextWithShadow(
         textRenderer,
         Text.literal("Name (max 32 chars):"),
         this.width / 2 - 100,
-        listTop + 114,
+        helperTextY,
         0xB0B0B0);
     context.drawTextWithShadow(
         textRenderer,
-        Text.literal("Showing first 5 profiles"),
+        Text.literal("Showing first " + visibleProfileRows + " profiles"),
         this.width / 2 - 100,
-        listTop + 96,
+        helperTextY - 18,
         0x8F8F8F);
 
     refreshButtonState();
@@ -140,13 +154,13 @@ public final class ProfileListScreen extends Screen {
       return false;
     }
 
-    int listTop = this.height / 5;
     int left = this.width / 2 - 100;
-    if (mouseX < left || mouseX > left + 200 || mouseY < listTop || mouseY > listTop + 100) {
+    int listBottom = listTop + visibleProfileRows * PROFILE_ROW_HEIGHT;
+    if (mouseX < left || mouseX > left + 200 || mouseY < listTop || mouseY > listBottom) {
       return false;
     }
 
-    int index = (int) ((mouseY - listTop) / 20);
+    int index = (int) ((mouseY - listTop) / PROFILE_ROW_HEIGHT);
     List<LootLockProfile> profiles = dataOptional.get().getProfiles();
     if (index >= 0 && index < profiles.size()) {
       selectedIndex = index;

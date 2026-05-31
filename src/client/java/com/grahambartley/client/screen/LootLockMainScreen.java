@@ -34,7 +34,8 @@ public final class LootLockMainScreen extends Screen {
   @Override
   protected void init() {
     int left = this.width / 2 - 100;
-    int rowY = this.height / 4;
+    int totalHeight = 176;
+    int rowY = Math.max(34, (this.height - totalHeight) / 2);
 
     activeProfileButton =
         addDrawableChild(

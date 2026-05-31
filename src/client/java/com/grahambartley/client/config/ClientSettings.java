@@ -1,10 +1,10 @@
 package com.grahambartley.client.config;
 
 public final class ClientSettings {
-  private boolean showBlockedHudNotification = true;
+  private boolean showBlockedHudNotification = false;
   private boolean showActionbarFallback = true;
   private boolean confirmBeforeEnablingDelete = true;
-  private boolean enableProfileCycleToast = true;
+  private boolean enableProfileCycleToast = false;
   private int uiScalePercent = 100;
 
   public static ClientSettings defaults() {

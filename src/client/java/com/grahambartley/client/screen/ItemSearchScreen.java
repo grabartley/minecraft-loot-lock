@@ -19,7 +19,8 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 
 public final class ItemSearchScreen extends Screen {
-  private static final int ROWS_PER_PAGE = 4;
+  private static final int ROW_HEIGHT = 22;
+  private static final int MIN_ROWS_PER_PAGE = 4;
   private static List<ItemSearchController.ItemCandidate> cachedAllItems;
 
   private final RuleListScreen parent;
@@ -31,6 +32,9 @@ public final class ItemSearchScreen extends Screen {
   private String lastFilterQuery = "";
   private int selectedIndex = -1;
   private int pageStart;
+  private int rowsPerPage = MIN_ROWS_PER_PAGE;
+  private int listTop;
+  private int helperTextY;
 
   public ItemSearchScreen(RuleListScreen parent) {
     super(Text.literal("Item Search"));
@@ -41,6 +45,13 @@ public final class ItemSearchScreen extends Screen {
   protected void init() {
     int left = this.width / 2 - 100;
     int top = this.height / 5;
+    int pagerY = this.height - 76;
+    int toggleY = this.height - 52;
+    int backY = this.height - 28;
+    listTop = top + 26;
+    helperTextY = pagerY - 12;
+    int availableListHeight = Math.max(ROW_HEIGHT, helperTextY - 8 - listTop);
+    rowsPerPage = Math.max(MIN_ROWS_PER_PAGE, availableListHeight / ROW_HEIGHT);
     searchField =
         new TextFieldWidget(this.textRenderer, left, top, 200, 20, Text.literal("Search items"));
     searchField.setMaxLength(100);
@@ -51,25 +62,26 @@ public final class ItemSearchScreen extends Screen {
           invalidateFilter();
         });
     addDrawableChild(searchField);
+    setFocused(searchField);
 
     toggleButton =
         addDrawableChild(
             ButtonWidget.builder(Text.literal("Add"), button -> toggleSelected())
-                .dimensions(left, top + 146, 200, 20)
+                .dimensions(left, toggleY, 200, 20)
                 .build());
     previousPageButton =
         addDrawableChild(
             ButtonWidget.builder(Text.literal("Prev"), button -> previousPage())
-                .dimensions(left, top + 122, 97, 20)
+                .dimensions(left, pagerY, 97, 20)
                 .build());
     nextPageButton =
         addDrawableChild(
             ButtonWidget.builder(Text.literal("Next"), button -> nextPage())
-                .dimensions(left + 103, top + 122, 97, 20)
+                .dimensions(left + 103, pagerY, 97, 20)
                 .build());
     addDrawableChild(
         ButtonWidget.builder(Text.literal("Back"), button -> close())
-            .dimensions(left, top + 170, 200, 20)
+            .dimensions(left, backY, 200, 20)
             .build());
 
     recomputeFilter();
@@ -83,8 +95,7 @@ public final class ItemSearchScreen extends Screen {
     context.drawCenteredTextWithShadow(textRenderer, this.title, this.width / 2, 18, 0xFFFFFF);
 
     List<ItemSearchController.ItemCandidate> visible = visibleItems();
-    int top = this.height / 5 + 26;
-    for (int row = 0; row < ROWS_PER_PAGE; row++) {
+    for (int row = 0; row < rowsPerPage; row++) {
       int absoluteIndex = pageStart + row;
       if (absoluteIndex >= visible.size()) {
         break;
@@ -95,21 +106,22 @@ public final class ItemSearchScreen extends Screen {
           textRenderer,
           Text.literal(candidate.displayName() + " [" + candidate.namespace() + "]"),
           this.width / 2 - 78,
-          top + row * 16,
+          listTop + row * ROW_HEIGHT,
           color);
       context.drawTextWithShadow(
           textRenderer,
           Text.literal(candidate.itemId()),
           this.width / 2 - 78,
-          top + row * 16 + 8,
+          listTop + row * ROW_HEIGHT + 10,
           0x9A9A9A);
-      context.drawItem(new ItemStack(candidate.item()), this.width / 2 - 98, top + row * 16);
+      context.drawItem(
+          new ItemStack(candidate.item()), this.width / 2 - 98, listTop + row * ROW_HEIGHT);
     }
     context.drawTextWithShadow(
         textRenderer,
         Text.literal("Search by name, id, namespace"),
         this.width / 2 - 100,
-        this.height / 5 + 108,
+        helperTextY,
         0xB0B0B0);
     refreshButtonState(visible);
   }
@@ -119,12 +131,12 @@ public final class ItemSearchScreen extends Screen {
     if (super.mouseClicked(mouseX, mouseY, button)) {
       return true;
     }
-    int listTop = this.height / 5 + 26;
     int left = this.width / 2 - 100;
-    if (mouseX < left || mouseX > left + 200 || mouseY < listTop || mouseY > listTop + 96) {
+    int listBottom = listTop + rowsPerPage * ROW_HEIGHT;
+    if (mouseX < left || mouseX > left + 200 || mouseY < listTop || mouseY > listBottom) {
       return false;
     }
-    int row = (int) ((mouseY - listTop) / 16);
+    int row = (int) ((mouseY - listTop) / ROW_HEIGHT);
     int absoluteIndex = pageStart + row;
     List<ItemSearchController.ItemCandidate> visible = visibleItems();
     if (absoluteIndex >= 0 && absoluteIndex < visible.size()) {
@@ -183,7 +195,7 @@ public final class ItemSearchScreen extends Screen {
     boolean hasSelection = selectedIndex >= 0 && selectedIndex < visible.size();
     toggleButton.active = editable && hasSelection;
     previousPageButton.active = pageStart > 0;
-    nextPageButton.active = pageStart + ROWS_PER_PAGE < visible.size();
+    nextPageButton.active = pageStart + rowsPerPage < visible.size();
 
     if (!hasSelection) {
       toggleButton.setMessage(Text.literal("Add"));
@@ -202,13 +214,13 @@ public final class ItemSearchScreen extends Screen {
   }
 
   private void previousPage() {
-    pageStart = Math.max(0, pageStart - ROWS_PER_PAGE);
+    pageStart = Math.max(0, pageStart - rowsPerPage);
   }
 
   private void nextPage() {
     List<ItemSearchController.ItemCandidate> visible = visibleItems();
-    if (pageStart + ROWS_PER_PAGE < visible.size()) {
-      pageStart += ROWS_PER_PAGE;
+    if (pageStart + rowsPerPage < visible.size()) {
+      pageStart += rowsPerPage;
     }
   }
 
