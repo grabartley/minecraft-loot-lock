@@ -125,7 +125,7 @@ public final class SettingsScreen extends Screen {
   }
 
   private String deleteConfirmLabel() {
-    return "Confirm delete enable (coming in #36): " + onOff(draft.isConfirmBeforeEnablingDelete());
+    return "Confirm delete enable (coming in #37): " + onOff(draft.isConfirmBeforeEnablingDelete());
   }
 
   private String profileToastLabel() {

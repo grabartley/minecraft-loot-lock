@@ -4,10 +4,13 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
 public final class LootLockConfig {
+  // Server policy fields in lootlock/server-policy.json:
+  // - allowDeleteRejectedItems (boolean, default: true)
   private static final Gson GSON = new Gson();
 
   private final boolean allowDeleteRejectedItems;
@@ -26,7 +29,8 @@ public final class LootLockConfig {
     }
 
     try {
-      JsonObject root = GSON.fromJson(Files.readString(path), JsonObject.class);
+      JsonObject root =
+          GSON.fromJson(Files.readString(path, StandardCharsets.UTF_8), JsonObject.class);
       if (root == null) {
         return defaults();
       }
