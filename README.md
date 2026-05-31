@@ -1,4 +1,6 @@
-![LootLock banner](.//src/main/resources/assets/loot-lock/banner.png)
+<p align="center">
+  <img src="docs/banner.png" alt="LootLock" width="800">
+</p>
 
 [![Build](https://github.com/grabartley/minecraft-loot-lock/actions/workflows/build.yml/badge.svg)](https://github.com/grabartley/minecraft-loot-lock/actions/workflows/build.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
