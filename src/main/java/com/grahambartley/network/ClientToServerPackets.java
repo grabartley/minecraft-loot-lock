@@ -83,7 +83,8 @@ public final class ClientToServerPackets {
     return new HelloPayload(clientVersion, schemaVersion);
   }
 
-  static PacketByteBuf writeUpdateProfilePayload(long baseRevision, LootLockProfile profile) {
+  public static PacketByteBuf writeUpdateProfilePayload(
+      long baseRevision, LootLockProfile profile) {
     PacketByteBuf buf = PacketByteBufs.create();
     buf.writeVarLong(baseRevision);
     writeProfile(buf, profile);
@@ -94,7 +95,7 @@ public final class ClientToServerPackets {
     return new UpdateProfilePayload(buf.readVarLong(), readProfile(buf));
   }
 
-  static PacketByteBuf writeActivateProfilePayload(long baseRevision, UUID profileId) {
+  public static PacketByteBuf writeActivateProfilePayload(long baseRevision, UUID profileId) {
     PacketByteBuf buf = PacketByteBufs.create();
     buf.writeVarLong(baseRevision);
     buf.writeUuid(profileId);
@@ -105,7 +106,7 @@ public final class ClientToServerPackets {
     return new ActivateProfilePayload(buf.readVarLong(), buf.readUuid());
   }
 
-  static PacketByteBuf writeCreateProfilePayload(
+  public static PacketByteBuf writeCreateProfilePayload(
       long baseRevision, String name, LootLockProfile copyFromProfile) {
     PacketByteBuf buf = PacketByteBufs.create();
     buf.writeVarLong(baseRevision);
@@ -124,7 +125,7 @@ public final class ClientToServerPackets {
     return new CreateProfilePayload(baseRevision, name, copyFrom);
   }
 
-  static PacketByteBuf writeDeleteProfilePayload(long baseRevision, UUID profileId) {
+  public static PacketByteBuf writeDeleteProfilePayload(long baseRevision, UUID profileId) {
     PacketByteBuf buf = PacketByteBufs.create();
     buf.writeVarLong(baseRevision);
     buf.writeUuid(profileId);
