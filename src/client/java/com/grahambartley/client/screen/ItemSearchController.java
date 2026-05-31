@@ -4,21 +4,30 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.regex.Pattern;
+import net.minecraft.item.Item;
 
 public final class ItemSearchController {
+  private static final Pattern SEPARATOR_PATTERN = Pattern.compile("[_:./-]+");
+
   private ItemSearchController() {}
 
   public static List<ItemCandidate> filter(List<ItemCandidate> source, String query) {
     String normalized = normalize(query);
+    String[] queryTokens = normalized.isBlank() ? new String[0] : normalized.split("\\s+");
     List<ItemCandidate> filtered = new ArrayList<>();
     for (ItemCandidate candidate : source) {
       if (normalized.isBlank()) {
         filtered.add(candidate);
         continue;
       }
-      if (normalize(candidate.itemId()).contains(normalized)
-          || normalize(candidate.displayName()).contains(normalized)
-          || normalize(candidate.namespace()).contains(normalized)) {
+      String searchable =
+          normalize(candidate.itemId())
+              + " "
+              + normalize(candidate.displayName())
+              + " "
+              + normalize(candidate.namespace());
+      if (matchesTokens(searchable, queryTokens)) {
         filtered.add(candidate);
       }
     }
@@ -26,9 +35,25 @@ public final class ItemSearchController {
     return filtered;
   }
 
-  private static String normalize(String value) {
-    return value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
+  private static boolean matchesTokens(String searchable, String[] queryTokens) {
+    for (String token : queryTokens) {
+      if (!searchable.contains(token)) {
+        return false;
+      }
+    }
+    return true;
   }
 
-  public record ItemCandidate(String itemId, String displayName, String namespace) {}
+  private static String normalize(String value) {
+    if (value == null) {
+      return "";
+    }
+    return SEPARATOR_PATTERN
+        .matcher(value.trim().toLowerCase(Locale.ROOT))
+        .replaceAll(" ")
+        .replaceAll("\\s+", " ")
+        .trim();
+  }
+
+  public record ItemCandidate(String itemId, String displayName, String namespace, Item item) {}
 }

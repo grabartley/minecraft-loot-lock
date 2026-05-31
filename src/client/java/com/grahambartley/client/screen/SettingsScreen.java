@@ -20,7 +20,8 @@ public final class SettingsScreen extends Screen {
   @Override
   protected void init() {
     int left = this.width / 2 - 100;
-    int top = this.height / 4;
+    int totalHeight = 148;
+    int top = Math.max(34, (this.height - totalHeight) / 2);
 
     ButtonWidget blockedHudButton =
         addDrawableChild(
