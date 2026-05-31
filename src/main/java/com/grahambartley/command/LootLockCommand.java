@@ -433,7 +433,18 @@ public final class LootLockCommand {
       return 0;
     }
 
-    state.profile.setRejectedItemAction(action);
+    RejectedItemAction normalizedAction =
+        normalizeRejectedItemAction(action, LootLock.SERVER_CONFIG.allowDeleteRejectedItems());
+    if (action == RejectedItemAction.DELETE && normalizedAction != RejectedItemAction.DELETE) {
+      context
+          .getSource()
+          .sendError(
+              Text.literal(
+                  "Server policy blocks delete mode for rejected items. Use 'leave' instead."));
+      return 0;
+    }
+
+    state.profile.setRejectedItemAction(normalizedAction);
     state.dataManager.markDirty(state.player);
     context
         .getSource()
@@ -441,7 +452,7 @@ public final class LootLockCommand {
             () ->
                 Text.literal(
                     "LootLock rejected-item action set to "
-                        + actionToken(action)
+                        + actionToken(normalizedAction)
                         + " for profile '"
                         + state.profile.getName()
                         + "'."),
@@ -520,6 +531,14 @@ public final class LootLockCommand {
       }
     }
     return false;
+  }
+
+  static RejectedItemAction normalizeRejectedItemAction(
+      RejectedItemAction action, boolean allowDeleteRejectedItems) {
+    if (!allowDeleteRejectedItems && action == RejectedItemAction.DELETE) {
+      return RejectedItemAction.LEAVE_ON_GROUND;
+    }
+    return action == null ? RejectedItemAction.LEAVE_ON_GROUND : action;
   }
 
   private record StateContext(

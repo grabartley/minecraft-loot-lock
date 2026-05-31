@@ -115,6 +115,25 @@ class PickupGuardTest {
   }
 
   @Test
+  void evaluateDowngradesDeleteToLeaveWhenPolicyDisablesDelete() {
+    ConfigManager configManager = new ConfigManager(tempDir);
+    ServerPlayerDataManager dataManager = new ServerPlayerDataManager(configManager);
+    PickupGuard guard = new PickupGuard(dataManager, false);
+
+    UUID playerUuid = UUID.randomUUID();
+    LootLockPlayerData playerData = dataManager.getOrLoad(playerUuid);
+    LootLockProfile profile = playerData.getActiveProfile().orElseThrow();
+    profile.setMode(FilterMode.DENYLIST);
+    profile.setRejectedItemAction(RejectedItemAction.DELETE);
+    profile.setRules(List.of(new RuleEntry("minecraft:cobblestone")));
+    profile.compileRules();
+
+    assertEquals(
+        PickupDecision.REJECT_LEAVE,
+        guard.evaluate(playerUuid, Identifier.tryParse("minecraft:cobblestone")));
+  }
+
+  @Test
   void evaluateReturnsAllowForListedItemInAllowlist() {
     ConfigManager configManager = new ConfigManager(tempDir);
     ServerPlayerDataManager dataManager = new ServerPlayerDataManager(configManager);

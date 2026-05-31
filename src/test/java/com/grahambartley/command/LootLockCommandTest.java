@@ -57,4 +57,17 @@ class LootLockCommandTest {
     assertTrue(LootLockCommand.containsRule(profile, "minecraft:stone"));
     assertFalse(LootLockCommand.containsRule(profile, "minecraft:diamond"));
   }
+
+  @Test
+  void normalizeRejectedItemActionRespectsPolicyAndNullSafety() {
+    assertEquals(
+        RejectedItemAction.LEAVE_ON_GROUND,
+        LootLockCommand.normalizeRejectedItemAction(RejectedItemAction.DELETE, false));
+    assertEquals(
+        RejectedItemAction.DELETE,
+        LootLockCommand.normalizeRejectedItemAction(RejectedItemAction.DELETE, true));
+    assertEquals(
+        RejectedItemAction.LEAVE_ON_GROUND,
+        LootLockCommand.normalizeRejectedItemAction(null, true));
+  }
 }
