@@ -9,6 +9,12 @@ LootLock is a server-authoritative Fabric mod that filters item pickups per play
 
 In busy survival worlds, inventory chaos is real. LootLock gives each player customizable pickup rules, then enforces those rules on the server for predictable, multiplayer-safe behavior.
 
+Common use cases:
+
+- Late-game survival cleanup: stop auto-picking low-value drops like `minecraft:egg` and `minecraft:wheat_seeds` while still grabbing the loot you care about.
+- Cave and exploration runs: filter decorative clutter from newer biomes, like lush cave plants and other decorative blocks, so inventory space stays focused on resources.
+- Multiplayer role builds: keep separate profiles for mining, building, and farming so you can switch behavior fast instead of rewriting rules every session.
+
 ## Capabilities
 
 - Allowlist and denylist filtering so players can tune pickup behavior fast.
@@ -36,16 +42,33 @@ LootLock ships with two keybinds that default to unbound:
 
 Set these in `Controls > LootLock` before first use.
 
-## Commands at a Glance
+## Commands
 
-LootLock ships command coverage for day-to-day admin and player use, including:
+All commands are rooted at `/lootlock`.
 
-- Status and emergency toggles.
-- Profile creation, activation, rename, duplicate, and delete.
-- Rule add, remove, list, and clear operations.
-- Delete-mode confirmation and safety-oriented flows.
-
-Use `/lootlock` in-game to explore the full command tree.
+| Command | What it does | Notes |
+| --- | --- | --- |
+| `/lootlock` | Prints quick command help. | Player context not required for the help output. |
+| `/lootlock status` | Shows active profile, enabled state, mode, action, and rule count. | Player only. |
+| `/lootlock enable` | Enables LootLock for your active profile. | Player only. |
+| `/lootlock disable` | Disables LootLock for your active profile. | Player only. |
+| `/lootlock mode denylist` | Sets active profile filter mode to denylist. | Player only. |
+| `/lootlock mode allowlist` | Sets active profile filter mode to allowlist. | Player only. |
+| `/lootlock action leave` | Sets rejected-item behavior to leave drops on the ground. | Player only. |
+| `/lootlock action delete` | Shows safety warning and confirmation instructions for delete mode. | Player only. |
+| `/lootlock action delete confirm` | Sets rejected-item behavior to permanently delete rejected drops. | Player only, blocked if server policy disallows delete mode. |
+| `/lootlock profile list` | Lists your profiles and marks the active one. | Player only. |
+| `/lootlock profile create <name>` | Creates a new profile with default settings. | Player only, names are trimmed and must be 1 to 32 chars. |
+| `/lootlock profile delete <name>` | Deletes a profile by name. | Player only, cannot delete your last profile. |
+| `/lootlock profile activate <name>` | Activates a profile by name, then shows status. | Player only. |
+| `/lootlock rule add <namespace:item>` | Adds an item rule to the active profile. | Player only, item id must exist. |
+| `/lootlock rule remove <namespace:item>` | Removes an item rule from the active profile. | Player only. |
+| `/lootlock rule list` | Lists rules in the active profile. | Player only. |
+| `/lootlock rule clear` | Shows confirmation hint before clearing rules. | Player only. |
+| `/lootlock rule clear confirm` | Removes all rules from the active profile. | Player only. |
+| `/lootlock policy` | Shows current server policy values. | Requires operator permission level 2. |
+| `/lootlock policy allowDeleteRejectedItems true` | Allows players to use delete mode for rejected items. | Requires operator permission level 2. |
+| `/lootlock policy allowDeleteRejectedItems false` | Blocks delete mode and forces leave mode behavior. | Requires operator permission level 2. |
 
 ## Permissions
 
