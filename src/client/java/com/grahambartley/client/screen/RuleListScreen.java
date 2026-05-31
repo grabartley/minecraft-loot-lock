@@ -21,7 +21,7 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 
 public final class RuleListScreen extends Screen {
-  private static final int ROWS_PER_PAGE = 5;
+  private static final int ROWS_PER_PAGE = 4;
   private static final long CLEAR_CONFIRM_TIMEOUT_MS = 3000L;
 
   private final Screen parent;
@@ -62,31 +62,31 @@ public final class RuleListScreen extends Screen {
         ButtonWidget.builder(
                 Text.literal("Add Item"),
                 button -> this.client.setScreen(new ItemSearchScreen(this)))
-            .dimensions(left, top + 128, 97, 20)
+            .dimensions(left, top + 146, 97, 20)
             .build());
     removeButton =
         addDrawableChild(
             ButtonWidget.builder(Text.literal("Remove"), button -> removeSelectedRule())
-                .dimensions(left + 103, top + 128, 97, 20)
+                .dimensions(left + 103, top + 146, 97, 20)
                 .build());
     clearButton =
         addDrawableChild(
             ButtonWidget.builder(Text.literal("Clear All"), button -> clearRulesWithConfirm())
-                .dimensions(left, top + 152, 200, 20)
+                .dimensions(left, top + 170, 200, 20)
                 .build());
     previousPageButton =
         addDrawableChild(
             ButtonWidget.builder(Text.literal("Prev"), button -> previousPage())
-                .dimensions(left, top + 104, 97, 20)
+                .dimensions(left, top + 122, 97, 20)
                 .build());
     nextPageButton =
         addDrawableChild(
             ButtonWidget.builder(Text.literal("Next"), button -> nextPage())
-                .dimensions(left + 103, top + 104, 97, 20)
+                .dimensions(left + 103, top + 122, 97, 20)
                 .build());
     addDrawableChild(
         ButtonWidget.builder(Text.literal("Back"), button -> close())
-            .dimensions(left, top + 176, 200, 20)
+            .dimensions(left, top + 194, 200, 20)
             .build());
     recomputeVisibleRules(activeProfile().orElse(null));
     refreshButtonState(activeProfile().orElse(null), filteredRules);
@@ -135,7 +135,7 @@ public final class RuleListScreen extends Screen {
           textRenderer,
           Text.literal("Unresolved: " + unresolved.get(i).itemId()),
           this.width / 2 - 98,
-          listTop + 84 + i * 10,
+          listTop + 68 + i * 10,
           0xE8A87C);
     }
 
@@ -143,7 +143,7 @@ public final class RuleListScreen extends Screen {
         textRenderer,
         Text.literal("Search id, name, or namespace in Add Item"),
         this.width / 2 - 100,
-        this.height / 5 + 112,
+        this.height / 5 + 108,
         0xB0B0B0);
 
     if (profile.getMode() == FilterMode.ALLOWLIST && profile.getRules().isEmpty()) {

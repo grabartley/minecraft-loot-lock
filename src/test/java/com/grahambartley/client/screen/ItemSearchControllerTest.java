@@ -11,8 +11,8 @@ class ItemSearchControllerTest {
   void filterMatchesDisplayNameAndNamespace() {
     List<ItemSearchController.ItemCandidate> source =
         List.of(
-            new ItemSearchController.ItemCandidate("minecraft:stone", "Stone", "minecraft"),
-            new ItemSearchController.ItemCandidate("create:zinc_ore", "Zinc Ore", "create"));
+            new ItemSearchController.ItemCandidate("minecraft:stone", "Stone", "minecraft", null),
+            new ItemSearchController.ItemCandidate("create:zinc_ore", "Zinc Ore", "create", null));
 
     List<ItemSearchController.ItemCandidate> byName = ItemSearchController.filter(source, "zinc");
     List<ItemSearchController.ItemCandidate> byNamespace =
@@ -27,13 +27,27 @@ class ItemSearchControllerTest {
   void filterSortsByItemId() {
     List<ItemSearchController.ItemCandidate> source =
         List.of(
-            new ItemSearchController.ItemCandidate("minecraft:stone", "Stone", "minecraft"),
-            new ItemSearchController.ItemCandidate("minecraft:apple", "Apple", "minecraft"));
+            new ItemSearchController.ItemCandidate("minecraft:stone", "Stone", "minecraft", null),
+            new ItemSearchController.ItemCandidate("minecraft:apple", "Apple", "minecraft", null));
 
     List<ItemSearchController.ItemCandidate> filtered =
         ItemSearchController.filter(source, "minecraft");
 
     assertEquals("minecraft:apple", filtered.get(0).itemId());
     assertTrue(filtered.size() == 2);
+  }
+
+  @Test
+  void filterMatchesAcrossSeparatorsAndTokens() {
+    List<ItemSearchController.ItemCandidate> source =
+        List.of(
+            new ItemSearchController.ItemCandidate("create:zinc_ore", "Zinc Ore", "create", null),
+            new ItemSearchController.ItemCandidate("minecraft:stone", "Stone", "minecraft", null));
+
+    List<ItemSearchController.ItemCandidate> filtered =
+        ItemSearchController.filter(source, "create zinc ore");
+
+    assertEquals(1, filtered.size());
+    assertEquals("create:zinc_ore", filtered.get(0).itemId());
   }
 }

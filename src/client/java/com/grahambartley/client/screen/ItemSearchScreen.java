@@ -13,12 +13,13 @@ import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
 import net.minecraft.registry.Registries;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 
 public final class ItemSearchScreen extends Screen {
-  private static final int ROWS_PER_PAGE = 6;
+  private static final int ROWS_PER_PAGE = 4;
   private static List<ItemSearchController.ItemCandidate> cachedAllItems;
 
   private final RuleListScreen parent;
@@ -54,21 +55,21 @@ public final class ItemSearchScreen extends Screen {
     toggleButton =
         addDrawableChild(
             ButtonWidget.builder(Text.literal("Add"), button -> toggleSelected())
-                .dimensions(left, top + 132, 200, 20)
+                .dimensions(left, top + 146, 200, 20)
                 .build());
     previousPageButton =
         addDrawableChild(
             ButtonWidget.builder(Text.literal("Prev"), button -> previousPage())
-                .dimensions(left, top + 108, 97, 20)
+                .dimensions(left, top + 122, 97, 20)
                 .build());
     nextPageButton =
         addDrawableChild(
             ButtonWidget.builder(Text.literal("Next"), button -> nextPage())
-                .dimensions(left + 103, top + 108, 97, 20)
+                .dimensions(left + 103, top + 122, 97, 20)
                 .build());
     addDrawableChild(
         ButtonWidget.builder(Text.literal("Back"), button -> close())
-            .dimensions(left, top + 156, 200, 20)
+            .dimensions(left, top + 170, 200, 20)
             .build());
 
     recomputeFilter();
@@ -93,21 +94,22 @@ public final class ItemSearchScreen extends Screen {
       context.drawTextWithShadow(
           textRenderer,
           Text.literal(candidate.displayName() + " [" + candidate.namespace() + "]"),
-          this.width / 2 - 98,
+          this.width / 2 - 78,
           top + row * 16,
           color);
       context.drawTextWithShadow(
           textRenderer,
           Text.literal(candidate.itemId()),
-          this.width / 2 - 98,
+          this.width / 2 - 78,
           top + row * 16 + 8,
           0x9A9A9A);
+      context.drawItem(new ItemStack(candidate.item()), this.width / 2 - 98, top + row * 16);
     }
     context.drawTextWithShadow(
         textRenderer,
         Text.literal("Search by name, id, namespace"),
         this.width / 2 - 100,
-        this.height / 5 + 118,
+        this.height / 5 + 108,
         0xB0B0B0);
     refreshButtonState(visible);
   }
@@ -150,7 +152,7 @@ public final class ItemSearchScreen extends Screen {
       Identifier id = Registries.ITEM.getId(item);
       String itemId = id.toString();
       String name = item.getName().getString();
-      built.add(new ItemSearchController.ItemCandidate(itemId, name, id.getNamespace()));
+      built.add(new ItemSearchController.ItemCandidate(itemId, name, id.getNamespace(), item));
     }
     cachedAllItems = Collections.unmodifiableList(built);
     return cachedAllItems;
