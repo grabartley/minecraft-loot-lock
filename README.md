@@ -135,7 +135,7 @@ If a player does not have the client mod, `ServerPlayNetworking.canSend` is fals
 
 GitHub Releases is the source of truth for version history and changelogs:
 
-`https://github.com/grabartley/minecraft-loot-lock/releases`
+[https://github.com/grabartley/minecraft-loot-lock/releases](https://github.com/grabartley/minecraft-loot-lock/releases)
 
 ## License
 
