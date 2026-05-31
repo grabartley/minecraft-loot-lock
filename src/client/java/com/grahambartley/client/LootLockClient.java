@@ -1,6 +1,7 @@
 package com.grahambartley.client;
 
 import com.grahambartley.LootLock;
+import com.grahambartley.client.config.ClientSettingsManager;
 import com.grahambartley.client.state.ClientLootLockState;
 import com.grahambartley.network.ClientToServerPackets;
 import com.grahambartley.network.PacketIds;
@@ -13,13 +14,23 @@ import net.fabricmc.loader.api.FabricLoader;
 
 public class LootLockClient implements ClientModInitializer {
   private static final ClientLootLockState STATE = new ClientLootLockState();
+  private static ClientSettingsManager clientSettingsManager;
 
   public static ClientLootLockState getState() {
     return STATE;
   }
 
+  public static ClientSettingsManager getClientSettingsManager() {
+    return clientSettingsManager;
+  }
+
   @Override
   public void onInitializeClient() {
+    clientSettingsManager =
+        new ClientSettingsManager(
+            FabricLoader.getInstance().getConfigDir().resolve("loot-lock-client.json"));
+    clientSettingsManager.load();
+
     ClientPlayConnectionEvents.JOIN.register(
         (handler, sender, client) -> {
           STATE.onLogin();

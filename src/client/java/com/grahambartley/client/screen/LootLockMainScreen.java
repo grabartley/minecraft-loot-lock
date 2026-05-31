@@ -74,7 +74,9 @@ public final class LootLockMainScreen extends Screen {
 
     settingsButton =
         addDrawableChild(
-            ButtonWidget.builder(Text.literal("Settings (soon)"), button -> {})
+            ButtonWidget.builder(
+                    Text.literal("Settings"),
+                    button -> this.client.setScreen(new SettingsScreen(this)))
                 .dimensions(left, rowY + 128, 97, 20)
                 .build());
     importExportButton =
@@ -98,13 +100,19 @@ public final class LootLockMainScreen extends Screen {
     context.drawCenteredTextWithShadow(textRenderer, this.title, this.width / 2, 18, 0xFFFFFF);
 
     ClientLootLockState state = LootLockClient.getState();
+    boolean canEdit = state.getSnapshot().map(LootLockPlayerData::isClientCanEdit).orElse(false);
+    SupportStateViewModel supportState =
+        SupportStateViewModel.fromState(
+            state.isServerSupportsLootLock(), state.isSynced(), canEdit);
     String serverState = state.isServerSupportsLootLock() ? "Supported" : "Unsupported";
     context.drawTextWithShadow(
         textRenderer, Text.literal("Server: " + serverState), this.width / 2 - 100, 40, 0xC0C0C0);
-    if (!state.isSynced()) {
-      context.drawTextWithShadow(
-          textRenderer, Text.literal("Waiting for sync..."), this.width / 2 - 100, 52, 0xE0AA4A);
-    }
+    context.drawTextWithShadow(
+        textRenderer,
+        Text.literal(supportState.message()),
+        this.width / 2 - 100,
+        52,
+        supportState.color());
 
     refreshButtons();
   }
@@ -182,7 +190,12 @@ public final class LootLockMainScreen extends Screen {
   private void refreshButtons() {
     Optional<LootLockPlayerData> dataOptional = LootLockClient.getState().getSnapshot();
     boolean synced = LootLockClient.getState().isSynced();
-    boolean editable = dataOptional.map(LootLockPlayerData::isClientCanEdit).orElse(false);
+    boolean editable =
+        SupportStateViewModel.fromState(
+                LootLockClient.getState().isServerSupportsLootLock(),
+                synced,
+                dataOptional.map(LootLockPlayerData::isClientCanEdit).orElse(false))
+            .editable();
     boolean activeAvailable =
         dataOptional.flatMap(LootLockPlayerData::getActiveProfile).isPresent();
 
@@ -193,7 +206,7 @@ public final class LootLockMainScreen extends Screen {
 
     // Intentionally disabled until follow-up issues implement these screens.
     editRulesButton.active = false;
-    settingsButton.active = false;
+    settingsButton.active = true;
     importExportButton.active = false;
 
     if (dataOptional.isEmpty()) {
