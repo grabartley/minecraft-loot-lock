@@ -13,6 +13,7 @@ import java.util.UUID;
 import net.minecraft.item.ItemStack;
 import net.minecraft.registry.Registries;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,6 +48,10 @@ public final class PickupGuard {
 
   public boolean tryNotify(
       ServerPlayerEntity player, ItemStack stack, boolean deleted, long currentTick) {
+    if (stack == null) {
+      return false;
+    }
+
     List<BlockedNotice> notices =
         recordBlockedCollision(
             player.getUuid(),
@@ -63,9 +68,9 @@ public final class PickupGuard {
       if (!ServerToClientPackets.sendBlockedNotice(
           player, notice.itemId(), notice.count(), notice.deleted())) {
         String verb = notice.deleted() ? "Deleted" : "Blocked";
+        String itemName = stack.getItem().getName().getString();
         player.sendMessage(
-            net.minecraft.text.Text.literal(
-                String.format("[LootLock] %s %dx %s", verb, notice.count(), notice.itemId())),
+            Text.literal(String.format("[LootLock] %s %dx %s", verb, notice.count(), itemName)),
             true);
       }
       LOGGER.debug(
@@ -80,10 +85,12 @@ public final class PickupGuard {
   }
 
   public boolean tryNotify(UUID playerUuid, ItemStack stack, boolean deleted, long currentTick) {
-    Identifier itemId =
-        stack == null ? new Identifier("minecraft", "air") : Registries.ITEM.getId(stack.getItem());
-    return !recordBlockedCollision(
-            playerUuid, itemId, stack == null ? 1 : stack.getCount(), deleted, currentTick)
+    if (stack == null) {
+      return false;
+    }
+
+    Identifier itemId = Registries.ITEM.getId(stack.getItem());
+    return !recordBlockedCollision(playerUuid, itemId, stack.getCount(), deleted, currentTick)
         .isEmpty();
   }
 
@@ -122,11 +129,13 @@ public final class PickupGuard {
 
   record BlockedNotice(Identifier itemId, int count, boolean deleted) {}
 
+  record BlockedNoticeKey(Identifier itemId, boolean deleted) {}
+
   private static final class BlockedNotificationAccumulator {
-    private final Map<String, BlockedNotice> pending = new LinkedHashMap<>();
+    private final Map<BlockedNoticeKey, BlockedNotice> pending = new LinkedHashMap<>();
 
     void accumulate(Identifier itemId, int count, boolean deleted) {
-      String key = itemId + ":" + deleted;
+      BlockedNoticeKey key = new BlockedNoticeKey(itemId, deleted);
       BlockedNotice existing = pending.get(key);
       if (existing == null) {
         pending.put(key, new BlockedNotice(itemId, count, deleted));

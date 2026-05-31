@@ -187,15 +187,15 @@ class PickupGuardTest {
   }
 
   @Test
-  void tryNotifyWithNullPlayerReturnsTrueAndStampsCooldown() {
+  void tryNotifyWithNullStackReturnsFalseAndDoesNotStampCooldown() {
     ConfigManager configManager = new ConfigManager(tempDir);
     ServerPlayerDataManager dataManager = new ServerPlayerDataManager(configManager);
     PickupGuard guard = new PickupGuard(dataManager);
 
     UUID playerUuid = UUID.randomUUID();
 
-    assertTrue(guard.tryNotify(playerUuid, null, false, 100));
-    assertTrue(guard.hasNotificationCooldown(playerUuid));
+    assertFalse(guard.tryNotify(playerUuid, null, false, 100));
+    assertFalse(guard.hasNotificationCooldown(playerUuid));
   }
 
   @Test
@@ -235,7 +235,7 @@ class PickupGuardTest {
   }
 
   @Test
-  void tryNotifyAllowsAfterCooldownExpires() {
+  void tryNotifyWithNullStackStaysFalseAfterCooldownExpires() {
     ConfigManager configManager = new ConfigManager(tempDir);
     ServerPlayerDataManager dataManager = new ServerPlayerDataManager(configManager);
     PickupGuard guard = new PickupGuard(dataManager);
@@ -243,7 +243,7 @@ class PickupGuardTest {
     UUID playerUuid = UUID.randomUUID();
     guard.stampNotificationCooldown(playerUuid, 100);
 
-    assertTrue(guard.tryNotify(playerUuid, null, false, 140));
+    assertFalse(guard.tryNotify(playerUuid, null, false, 140));
   }
 
   @Test

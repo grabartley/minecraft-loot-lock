@@ -24,7 +24,7 @@ public final class BlockedNoticePresenter {
     if (settings.isShowBlockedHudNotification()) {
       SystemToast.show(
           client.getToastManager(),
-          SystemToast.Type.NARRATOR_TOGGLE,
+          SystemToast.Type.PERIODIC_NOTIFICATION,
           Text.literal("LootLock"),
           message);
     }

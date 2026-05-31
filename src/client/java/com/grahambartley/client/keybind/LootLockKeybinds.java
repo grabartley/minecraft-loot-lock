@@ -22,10 +22,10 @@ public final class LootLockKeybinds {
   private static final String CATEGORY = "key.categories.loot-lock";
   private static final KeyBinding OPEN_UI =
       KeyBindingHelper.registerKeyBinding(
-          new KeyBinding("key.loot-lock.open_ui", GLFW.GLFW_KEY_O, CATEGORY));
+          new KeyBinding("key.loot-lock.open_ui", GLFW.GLFW_KEY_UNKNOWN, CATEGORY));
   private static final KeyBinding CYCLE_PROFILE =
       KeyBindingHelper.registerKeyBinding(
-          new KeyBinding("key.loot-lock.cycle_profile", GLFW.GLFW_KEY_P, CATEGORY));
+          new KeyBinding("key.loot-lock.cycle_profile", GLFW.GLFW_KEY_UNKNOWN, CATEGORY));
 
   private LootLockKeybinds() {}
 
@@ -36,6 +36,7 @@ public final class LootLockKeybinds {
   private static void onEndClientTick(MinecraftClient client) {
     while (OPEN_UI.wasPressed()) {
       if (client.player == null || client.world == null) {
+        // Drain queued presses while world is unavailable to prevent delayed opens.
         continue;
       }
       client.setScreen(new LootLockMainScreen(client.currentScreen));
@@ -73,7 +74,7 @@ public final class LootLockKeybinds {
     }
     SystemToast.show(
         client.getToastManager(),
-        SystemToast.Type.NARRATOR_TOGGLE,
+        SystemToast.Type.PERIODIC_NOTIFICATION,
         Text.literal("LootLock profile switched"),
         Text.literal(nextProfile.getName()).formatted(Formatting.YELLOW));
   }
