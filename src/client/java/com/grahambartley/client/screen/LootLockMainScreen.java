@@ -62,7 +62,9 @@ public final class LootLockMainScreen extends Screen {
 
     editRulesButton =
         addDrawableChild(
-            ButtonWidget.builder(Text.literal("Edit Rules (soon)"), button -> {})
+            ButtonWidget.builder(
+                    Text.literal("Edit Rules"),
+                    button -> this.client.setScreen(new RuleListScreen(this)))
                 .dimensions(left, rowY + 104, 97, 20)
                 .build());
     addDrawableChild(
@@ -204,8 +206,7 @@ public final class LootLockMainScreen extends Screen {
     actionButton.active = synced && editable && activeAvailable;
     enabledButton.active = synced && editable && activeAvailable;
 
-    // Rule editing UI is still pending follow-up implementation.
-    editRulesButton.active = false;
+    editRulesButton.active = synced && editable && activeAvailable;
     settingsButton.active = true;
     // Import/export UI is still pending follow-up implementation.
     importExportButton.active = false;
