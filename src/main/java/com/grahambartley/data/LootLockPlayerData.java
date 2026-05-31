@@ -106,6 +106,13 @@ public final class LootLockPlayerData {
   }
 
   public void setRevision(long revision) {
+    if (revision < 0) {
+      throw new IllegalArgumentException("revision must be >= 0");
+    }
+    if (revision < this.revision) {
+      throw new IllegalArgumentException(
+          "revision cannot decrease: current=" + this.revision + ", requested=" + revision);
+    }
     this.revision = revision;
   }
 

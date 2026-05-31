@@ -2,6 +2,7 @@ package com.grahambartley;
 
 import com.grahambartley.command.LootLockCommand;
 import com.grahambartley.config.ConfigManager;
+import com.grahambartley.network.LootLockNetworking;
 import com.grahambartley.server.PickupGuard;
 import com.grahambartley.server.ServerLifecycleHooks;
 import com.grahambartley.server.ServerPlayerDataManager;
@@ -22,6 +23,7 @@ public class LootLock implements ModInitializer {
   public void onInitialize() {
     CommandRegistrationCallback.EVENT.register(
         (dispatcher, registryAccess, environment) -> LootLockCommand.register(dispatcher));
+    LootLockNetworking.initializeServer();
 
     ServerLifecycleEvents.SERVER_STARTED.register(
         server -> {
