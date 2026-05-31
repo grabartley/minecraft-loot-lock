@@ -72,17 +72,17 @@ public final class LootLockCommand {
                     .then(
                         CommandManager.literal("create")
                             .then(
-                                CommandManager.argument("name", StringArgumentType.greedyString())
+                                CommandManager.argument("name", StringArgumentType.string())
                                     .executes(LootLockCommand::profileCreate)))
                     .then(
                         CommandManager.literal("delete")
                             .then(
-                                CommandManager.argument("name", StringArgumentType.greedyString())
+                                CommandManager.argument("name", StringArgumentType.string())
                                     .executes(LootLockCommand::profileDelete)))
                     .then(
                         CommandManager.literal("activate")
                             .then(
-                                CommandManager.argument("name", StringArgumentType.greedyString())
+                                CommandManager.argument("name", StringArgumentType.string())
                                     .executes(LootLockCommand::profileActivate))))
             .then(
                 CommandManager.literal("rule")
@@ -122,13 +122,16 @@ public final class LootLockCommand {
     context.getSource().sendFeedback(() -> Text.literal("- /lootlock profile list"), false);
     context
         .getSource()
-        .sendFeedback(() -> Text.literal("- /lootlock profile create <name>"), false);
+        .sendFeedback(
+            () -> Text.literal("- /lootlock profile create <name|\"name with spaces\">"), false);
     context
         .getSource()
-        .sendFeedback(() -> Text.literal("- /lootlock profile delete <name>"), false);
+        .sendFeedback(
+            () -> Text.literal("- /lootlock profile delete <name|\"name with spaces\">"), false);
     context
         .getSource()
-        .sendFeedback(() -> Text.literal("- /lootlock profile activate <name>"), false);
+        .sendFeedback(
+            () -> Text.literal("- /lootlock profile activate <name|\"name with spaces\">"), false);
     context
         .getSource()
         .sendFeedback(() -> Text.literal("- /lootlock mode denylist|allowlist"), false);
@@ -199,9 +202,14 @@ public final class LootLockCommand {
       return 0;
     }
 
-    LootLockProfile created = LootLockProfile.createDefault();
-    created.setId(UUID.randomUUID());
-    created.setName(profileName);
+    LootLockProfile created =
+        new LootLockProfile(
+            UUID.randomUUID(),
+            profileName,
+            FilterMode.DENYLIST,
+            RejectedItemAction.LEAVE_ON_GROUND,
+            true,
+            List.of());
     List<LootLockProfile> profiles = new ArrayList<>(state.data.getProfiles());
     profiles.add(created);
     state.data.setProfiles(profiles);
@@ -332,11 +340,21 @@ public final class LootLockCommand {
     context
         .getSource()
         .sendFeedback(() -> Text.literal("Rules for '" + state.profile.getName() + "':"), false);
+    int invalidRules = 0;
     for (RuleEntry rule : state.profile.getRules()) {
       if (rule == null || rule.itemId() == null || rule.itemId().isBlank()) {
+        invalidRules++;
         continue;
       }
       context.getSource().sendFeedback(() -> Text.literal("- " + rule.itemId()), false);
+    }
+    if (invalidRules > 0) {
+      int invalidRuleCount = invalidRules;
+      context
+          .getSource()
+          .sendFeedback(
+              () -> Text.literal("- <" + invalidRuleCount + " invalid rule entries hidden>"),
+              false);
     }
     return 1;
   }
