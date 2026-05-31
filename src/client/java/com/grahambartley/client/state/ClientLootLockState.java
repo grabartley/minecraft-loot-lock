@@ -1,18 +1,23 @@
 package com.grahambartley.client.state;
 
+import com.grahambartley.LootLock;
 import com.grahambartley.data.LootLockPlayerData;
+import com.grahambartley.data.LootLockProfile;
 import com.grahambartley.network.ServerToClientPackets;
 import java.util.Optional;
+import java.util.UUID;
 
 public final class ClientLootLockState {
   private boolean serverSupportsLootLock;
   private boolean synced;
   private LootLockPlayerData snapshot;
+  private ClientDraftProfile draftProfile;
 
   public void onLogin() {
     serverSupportsLootLock = false;
     synced = false;
     snapshot = null;
+    draftProfile = null;
   }
 
   public void onServerCapabilities(boolean supportsLootLock) {
@@ -33,12 +38,14 @@ public final class ClientLootLockState {
     serverSupportsLootLock = true;
     synced = true;
     snapshot = toSnapshot(payload);
+    refreshDraftFromSnapshot();
   }
 
   public void clear() {
     serverSupportsLootLock = false;
     synced = false;
     snapshot = null;
+    draftProfile = null;
   }
 
   public boolean isServerSupportsLootLock() {
@@ -55,6 +62,40 @@ public final class ClientLootLockState {
     return Optional.ofNullable(snapshot);
   }
 
+  public Optional<ClientDraftProfile> beginDraft(UUID profileId) {
+    if (snapshot == null || profileId == null) {
+      return Optional.empty();
+    }
+
+    Optional<LootLockProfile> sourceProfile =
+        snapshot.getProfiles().stream()
+            .filter(profile -> profileId.equals(profile.getId()))
+            .findFirst();
+    if (sourceProfile.isEmpty()) {
+      return Optional.empty();
+    }
+
+    draftProfile = new ClientDraftProfile(profileId, snapshot.getRevision(), sourceProfile.get());
+    return Optional.of(draftProfile);
+  }
+
+  public Optional<ClientDraftProfile> getDraftProfile() {
+    return Optional.ofNullable(draftProfile);
+  }
+
+  public void discardDraft() {
+    draftProfile = null;
+  }
+
+  public Optional<ClientDraftSaveRequest> buildSaveRequest() {
+    if (draftProfile == null || !draftProfile.isDirty()) {
+      return Optional.empty();
+    }
+
+    return Optional.of(
+        new ClientDraftSaveRequest(draftProfile.getBaseRevision(), draftProfile.getDraft()));
+  }
+
   private static LootLockPlayerData toSnapshot(ServerToClientPackets.SyncPayload payload) {
     LootLockPlayerData data = LootLockPlayerData.createDefault(payload.playerUuid());
     data.setSchemaVersion(payload.schemaVersion());
@@ -64,4 +105,37 @@ public final class ClientLootLockState {
     data.setClientCanEdit(payload.clientCanEdit());
     return data;
   }
+
+  private void refreshDraftFromSnapshot() {
+    if (draftProfile == null || snapshot == null) {
+      return;
+    }
+
+    Optional<LootLockProfile> refreshed =
+        snapshot.getProfiles().stream()
+            .filter(profile -> draftProfile.getProfileId().equals(profile.getId()))
+            .findFirst();
+
+    if (refreshed.isEmpty()) {
+      if (draftProfile.isDirty()) {
+        LootLock.LOGGER.debug(
+            "Discarding dirty client draft for profile {} due to server sync",
+            draftProfile.getProfileId());
+      }
+      draftProfile = null;
+      return;
+    }
+
+    if (draftProfile.isDirty()) {
+      LootLock.LOGGER.debug(
+          "Discarding dirty client draft for profile {} due to server sync",
+          draftProfile.getProfileId());
+    }
+
+    draftProfile =
+        new ClientDraftProfile(
+            draftProfile.getProfileId(), snapshot.getRevision(), refreshed.get());
+  }
+
+  public record ClientDraftSaveRequest(long baseRevision, LootLockProfile profile) {}
 }

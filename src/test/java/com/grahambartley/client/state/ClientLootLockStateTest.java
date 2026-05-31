@@ -2,6 +2,7 @@ package com.grahambartley.client.state;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.grahambartley.data.LootLockProfile;
@@ -71,6 +72,62 @@ class ClientLootLockStateTest {
     assertTrue(state.isServerSupportsLootLock());
     assertFalse(state.isSynced());
     assertTrue(state.getSnapshot().isEmpty());
+  }
+
+  @Test
+  void beginDraftBuildsMutableCopyAndDoesNotMutateSnapshot() {
+    ClientLootLockState state = new ClientLootLockState();
+    ServerToClientPackets.SyncPayload payload = createPayload();
+    state.onAuthoritativeSync(payload);
+
+    ClientDraftProfile draft = state.beginDraft(payload.activeProfileId()).orElseThrow();
+    draft.setName("Renamed");
+
+    assertTrue(draft.isDirty());
+    assertNotSame(payload.profiles().get(0), draft.getDraft());
+    assertEquals("Default", state.getSnapshot().orElseThrow().getProfiles().get(0).getName());
+  }
+
+  @Test
+  void buildSaveRequestOnlyReturnsWhenDraftIsDirty() {
+    ClientLootLockState state = new ClientLootLockState();
+    ServerToClientPackets.SyncPayload payload = createPayload();
+    state.onAuthoritativeSync(payload);
+
+    state.beginDraft(payload.activeProfileId());
+    assertTrue(state.buildSaveRequest().isEmpty());
+
+    state.getDraftProfile().orElseThrow().setEnabled(false);
+    ClientLootLockState.ClientDraftSaveRequest saveRequest = state.buildSaveRequest().orElseThrow();
+
+    assertEquals(payload.revision(), saveRequest.baseRevision());
+    assertFalse(saveRequest.profile().isEnabled());
+  }
+
+  @Test
+  void authoritativeSyncRefreshesDraftToServerState() {
+    ClientLootLockState state = new ClientLootLockState();
+    ServerToClientPackets.SyncPayload initialPayload = createPayload();
+    state.onAuthoritativeSync(initialPayload);
+    state.beginDraft(initialPayload.activeProfileId()).orElseThrow().setName("Client Edited");
+
+    LootLockProfile serverProfile = LootLockProfile.createDefault();
+    serverProfile.setId(initialPayload.activeProfileId());
+    serverProfile.setName("Server Truth");
+
+    state.onAuthoritativeSync(
+        new ServerToClientPackets.SyncPayload(
+            1,
+            initialPayload.playerUuid(),
+            initialPayload.revision() + 1,
+            initialPayload.activeProfileId(),
+            List.of(serverProfile),
+            true));
+
+    ClientDraftProfile refreshed = state.getDraftProfile().orElseThrow();
+    assertFalse(refreshed.isDirty());
+    assertEquals(initialPayload.revision() + 1, refreshed.getBaseRevision());
+    assertEquals("Server Truth", refreshed.getDraft().getName());
   }
 
   private static ServerToClientPackets.SyncPayload createPayload() {
