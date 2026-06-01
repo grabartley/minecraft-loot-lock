@@ -39,10 +39,6 @@ public final class ClientDraftProfile {
     return dirty;
   }
 
-  void markDirty() {
-    dirty = true;
-  }
-
   public void setName(String name) {
     String before = draft.getName();
     draft.setName(name);

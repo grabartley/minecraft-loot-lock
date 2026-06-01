@@ -95,12 +95,6 @@ public final class ClientLootLockState {
     draftProfile = null;
   }
 
-  public void markDraftDirty() {
-    if (draftProfile != null) {
-      draftProfile.markDirty();
-    }
-  }
-
   public Optional<ClientDraftSaveRequest> buildSaveRequest() {
     if (draftProfile == null || !draftProfile.isDirty()) {
       return Optional.empty();

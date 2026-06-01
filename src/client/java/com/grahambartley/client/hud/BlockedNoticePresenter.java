@@ -1,6 +1,8 @@
 package com.grahambartley.client.hud;
 
 import com.grahambartley.client.config.ClientSettings;
+import java.util.Optional;
+import java.util.function.Function;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.toast.SystemToast;
 import net.minecraft.item.Item;
@@ -13,11 +15,7 @@ public final class BlockedNoticePresenter {
   private BlockedNoticePresenter() {}
 
   public static void show(
-      MinecraftClient client,
-      ClientSettings settings,
-      Identifier itemId,
-      int count,
-      boolean deleted) {
+      MinecraftClient client, ClientSettings settings, Identifier itemId, boolean deleted) {
     Text message = formatMessage(resolveItemLabel(itemId), deleted);
 
     if (settings.isShowBlockedHudNotification()) {
@@ -42,10 +40,19 @@ public final class BlockedNoticePresenter {
     if (itemId == null) {
       return "unknown item";
     }
-    Item item = Registries.ITEM.get(itemId);
-    if (item == null) {
+    return resolveItemLabel(itemId, Registries.ITEM::getOrEmpty);
+  }
+
+  static String resolveItemLabel(
+      Identifier itemId, Function<Identifier, Optional<Item>> itemLookup) {
+    if (itemId == null) {
+      return "unknown item";
+    }
+    Optional<Item> itemOptional = itemLookup.apply(itemId);
+    if (itemOptional.isEmpty()) {
       return itemId.toString();
     }
+    Item item = itemOptional.get();
     String displayName = item.getName().getString();
     if (displayName == null || displayName.isBlank()) {
       return itemId.toString();

@@ -94,7 +94,6 @@ public class LootLockClient implements ClientModInitializer {
                       client,
                       clientSettingsManager.getSettingsCopy(),
                       payload.itemId(),
-                      payload.count(),
                       payload.deleted()));
         });
   }

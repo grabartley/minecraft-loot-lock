@@ -1,15 +1,14 @@
 package com.grahambartley.client.screen;
 
 import com.grahambartley.client.LootLockClient;
+import com.grahambartley.client.state.ClientDraftProfile;
 import com.grahambartley.client.state.ClientLootLockState;
 import com.grahambartley.client.state.ClientLootLockState.ClientDraftSaveRequest;
 import com.grahambartley.data.FilterMode;
 import com.grahambartley.data.LootLockPlayerData;
 import com.grahambartley.data.LootLockProfile;
 import com.grahambartley.data.RejectedItemAction;
-import com.grahambartley.data.RuleEntry;
 import com.grahambartley.network.ClientMutationSync;
-import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -157,9 +156,9 @@ public final class LootLockMainScreen extends Screen {
 
   private void toggleMode() {
     mutateActiveProfile(
-        profile ->
-            profile.setMode(
-                profile.getMode() == FilterMode.DENYLIST
+        draft ->
+            draft.setMode(
+                draft.getDraft().getMode() == FilterMode.DENYLIST
                     ? FilterMode.ALLOWLIST
                     : FilterMode.DENYLIST));
   }
@@ -178,7 +177,7 @@ public final class LootLockMainScreen extends Screen {
                 this.client.setScreen(this);
                 if (confirmed) {
                   mutateActiveProfile(
-                      profile -> profile.setRejectedItemAction(RejectedItemAction.DELETE));
+                      draft -> draft.setRejectedItemAction(RejectedItemAction.DELETE));
                 }
               },
               Text.literal(deleteConfirmTitle()),
@@ -186,9 +185,9 @@ public final class LootLockMainScreen extends Screen {
       return;
     }
     mutateActiveProfile(
-        profile ->
-            profile.setRejectedItemAction(
-                profile.getRejectedItemAction() == RejectedItemAction.LEAVE_ON_GROUND
+        draft ->
+            draft.setRejectedItemAction(
+                draft.getDraft().getRejectedItemAction() == RejectedItemAction.LEAVE_ON_GROUND
                     ? RejectedItemAction.DELETE
                     : RejectedItemAction.LEAVE_ON_GROUND));
   }
@@ -219,10 +218,10 @@ public final class LootLockMainScreen extends Screen {
   }
 
   private void toggleEnabled() {
-    mutateActiveProfile(profile -> profile.setEnabled(!profile.isEnabled()));
+    mutateActiveProfile(draft -> draft.setEnabled(!draft.getDraft().isEnabled()));
   }
 
-  private void mutateActiveProfile(Consumer<LootLockProfile> mutator) {
+  private void mutateActiveProfile(Consumer<ClientDraftProfile> mutator) {
     ClientLootLockState state = LootLockClient.getState();
     Optional<LootLockPlayerData> dataOptional = state.getSnapshot();
     if (dataOptional.isEmpty()) {
@@ -234,11 +233,7 @@ public final class LootLockMainScreen extends Screen {
             .beginDraft(data.getActiveProfileId())
             .map(
                 draft -> {
-                  String before = profileFingerprint(draft.getDraft());
-                  mutator.accept(draft.getDraft());
-                  if (!before.equals(profileFingerprint(draft.getDraft()))) {
-                    state.markDraftDirty();
-                  }
+                  mutator.accept(draft);
                   return state.buildSaveRequest();
                 })
             .orElse(Optional.empty());
@@ -247,28 +242,6 @@ public final class LootLockMainScreen extends Screen {
       return;
     }
     ClientMutationSync.sendSaveRequest(saveRequest.get());
-  }
-
-  private static String profileFingerprint(LootLockProfile profile) {
-    if (profile == null) {
-      return "";
-    }
-    StringBuilder rules = new StringBuilder();
-    List<RuleEntry> profileRules = profile.getRules();
-    if (profileRules != null) {
-      for (RuleEntry rule : profileRules) {
-        rules.append(rule == null ? "" : rule.itemId()).append('|');
-      }
-    }
-    return profile.getName()
-        + "#"
-        + profile.getMode()
-        + "#"
-        + profile.getRejectedItemAction()
-        + "#"
-        + profile.isEnabled()
-        + "#"
-        + rules;
   }
 
   private void refreshButtons() {
