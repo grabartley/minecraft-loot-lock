@@ -1,6 +1,7 @@
 package com.grahambartley.client.screen;
 
 import com.grahambartley.client.LootLockClient;
+import com.grahambartley.client.state.ClientDraftProfile;
 import com.grahambartley.client.state.ClientLootLockState;
 import com.grahambartley.client.state.ClientLootLockState.ClientDraftSaveRequest;
 import com.grahambartley.data.LootLockPlayerData;
@@ -194,7 +195,7 @@ public final class ProfileListScreen extends Screen {
 
   private void renameProfile() {
     mutateSelectedProfile(
-        profile -> profile.setName(ProfileNameValidator.sanitize(nameField.getText())));
+        draft -> draft.setName(ProfileNameValidator.sanitize(nameField.getText())));
   }
 
   private void duplicateProfile() {
@@ -240,7 +241,7 @@ public final class ProfileListScreen extends Screen {
         dataOptional.get().getRevision(), profiles.get(selectedIndex).getId());
   }
 
-  private void mutateSelectedProfile(Consumer<LootLockProfile> mutator) {
+  private void mutateSelectedProfile(Consumer<ClientDraftProfile> mutator) {
     ClientLootLockState state = LootLockClient.getState();
     Optional<LootLockPlayerData> dataOptional = state.getSnapshot();
     if (dataOptional.isEmpty()) {
@@ -257,7 +258,7 @@ public final class ProfileListScreen extends Screen {
             .beginDraft(selected.getId())
             .map(
                 draft -> {
-                  mutator.accept(draft.getDraft());
+                  mutator.accept(draft);
                   return state.buildSaveRequest();
                 })
             .orElse(Optional.empty());

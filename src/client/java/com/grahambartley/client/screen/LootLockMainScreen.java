@@ -1,6 +1,7 @@
 package com.grahambartley.client.screen;
 
 import com.grahambartley.client.LootLockClient;
+import com.grahambartley.client.state.ClientDraftProfile;
 import com.grahambartley.client.state.ClientLootLockState;
 import com.grahambartley.client.state.ClientLootLockState.ClientDraftSaveRequest;
 import com.grahambartley.data.FilterMode;
@@ -155,9 +156,9 @@ public final class LootLockMainScreen extends Screen {
 
   private void toggleMode() {
     mutateActiveProfile(
-        profile ->
-            profile.setMode(
-                profile.getMode() == FilterMode.DENYLIST
+        draft ->
+            draft.setMode(
+                draft.getDraft().getMode() == FilterMode.DENYLIST
                     ? FilterMode.ALLOWLIST
                     : FilterMode.DENYLIST));
   }
@@ -176,7 +177,7 @@ public final class LootLockMainScreen extends Screen {
                 this.client.setScreen(this);
                 if (confirmed) {
                   mutateActiveProfile(
-                      profile -> profile.setRejectedItemAction(RejectedItemAction.DELETE));
+                      draft -> draft.setRejectedItemAction(RejectedItemAction.DELETE));
                 }
               },
               Text.literal(deleteConfirmTitle()),
@@ -184,9 +185,9 @@ public final class LootLockMainScreen extends Screen {
       return;
     }
     mutateActiveProfile(
-        profile ->
-            profile.setRejectedItemAction(
-                profile.getRejectedItemAction() == RejectedItemAction.LEAVE_ON_GROUND
+        draft ->
+            draft.setRejectedItemAction(
+                draft.getDraft().getRejectedItemAction() == RejectedItemAction.LEAVE_ON_GROUND
                     ? RejectedItemAction.DELETE
                     : RejectedItemAction.LEAVE_ON_GROUND));
   }
@@ -217,10 +218,10 @@ public final class LootLockMainScreen extends Screen {
   }
 
   private void toggleEnabled() {
-    mutateActiveProfile(profile -> profile.setEnabled(!profile.isEnabled()));
+    mutateActiveProfile(draft -> draft.setEnabled(!draft.getDraft().isEnabled()));
   }
 
-  private void mutateActiveProfile(Consumer<LootLockProfile> mutator) {
+  private void mutateActiveProfile(Consumer<ClientDraftProfile> mutator) {
     ClientLootLockState state = LootLockClient.getState();
     Optional<LootLockPlayerData> dataOptional = state.getSnapshot();
     if (dataOptional.isEmpty()) {
@@ -232,7 +233,7 @@ public final class LootLockMainScreen extends Screen {
             .beginDraft(data.getActiveProfileId())
             .map(
                 draft -> {
-                  mutator.accept(draft.getDraft());
+                  mutator.accept(draft);
                   return state.buildSaveRequest();
                 })
             .orElse(Optional.empty());

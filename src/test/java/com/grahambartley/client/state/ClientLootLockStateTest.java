@@ -9,6 +9,7 @@ import com.grahambartley.data.LootLockProfile;
 import com.grahambartley.network.ServerToClientPackets;
 import java.util.List;
 import java.util.UUID;
+import java.util.function.Consumer;
 import org.junit.jupiter.api.Test;
 
 class ClientLootLockStateTest {
@@ -102,6 +103,36 @@ class ClientLootLockStateTest {
 
     assertEquals(payload.revision(), saveRequest.baseRevision());
     assertFalse(saveRequest.profile().isEnabled());
+  }
+
+  @Test
+  void consumerMutationPathMarksDirtyWhenValueChanges() {
+    ClientLootLockState state = new ClientLootLockState();
+    ServerToClientPackets.SyncPayload payload = createPayload();
+    state.onAuthoritativeSync(payload);
+
+    ClientDraftProfile draft = state.beginDraft(payload.activeProfileId()).orElseThrow();
+    Consumer<ClientDraftProfile> mutator = value -> value.setEnabled(false);
+    mutator.accept(draft);
+
+    ClientLootLockState.ClientDraftSaveRequest saveRequest = state.buildSaveRequest().orElseThrow();
+
+    assertEquals(payload.revision(), saveRequest.baseRevision());
+    assertFalse(saveRequest.profile().isEnabled());
+  }
+
+  @Test
+  void consumerMutationPathStaysCleanForNoOpSetter() {
+    ClientLootLockState state = new ClientLootLockState();
+    ServerToClientPackets.SyncPayload payload = createPayload();
+    state.onAuthoritativeSync(payload);
+
+    ClientDraftProfile draft = state.beginDraft(payload.activeProfileId()).orElseThrow();
+    boolean enabled = draft.getDraft().isEnabled();
+    Consumer<ClientDraftProfile> mutator = value -> value.setEnabled(enabled);
+    mutator.accept(draft);
+
+    assertTrue(state.buildSaveRequest().isEmpty());
   }
 
   @Test
