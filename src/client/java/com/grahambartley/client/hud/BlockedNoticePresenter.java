@@ -16,10 +16,7 @@ public final class BlockedNoticePresenter {
       Identifier itemId,
       int count,
       boolean deleted) {
-    String prefix = deleted ? "Deleted" : "Blocked";
-    Text message =
-        Text.literal(prefix + " " + Math.max(1, count) + "x ")
-            .append(Text.literal(itemId.toString()).formatted(Formatting.YELLOW));
+    Text message = formatMessage(itemId, deleted);
 
     if (settings.isShowBlockedHudNotification()) {
       SystemToast.show(
@@ -32,5 +29,11 @@ public final class BlockedNoticePresenter {
     if (settings.isShowActionbarFallback() && client.player != null) {
       client.player.sendMessage(Text.literal("[LootLock] ").append(message), true);
     }
+  }
+
+  static Text formatMessage(Identifier itemId, boolean deleted) {
+    String prefix = deleted ? "Deleted" : "Blocked";
+    return Text.literal(prefix + " ")
+        .append(Text.literal(itemId.toString()).formatted(Formatting.YELLOW));
   }
 }

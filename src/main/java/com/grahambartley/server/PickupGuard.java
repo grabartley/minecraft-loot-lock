@@ -75,9 +75,7 @@ public final class PickupGuard {
           player, notice.itemId(), notice.count(), notice.deleted())) {
         String verb = notice.deleted() ? "Deleted" : "Blocked";
         String itemName = stack.getItem().getName().getString();
-        player.sendMessage(
-            Text.literal(String.format("[LootLock] %s %dx %s", verb, notice.count(), itemName)),
-            true);
+        player.sendMessage(Text.literal(String.format("[LootLock] %s %s", verb, itemName)), true);
       }
       LOGGER.debug(
           "{} {}x{} for player {}",
