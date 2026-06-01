@@ -2,25 +2,27 @@ package com.grahambartley.client.hud;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import net.minecraft.util.Identifier;
 import org.junit.jupiter.api.Test;
 
 class BlockedNoticePresenterTest {
   @Test
   void formatMessageShowsBlockedWithoutCount() {
-    Identifier itemId = Identifier.of("minecraft", "cobblestone");
+    String text = BlockedNoticePresenter.formatMessage("Cobblestone", false).getString();
 
-    String text = BlockedNoticePresenter.formatMessage(itemId, false).getString();
-
-    assertEquals("Blocked minecraft:cobblestone", text);
+    assertEquals("Blocked Cobblestone", text);
   }
 
   @Test
   void formatMessageShowsDeletedWithoutCount() {
-    Identifier itemId = Identifier.of("minecraft", "diamond");
+    String text = BlockedNoticePresenter.formatMessage("Diamond", true).getString();
 
-    String text = BlockedNoticePresenter.formatMessage(itemId, true).getString();
+    assertEquals("Deleted Diamond", text);
+  }
 
-    assertEquals("Deleted minecraft:diamond", text);
+  @Test
+  void resolveItemLabelFallsBackForNullIdentifier() {
+    String label = BlockedNoticePresenter.resolveItemLabel(null);
+
+    assertEquals("unknown item", label);
   }
 }

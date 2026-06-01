@@ -105,6 +105,23 @@ class ClientLootLockStateTest {
   }
 
   @Test
+  void markDraftDirtySupportsDirectDraftMutations() {
+    ClientLootLockState state = new ClientLootLockState();
+    ServerToClientPackets.SyncPayload payload = createPayload();
+    state.onAuthoritativeSync(payload);
+
+    ClientDraftProfile draft = state.beginDraft(payload.activeProfileId()).orElseThrow();
+    draft.getDraft().setEnabled(false);
+    assertTrue(state.buildSaveRequest().isEmpty());
+
+    state.markDraftDirty();
+    ClientLootLockState.ClientDraftSaveRequest saveRequest = state.buildSaveRequest().orElseThrow();
+
+    assertEquals(payload.revision(), saveRequest.baseRevision());
+    assertFalse(saveRequest.profile().isEnabled());
+  }
+
+  @Test
   void authoritativeSyncRefreshesDraftToServerState() {
     ClientLootLockState state = new ClientLootLockState();
     ServerToClientPackets.SyncPayload initialPayload = createPayload();

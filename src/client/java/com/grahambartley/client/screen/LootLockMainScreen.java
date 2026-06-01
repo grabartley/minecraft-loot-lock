@@ -7,7 +7,9 @@ import com.grahambartley.data.FilterMode;
 import com.grahambartley.data.LootLockPlayerData;
 import com.grahambartley.data.LootLockProfile;
 import com.grahambartley.data.RejectedItemAction;
+import com.grahambartley.data.RuleEntry;
 import com.grahambartley.network.ClientMutationSync;
+import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -232,7 +234,11 @@ public final class LootLockMainScreen extends Screen {
             .beginDraft(data.getActiveProfileId())
             .map(
                 draft -> {
+                  String before = profileFingerprint(draft.getDraft());
                   mutator.accept(draft.getDraft());
+                  if (!before.equals(profileFingerprint(draft.getDraft()))) {
+                    state.markDraftDirty();
+                  }
                   return state.buildSaveRequest();
                 })
             .orElse(Optional.empty());
@@ -241,6 +247,28 @@ public final class LootLockMainScreen extends Screen {
       return;
     }
     ClientMutationSync.sendSaveRequest(saveRequest.get());
+  }
+
+  private static String profileFingerprint(LootLockProfile profile) {
+    if (profile == null) {
+      return "";
+    }
+    StringBuilder rules = new StringBuilder();
+    List<RuleEntry> profileRules = profile.getRules();
+    if (profileRules != null) {
+      for (RuleEntry rule : profileRules) {
+        rules.append(rule == null ? "" : rule.itemId()).append('|');
+      }
+    }
+    return profile.getName()
+        + "#"
+        + profile.getMode()
+        + "#"
+        + profile.getRejectedItemAction()
+        + "#"
+        + profile.isEnabled()
+        + "#"
+        + rules;
   }
 
   private void refreshButtons() {
