@@ -2,6 +2,7 @@ package com.grahambartley.client.hud;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.util.Optional;
 import net.minecraft.util.Identifier;
 import org.junit.jupiter.api.Test;
 
@@ -29,10 +30,9 @@ class BlockedNoticePresenterTest {
 
   @Test
   void resolveItemLabelFallsBackForUnknownIdentifier() {
-    Identifier unknown = Identifier.of("lootlock", "definitely_missing_item");
+    Identifier unknown = new Identifier("lootlock", "definitely_missing_item");
 
-    String label =
-        BlockedNoticePresenter.resolveItemLabel(unknown, ignored -> java.util.Optional.empty());
+    String label = BlockedNoticePresenter.resolveItemLabel(unknown, ignored -> Optional.empty());
 
     assertEquals("lootlock:definitely_missing_item", label);
   }
