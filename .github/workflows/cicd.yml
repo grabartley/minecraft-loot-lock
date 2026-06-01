@@ -183,10 +183,13 @@ jobs:
         with:
           modrinth-id: loot-lock
           modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
-          files: build/libs/*.jar
+          files: build/libs/!(*-sources).jar
           name: LootLock v${{ steps.semver.outputs.new_version }}
           version: ${{ steps.semver.outputs.new_version }}
           version-type: ${{ steps.release_meta.outputs.modrinth_type }}
           loaders: fabric
           game-versions: 1.20.1
           changelog-file: release-notes.md
+          dependencies: |
+            P7dR8mSH | depends
+            mOgUt4GM | recommends
