@@ -1,9 +1,9 @@
 <p align="center">
-<img src="https://cdn.modrinth.com/data/8AB6MX34/images/be476404310a9912c482f6be80feea04ccb30baa.png" alt="Loot Lock Banner">
+<img src="docs/banner.png" alt="Loot Lock Banner" width="800">
 </p>
 
 [![Build](https://github.com/grabartley/minecraft-loot-lock/actions/workflows/cicd.yml/badge.svg)](https://github.com/grabartley/minecraft-loot-lock/actions/workflows/cicd.yml)
-[![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](https://github.com/grabartley/minecraft-loot-lock/blob/main/LICENSE)
+[![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
 [![Ko-fi](https://img.shields.io/badge/Ko--fi-Support_Loot_Lock-009078?logo=ko-fi&logoColor=white)](https://ko-fi.com/grahambartley)
 
 Your loot, your rules. LootLock is an open-source Fabric mod for per-player ground-item filtering. Server-authoritative, multiplayer-safe, zero junk.
