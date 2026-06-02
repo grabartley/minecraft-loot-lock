@@ -2,6 +2,7 @@ plugins {
 	id 'net.fabricmc.fabric-loom-remap' version "${loom_version}"
 	id 'maven-publish'
 	id 'com.diffplug.spotless' version '6.25.0'
+id 'com.modrinth.minotaur' version '2.9.0'
 }
 
 import java.nio.charset.StandardCharsets
@@ -153,4 +154,21 @@ publishing {
 		// The repositories here will be used for publishing your artifact, not for
 		// retrieving dependencies.
 	}
+}
+
+modrinth {
+projectId = 'loot-lock'
+versionNumber = System.getenv('MOD_VERSION') ?: project.version
+versionName = 'LootLock v' + (System.getenv('MOD_VERSION') ?: project.version)
+versionType = System.getenv('MOD_RELEASE_TYPE') ?: 'alpha'
+uploadFile = remapJar
+gameVersions = ['1.20.1']
+loaders = ['fabric']
+changelog = rootProject.file('release-notes.md').exists()
+	? rootProject.file('release-notes.md').text
+	: 'No changelog provided.'
+dependencies {
+	required.project 'fabric-api'
+	optional.project 'modmenu'
+}
 }

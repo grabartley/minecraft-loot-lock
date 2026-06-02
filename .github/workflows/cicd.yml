@@ -179,17 +179,8 @@ jobs:
 
       - name: Publish to Modrinth
         if: github.event_name == 'workflow_dispatch'
-        uses: Kir-Antipov/mc-publish@v3.3
-        with:
-          modrinth-id: loot-lock
-          modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
-          files: build/libs/!(*-sources).jar
-          name: LootLock v${{ steps.semver.outputs.new_version }}
-          version: ${{ steps.semver.outputs.new_version }}
-          version-type: ${{ steps.release_meta.outputs.modrinth_type }}
-          loaders: fabric
-          game-versions: 1.20.1
-          changelog-file: release-notes.md
-          dependencies: |
-            P7dR8mSH | depends
-            mOgUt4GM | recommends
+        run: ./gradlew modrinth
+        env:
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+          MOD_VERSION: ${{ steps.semver.outputs.new_version }}
+          MOD_RELEASE_TYPE: ${{ steps.release_meta.outputs.modrinth_type }}
