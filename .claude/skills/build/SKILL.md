@@ -11,10 +11,11 @@ description: Build or implement a feature for the LootLock mod, optionally from 
 2. Run the `worktree` skill first before any issue moves, coding, or validation.
 3. Keep issue project status in sync during execution.
 4. All code changes require unit tests. Test classes must mirror the production class name under test with a `Test` suffix and live in the same package structure under `src/test/java`.
-5. Run the pr skill as part of build after validation passes.
-6. Move issue to `QA testing` only after PR is opened and CI is running.
-7. After PR creation and `QA testing` transition, always provide a detailed manual QA checklist to the developer.
-8. Stop at QA testing, human performs final verification and moves to Done.
+5. Use the `create-issue` skill whenever build work does not already have a GitHub issue.
+6. Run the pr skill as part of build after validation passes.
+7. Move issue to `QA testing` only after PR is opened and CI is running.
+8. After PR creation and `QA testing` transition, always provide a detailed manual QA checklist to the developer.
+9. Stop at QA testing, human performs final verification and moves to Done.
 
 ## Workflow
 
@@ -23,18 +24,16 @@ description: Build or implement a feature for the LootLock mod, optionally from 
 3. If an issue number or URL is provided, read it first with gh:
 - `gh issue view <number> --repo grabartley/minecraft-loot-lock`
 - Extract acceptance criteria, constraints, and references.
-4. If no issue is provided, create one before coding:
-- Create a scoped issue with context, task list, and acceptance criteria.
-- Add it to the project board.
-- Use this issue as the tracking artifact for all subsequent status moves.
-5. Move the issue to `In progress`.
-6. Implement the feature.
-7. Run relevant automated tests and a local validation pass for changed behavior.
-8. Run manual validation via run-game-client when gameplay behavior changes.
-9. Invoke the pr skill for branch strategy, final checks, commit, push, and PR creation.
-10. Wait for CI to start on the PR and report status.
-11. Move issue to `QA testing` when the PR is ready for human verification.
-12. Provide a detailed manual QA checklist that the developer can run step by step.
+4. If no issue is provided, invoke the `create-issue` skill before coding.
+5. Use the created issue as the tracking artifact for all subsequent status moves.
+6. Move the issue to `In progress`.
+7. Implement the feature.
+8. Run relevant automated tests and a local validation pass for changed behavior.
+9. Run manual validation via run-game-client when gameplay behavior changes.
+10. Invoke the pr skill for branch strategy, final checks, commit, push, and PR creation.
+11. Wait for CI to start on the PR and report status.
+12. Move issue to `QA testing` when the PR is ready for human verification.
+13. Provide a detailed manual QA checklist that the developer can run step by step.
 
 ## Board Status Policy
 
@@ -50,22 +49,15 @@ description: Build or implement a feature for the LootLock mod, optionally from 
 - After PR creation and QA handoff: set to `QA testing`
 - Do not move to `Done` inside this skill
 
-## Issue Creation Template (when issue not provided)
+## Issue Creation
 
-Title format:
-- `[Build] <short capability or feature name>`
-
-Body minimum:
-- Context: why this change is needed
-- Scope: exact implementation boundaries
-- Tasks: checklist of concrete coding and validation steps
-- Acceptance Criteria: testable outcomes
-- Out of Scope: explicit exclusions
-
-After creating the issue, add it to the project board and start tracking status transitions immediately.
+- When no issue exists yet, use the `create-issue` skill instead of drafting an ad hoc issue body inside this skill.
+- After the issue is created, move it from `Ready` to `In progress` when implementation begins.
+- Keep using that issue for PR linkage and board status changes through the rest of the build flow.
 
 ## Related Skills
 
 - worktree, required first step for isolated branch setup
+- create-issue, required when build work starts without an existing GitHub issue
 - pr, required for branch, commit, push, and PR creation during build flow
 - run-game-client, use for manual validation before handoff
