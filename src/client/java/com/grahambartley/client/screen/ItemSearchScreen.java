@@ -2,9 +2,12 @@ package com.grahambartley.client.screen;
 
 import com.grahambartley.client.LootLockClient;
 import com.grahambartley.data.LootLockPlayerData;
+import com.grahambartley.data.LootLockProfile;
+import com.grahambartley.data.RuleEntry;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
@@ -35,6 +38,7 @@ public final class ItemSearchScreen extends Screen {
   private ButtonWidget nextPageButton;
   private List<ItemSearchController.ItemCandidate> filteredItems = List.of();
   private String lastFilterQuery = "";
+  private String lastRuleSignature = "";
   private final List<Integer> selectedIndices = new ArrayList<>();
   private int lastClickedIndex = -1;
   private long lastClickTime;
@@ -265,7 +269,8 @@ public final class ItemSearchScreen extends Screen {
 
   private List<ItemSearchController.ItemCandidate> visibleItems() {
     String query = searchField == null ? "" : searchField.getText();
-    if (!query.equals(lastFilterQuery)) {
+    String ruleSignature = activeRuleSignature();
+    if (!query.equals(lastFilterQuery) || !ruleSignature.equals(lastRuleSignature)) {
       recomputeFilter();
     }
     return filteredItems;
@@ -324,12 +329,33 @@ public final class ItemSearchScreen extends Screen {
   }
 
   private void recomputeFilter() {
+    Optional<LootLockProfile> profile =
+        LootLockClient.getState().getSnapshot().flatMap(LootLockPlayerData::getActiveProfile);
     String query = searchField == null ? "" : searchField.getText();
-    filteredItems = ItemSearchController.filter(allItems(), query);
+    filteredItems =
+        ItemSearchController.filter(
+            allItems(),
+            query,
+            RuleListController.itemIdSet(profile.map(LootLockProfile::getRules).orElse(List.of())));
     lastFilterQuery = query;
+    lastRuleSignature =
+        profile.map(LootLockProfile::getRules).map(ItemSearchScreen::rulesSignature).orElse("");
     selectedIndices.removeIf(i -> i >= filteredItems.size());
     if (lastClickedIndex >= filteredItems.size()) {
       lastClickedIndex = -1;
     }
+  }
+
+  private String activeRuleSignature() {
+    return LootLockClient.getState()
+        .getSnapshot()
+        .flatMap(LootLockPlayerData::getActiveProfile)
+        .map(LootLockProfile::getRules)
+        .map(ItemSearchScreen::rulesSignature)
+        .orElse("");
+  }
+
+  private static String rulesSignature(List<RuleEntry> rules) {
+    return String.join(",", RuleListController.itemIdSet(rules));
   }
 }

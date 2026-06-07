@@ -12,13 +12,7 @@ public final class RuleListController {
   private RuleListController() {}
 
   public static List<RuleEntry> dedupeRules(List<RuleEntry> rules) {
-    Set<String> seen = new LinkedHashSet<>();
-    for (RuleEntry rule : rules) {
-      if (rule == null || rule.itemId() == null || rule.itemId().isBlank()) {
-        continue;
-      }
-      seen.add(rule.itemId());
-    }
+    Set<String> seen = itemIdSet(rules);
     List<RuleEntry> deduped = new ArrayList<>();
     for (String itemId : seen) {
       deduped.add(new RuleEntry(itemId));
@@ -70,10 +64,7 @@ public final class RuleListController {
 
   public static List<RuleEntry> withRulesAdded(List<RuleEntry> rules, List<String> itemIds) {
     List<RuleEntry> deduped = dedupeRules(rules);
-    Set<String> seen = new LinkedHashSet<>();
-    for (RuleEntry rule : deduped) {
-      seen.add(rule.itemId());
-    }
+    Set<String> seen = itemIdSet(deduped);
     for (String itemId : itemIds) {
       if (itemId == null || itemId.isBlank() || !seen.add(itemId)) {
         continue;
@@ -100,6 +91,17 @@ public final class RuleListController {
       }
     }
     return withRuleAdded(rules, itemId);
+  }
+
+  public static Set<String> itemIdSet(List<RuleEntry> rules) {
+    Set<String> seen = new LinkedHashSet<>();
+    for (RuleEntry rule : rules) {
+      if (rule == null || rule.itemId() == null || rule.itemId().isBlank()) {
+        continue;
+      }
+      seen.add(rule.itemId());
+    }
+    return seen;
   }
 
   private static String normalize(String value) {

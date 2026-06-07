@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -70,5 +71,27 @@ class ItemSearchControllerTest {
 
     assertEquals(1, filtered.size());
     assertEquals("create:zinc_ore", filtered.get(0).itemId());
+  }
+
+  @Test
+  void filterExcludesItemsAlreadyInActiveProfileRules() {
+    List<ItemSearchController.ItemCandidate> filtered =
+        ItemSearchController.filter(ITEMS, "", Set.of("minecraft:apple", "create:zinc_ore"));
+
+    assertEquals(3, filtered.size());
+    assertEquals(
+        List.of("create:andesite", "minecraft:diamond", "minecraft:stone"),
+        filtered.stream().map(ItemSearchController.ItemCandidate::itemId).toList());
+  }
+
+  @Test
+  void filterPreservesSearchBehaviorAfterExcludingExistingRules() {
+    List<ItemSearchController.ItemCandidate> filtered =
+        ItemSearchController.filter(ITEMS, "minecraft", Set.of("minecraft:apple"));
+
+    assertEquals(2, filtered.size());
+    assertEquals(
+        List.of("minecraft:diamond", "minecraft:stone"),
+        filtered.stream().map(ItemSearchController.ItemCandidate::itemId).toList());
   }
 }
