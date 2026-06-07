@@ -1,8 +1,12 @@
 package com.grahambartley.client.config;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.google.gson.GsonBuilder;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -32,5 +36,28 @@ class ClientSettingsManagerTest {
     manager.load();
 
     assertTrue(configPath.toFile().exists());
+  }
+
+  @Test
+  void loadsOldConfigWithRemovedActionbarField() throws IOException {
+    Path configPath = tempDir.resolve("old-loot-lock-client.json");
+    String oldJson =
+        "{"
+            + "\"showBlockedHudNotification\": false,"
+            + "\"showActionbarFallback\": true,"
+            + "\"confirmBeforeEnablingDelete\": true,"
+            + "\"enableProfileCycleToast\": true,"
+            + "\"uiScalePercent\": 100"
+            + "}";
+    Files.writeString(configPath, oldJson);
+
+    ClientSettingsManager manager =
+        new ClientSettingsManager(configPath, new GsonBuilder().setPrettyPrinting().create());
+    manager.load();
+
+    ClientSettings settings = manager.getSettingsCopy();
+    assertFalse(settings.isShowBlockedHudNotification());
+    assertTrue(settings.isEnableProfileCycleToast());
+    assertEquals(100, settings.getUiScalePercent());
   }
 }
