@@ -4,6 +4,7 @@ import com.grahambartley.client.LootLockClient;
 import com.grahambartley.data.LootLockPlayerData;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import net.minecraft.client.gui.DrawContext;
@@ -11,6 +12,8 @@ import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.item.Item;
+import net.minecraft.item.ItemGroup;
+import net.minecraft.item.ItemGroups;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.registry.Registries;
@@ -241,25 +244,22 @@ public final class ItemSearchScreen extends Screen {
   }
 
   private static Set<Item> operatorOnlyItems;
-  private static Set<Item> explicitBlocklist;
 
   private static Set<Item> operatorOnlyItems() {
     if (operatorOnlyItems == null) {
-      operatorOnlyItems =
-          Set.of(
-              Items.COMMAND_BLOCK,
-              Items.CHAIN_COMMAND_BLOCK,
-              Items.REPEATING_COMMAND_BLOCK,
-              Items.COMMAND_BLOCK_MINECART,
-              Items.STRUCTURE_BLOCK,
-              Items.JIGSAW,
-              Items.STRUCTURE_VOID,
-              Items.BARRIER,
-              Items.DEBUG_STICK,
-              Items.LIGHT);
+      Set<Item> items = new HashSet<>();
+      ItemGroup operatorGroup = Registries.ITEM_GROUP.get(ItemGroups.OPERATOR);
+      if (operatorGroup != null) {
+        for (ItemStack stack : operatorGroup.getDisplayStacks()) {
+          items.add(stack.getItem());
+        }
+      }
+      operatorOnlyItems = Set.copyOf(items);
     }
     return operatorOnlyItems;
   }
+
+  private static Set<Item> explicitBlocklist;
 
   private static Set<Item> explicitBlocklist() {
     if (explicitBlocklist == null) {
