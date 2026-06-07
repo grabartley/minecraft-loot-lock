@@ -20,7 +20,7 @@ public final class SettingsScreen extends Screen {
   @Override
   protected void init() {
     int left = this.width / 2 - 100;
-    int totalHeight = 148;
+    int totalHeight = 124;
     int top = Math.max(34, (this.height - totalHeight) / 2);
 
     ButtonWidget blockedHudButton =
@@ -34,17 +34,6 @@ public final class SettingsScreen extends Screen {
                 .dimensions(left, top, 200, 20)
                 .build());
 
-    ButtonWidget actionbarButton =
-        addDrawableChild(
-            ButtonWidget.builder(
-                    Text.literal(actionbarLabel()),
-                    button -> {
-                      draft.setShowActionbarFallback(!draft.isShowActionbarFallback());
-                      button.setMessage(Text.literal(actionbarLabel()));
-                    })
-                .dimensions(left, top + 24, 200, 20)
-                .build());
-
     ButtonWidget deleteConfirmButton =
         addDrawableChild(
             ButtonWidget.builder(
@@ -53,7 +42,7 @@ public final class SettingsScreen extends Screen {
                       draft.setConfirmBeforeEnablingDelete(!draft.isConfirmBeforeEnablingDelete());
                       button.setMessage(Text.literal(deleteConfirmLabel()));
                     })
-                .dimensions(left, top + 48, 200, 20)
+                .dimensions(left, top + 24, 200, 20)
                 .build());
 
     ButtonWidget profileToastButton =
@@ -64,7 +53,7 @@ public final class SettingsScreen extends Screen {
                       draft.setEnableProfileCycleToast(!draft.isEnableProfileCycleToast());
                       button.setMessage(Text.literal(profileToastLabel()));
                     })
-                .dimensions(left, top + 72, 200, 20)
+                .dimensions(left, top + 48, 200, 20)
                 .build());
 
     ButtonWidget uiScaleButton =
@@ -77,11 +66,10 @@ public final class SettingsScreen extends Screen {
                       draft.setUiScalePercent(next);
                       button.setMessage(Text.literal(scaleLabel()));
                     })
-                .dimensions(left, top + 96, 200, 20)
+                .dimensions(left, top + 72, 200, 20)
                 .build());
 
     blockedHudButton.active = true;
-    actionbarButton.active = true;
     deleteConfirmButton.active = false;
     profileToastButton.active = true;
     uiScaleButton.active = false;
@@ -93,11 +81,11 @@ public final class SettingsScreen extends Screen {
                   LootLockClient.getClientSettingsManager().replaceAndSave(draft);
                   close();
                 })
-            .dimensions(left, top + 128, 97, 20)
+            .dimensions(left, top + 104, 97, 20)
             .build());
     addDrawableChild(
         ButtonWidget.builder(Text.literal("Cancel"), button -> close())
-            .dimensions(left + 103, top + 128, 97, 20)
+            .dimensions(left + 103, top + 104, 97, 20)
             .build());
   }
 
@@ -118,10 +106,6 @@ public final class SettingsScreen extends Screen {
 
   private String blockedHudLabel() {
     return "Show blocked toast: " + onOff(draft.isShowBlockedHudNotification());
-  }
-
-  private String actionbarLabel() {
-    return "Show blocked actionbar: " + onOff(draft.isShowActionbarFallback());
   }
 
   private String deleteConfirmLabel() {

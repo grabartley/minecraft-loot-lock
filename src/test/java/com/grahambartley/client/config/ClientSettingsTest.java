@@ -3,6 +3,7 @@ package com.grahambartley.client.config;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
@@ -29,9 +30,10 @@ class ClientSettingsTest {
   void copyReturnsIndependentInstance() {
     ClientSettings settings = ClientSettings.defaults();
     ClientSettings copy = settings.copy();
-    copy.setShowActionbarFallback(false);
+    copy.setShowBlockedHudNotification(true);
 
     assertNotSame(settings, copy);
-    assertEquals(true, settings.isShowActionbarFallback());
+    assertFalse(settings.isShowBlockedHudNotification());
+    assertTrue(copy.isShowBlockedHudNotification());
   }
 }
