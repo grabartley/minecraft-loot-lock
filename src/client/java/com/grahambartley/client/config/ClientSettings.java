@@ -2,7 +2,6 @@ package com.grahambartley.client.config;
 
 public final class ClientSettings {
   private boolean showBlockedHudNotification = false;
-  private boolean showActionbarFallback = true;
   private boolean confirmBeforeEnablingDelete = true;
   private boolean enableProfileCycleToast = false;
   private int uiScalePercent = 100;
@@ -14,7 +13,6 @@ public final class ClientSettings {
   public ClientSettings copy() {
     ClientSettings copy = new ClientSettings();
     copy.showBlockedHudNotification = showBlockedHudNotification;
-    copy.showActionbarFallback = showActionbarFallback;
     copy.confirmBeforeEnablingDelete = confirmBeforeEnablingDelete;
     copy.enableProfileCycleToast = enableProfileCycleToast;
     copy.uiScalePercent = uiScalePercent;
@@ -27,14 +25,6 @@ public final class ClientSettings {
 
   public void setShowBlockedHudNotification(boolean showBlockedHudNotification) {
     this.showBlockedHudNotification = showBlockedHudNotification;
-  }
-
-  public boolean isShowActionbarFallback() {
-    return showActionbarFallback;
-  }
-
-  public void setShowActionbarFallback(boolean showActionbarFallback) {
-    this.showActionbarFallback = showActionbarFallback;
   }
 
   public boolean isConfirmBeforeEnablingDelete() {

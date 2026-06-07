@@ -25,10 +25,6 @@ public final class BlockedNoticePresenter {
           Text.literal("LootLock"),
           message);
     }
-
-    if (settings.isShowActionbarFallback() && client.player != null) {
-      client.player.sendMessage(Text.literal("[LootLock] ").append(message), true);
-    }
   }
 
   static Text formatMessage(String itemLabel, boolean deleted) {
