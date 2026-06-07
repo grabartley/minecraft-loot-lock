@@ -288,6 +288,20 @@ public final class RuleListScreen extends Screen {
     recomputeVisibleRules(activeProfile().orElse(null));
   }
 
+  public int addRules(List<String> itemIds) {
+    Optional<LootLockProfile> profileOptional = activeProfile();
+    if (profileOptional.isEmpty() || itemIds.isEmpty()) {
+      return 0;
+    }
+    List<RuleEntry> rules = profileOptional.get().getRules();
+    List<RuleEntry> next = RuleListController.withRulesAdded(rules, itemIds);
+    int added =
+        RuleListController.dedupeRules(next).size() - RuleListController.dedupeRules(rules).size();
+    saveRules(next);
+    recomputeVisibleRules(activeProfile().orElse(null));
+    return Math.max(added, 0);
+  }
+
   private void saveRules(List<RuleEntry> nextRules) {
     String query = searchField == null ? "" : searchField.getText();
     List<RuleEntry> deduped = RuleListController.dedupeRules(nextRules);
