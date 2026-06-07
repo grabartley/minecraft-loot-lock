@@ -9,7 +9,7 @@ Use this skill when the user wants a new GitHub issue created for `grabartley/mi
 
 ## Defaults
 
-1. Assign every new issue to `grabartley` unless the user says otherwise.
+1. Leave every new issue unassigned unless the user gives an assignee.
 2. Add every new issue to project `grabartley` project `2`, `Loot Lock`.
 3. Set the project status to `Ready` unless the user says otherwise.
 4. Keep issue titles brief and concise.
@@ -48,6 +48,23 @@ Research tools to use:
 
 Do the research before authoring the issue so the final description is self-contained.
 
+## Duplicate Check
+
+Before creating a new issue, always check whether one already exists for the same work.
+
+Minimum check:
+
+```bash
+gh issue list --repo grabartley/minecraft-loot-lock --state all --limit 200 --json number,title
+```
+
+If the request is broad, ambiguous, or likely to overlap with earlier work, also search by keyword in issue titles and bodies before creating anything new.
+
+Do not create a duplicate issue when an open or closed issue already covers the same scope closely enough. Instead:
+- return the existing issue URL
+- explain the overlap briefly
+- only create a new issue if the user still wants a separate tracking artifact
+
 ## Title Guidance
 
 - Keep titles short.
@@ -84,14 +101,16 @@ Body rules:
 ## Creation Workflow
 
 1. Capture the request.
-2. Research the codebase if needed so the issue can stand on its own.
-3. Draft a concise title.
-4. Draft the body in markdown.
-5. Write the body to a temp file to preserve formatting and avoid shell quoting problems.
-6. Create the issue with `gh issue create`.
-7. Add the issue to project `2`.
-8. Set project status to `Ready` unless the user asked for another status.
-9. Return the issue URL and the status that was applied.
+2. Check for an existing issue covering the same work.
+3. Research the codebase if needed so the issue can stand on its own.
+4. Draft a concise title.
+5. Draft the body in markdown.
+6. Write the body to a temp file to preserve formatting and avoid shell quoting problems.
+7. Create the issue with `gh issue create`.
+8. If the user provided an assignee, assign the issue.
+9. Add the issue to project `2`.
+10. Set project status to `Ready` unless the user asked for another status.
+11. Return the issue URL, assignment state, and status that were applied.
 
 ## GitHub Commands
 
@@ -101,8 +120,15 @@ Create the issue:
 gh issue create \
 --repo grabartley/minecraft-loot-lock \
 --title "<brief title>" \
---body-file .claude/tmp/issue-body.md \
---assignee grabartley
+--body-file .claude/tmp/issue-body.md
+```
+
+If the user provided an assignee, either include it at creation time or assign it immediately after:
+
+```bash
+gh issue edit <issue-number> \
+--repo grabartley/minecraft-loot-lock \
+--add-assignee <github-login>
 ```
 
 Add it to the project:
@@ -142,6 +168,7 @@ If the user asked for a status other than `Ready`, use the matching option id in
 ## Final Checks
 
 Before creating the issue, confirm:
+- A duplicate check was completed.
 - The title is concise.
 - The description is public-safe.
 - The body contains enough detail to implement the work without local context.
@@ -149,7 +176,7 @@ Before creating the issue, confirm:
 - External references are summarized in the body.
 
 After creating the issue, confirm:
-- The issue is assigned to `grabartley` unless told otherwise.
+- The issue is unassigned unless the user requested an assignee.
 - The issue was added to project `Loot Lock`.
 - The project status is `Ready` unless told otherwise.
 - The returned URL opens the created issue.
