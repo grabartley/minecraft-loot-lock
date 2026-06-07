@@ -4,18 +4,13 @@ import com.grahambartley.client.LootLockClient;
 import com.grahambartley.data.LootLockPlayerData;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.item.Item;
-import net.minecraft.item.ItemGroup;
-import net.minecraft.item.ItemGroups;
 import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
 import net.minecraft.registry.Registries;
 import net.minecraft.resource.featuretoggle.FeatureFlags;
 import net.minecraft.text.Text;
@@ -243,45 +238,8 @@ public final class ItemSearchScreen extends Screen {
     }
   }
 
-  private static class OperatorItemsHolder {
-    static final Set<Item> OPERATOR_ONLY_ITEMS = loadOperatorItems();
-
-    private static Set<Item> loadOperatorItems() {
-      Set<Item> items = new HashSet<>();
-      ItemGroup operatorGroup = Registries.ITEM_GROUP.get(ItemGroups.OPERATOR);
-      if (operatorGroup != null) {
-        for (ItemStack stack : operatorGroup.getDisplayStacks()) {
-          items.add(stack.getItem());
-        }
-      }
-      return Set.copyOf(items);
-    }
-  }
-
-  private static Set<Item> operatorOnlyItems() {
-    return OperatorItemsHolder.OPERATOR_ONLY_ITEMS;
-  }
-
-  private static Set<Item> explicitBlocklist;
-
-  private static Set<Item> explicitBlocklist() {
-    if (explicitBlocklist == null) {
-      explicitBlocklist =
-          Set.of(
-              Items.BEDROCK,
-              Items.END_PORTAL_FRAME,
-              Items.KNOWLEDGE_BOOK,
-              Items.DRAGON_EGG,
-              Items.SPAWNER);
-    }
-    return explicitBlocklist;
-  }
-
   private static boolean isUnobtainable(Item item) {
-    return item == Items.AIR
-        || !item.isEnabled(FeatureFlags.DEFAULT_ENABLED_FEATURES)
-        || operatorOnlyItems().contains(item)
-        || explicitBlocklist().contains(item);
+    return UnobtainableItems.isUnobtainable(item);
   }
 
   private static List<ItemSearchController.ItemCandidate> allItems() {
