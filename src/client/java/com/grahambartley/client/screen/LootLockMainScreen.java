@@ -15,12 +15,25 @@ import java.util.function.Consumer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.ConfirmScreen;
 import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 
+/**
+ * Main LootLock entry screen.
+ *
+ * <p>Delete policy is shown here as read-only status text. Operators can still change it with the
+ * policy command until that control is relocated into settings.
+ */
 public final class LootLockMainScreen extends Screen {
+  private static final int GRID_BUTTON_WIDTH = 150;
+  private static final int GRID_GAP = 4;
+  private static final int DONE_BUTTON_WIDTH = 200;
+  private static final int SUBTITLE_Y = 30;
+  private static final int ROW_SPACING = 24;
+
   private final Screen parent;
   private ButtonWidget profilesButton;
   private ButtonWidget activeProfileButton;
@@ -38,34 +51,33 @@ public final class LootLockMainScreen extends Screen {
 
   @Override
   protected void init() {
-    int left = this.width / 2 - 152;
-    int right = this.width / 2 + 2;
-    int subtitleY = 30;
-    int rowY = subtitleY + 20;
-    int rowSpacing = 24;
+    int left = this.width / 2 - GRID_BUTTON_WIDTH - GRID_GAP / 2;
+    int right = this.width / 2 + GRID_GAP / 2;
+    int rowY = SUBTITLE_Y + 20;
+    int doneX = this.width / 2 - DONE_BUTTON_WIDTH / 2;
 
     activeProfileButton =
         addDrawableChild(
             ButtonWidget.builder(Text.literal("Profile: -"), button -> cycleActiveProfile())
-                .dimensions(left, rowY, 150, 20)
+                .dimensions(left, rowY, GRID_BUTTON_WIDTH, 20)
                 .build());
 
     enabledButton =
         addDrawableChild(
             ButtonWidget.builder(Text.literal("Enabled: -"), button -> toggleEnabled())
-                .dimensions(right, rowY, 150, 20)
+                .dimensions(right, rowY, GRID_BUTTON_WIDTH, 20)
                 .build());
 
     modeButton =
         addDrawableChild(
             ButtonWidget.builder(Text.literal("Mode: -"), button -> toggleMode())
-                .dimensions(left, rowY + rowSpacing, 150, 20)
+                .dimensions(left, rowY + ROW_SPACING, GRID_BUTTON_WIDTH, 20)
                 .build());
 
     actionButton =
         addDrawableChild(
             ButtonWidget.builder(Text.literal("Action: -"), button -> toggleAction())
-                .dimensions(right, rowY + rowSpacing, 150, 20)
+                .dimensions(right, rowY + ROW_SPACING, GRID_BUTTON_WIDTH, 20)
                 .build());
 
     editRulesButton =
@@ -73,14 +85,14 @@ public final class LootLockMainScreen extends Screen {
             ButtonWidget.builder(
                     Text.literal("Edit Rules"),
                     button -> this.client.setScreen(new RuleListScreen(this)))
-                .dimensions(left, rowY + rowSpacing * 2, 150, 20)
+                .dimensions(left, rowY + ROW_SPACING * 2, GRID_BUTTON_WIDTH, 20)
                 .build());
     profilesButton =
         addDrawableChild(
             ButtonWidget.builder(
                     Text.literal("Profiles"),
                     button -> this.client.setScreen(new ProfileListScreen(this)))
-                .dimensions(right, rowY + rowSpacing * 2, 150, 20)
+                .dimensions(right, rowY + ROW_SPACING * 2, GRID_BUTTON_WIDTH, 20)
                 .build());
 
     settingsButton =
@@ -88,17 +100,18 @@ public final class LootLockMainScreen extends Screen {
             ButtonWidget.builder(
                     Text.literal("Settings"),
                     button -> this.client.setScreen(new SettingsScreen(this)))
-                .dimensions(left, rowY + rowSpacing * 3, 150, 20)
+                .dimensions(left, rowY + ROW_SPACING * 3, GRID_BUTTON_WIDTH, 20)
                 .build());
     importExportButton =
         addDrawableChild(
             ButtonWidget.builder(Text.literal("Import / Export"), button -> {})
-                .dimensions(right, rowY + rowSpacing * 3, 150, 20)
+                .dimensions(right, rowY + ROW_SPACING * 3, GRID_BUTTON_WIDTH, 20)
+                .tooltip(Tooltip.of(Text.literal("Coming in a future release")))
                 .build());
 
     addDrawableChild(
         ButtonWidget.builder(Text.literal("Done"), button -> close())
-            .dimensions(this.width / 2 - 100, this.height - 27, 200, 20)
+            .dimensions(doneX, this.height - 27, DONE_BUTTON_WIDTH, 20)
             .build());
 
     refreshButtons();
@@ -111,17 +124,18 @@ public final class LootLockMainScreen extends Screen {
     context.drawCenteredTextWithShadow(textRenderer, this.title, this.width / 2, 18, 0xFFFFFF);
 
     ClientLootLockState state = LootLockClient.getState();
+    int footerY = deletePolicyY();
     context.drawCenteredTextWithShadow(
         textRenderer,
         serverStateText(state.isServerSupportsLootLock()),
         this.width / 2,
-        30,
+        SUBTITLE_Y,
         0xFFFFFF);
     context.drawCenteredTextWithShadow(
         textRenderer,
         deletePolicyText(state.isAllowDeleteRejectedItems()),
         this.width / 2,
-        156,
+        footerY,
         0xA0A0A0);
 
     refreshButtons();
@@ -304,6 +318,11 @@ public final class LootLockMainScreen extends Screen {
         Text.literal(allowed ? "Allowed" : "Blocked")
             .formatted(allowed ? Formatting.GREEN : Formatting.RED);
     return Text.literal("Delete policy: ").formatted(Formatting.GRAY).append(value);
+  }
+
+  private static int deletePolicyY() {
+    int rowY = SUBTITLE_Y + 20;
+    return rowY + ROW_SPACING * 4 + 14;
   }
 
   static String deleteConfirmTitle() {

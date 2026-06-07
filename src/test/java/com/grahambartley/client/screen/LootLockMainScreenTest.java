@@ -17,7 +17,7 @@ class LootLockMainScreenTest {
   }
 
   @Test
-  void friendlyActionLabelsDeleteAsPermanent() {
+  void friendlyActionLabelsAreCompact() {
     assertEquals("Delete", LootLockMainScreen.friendlyAction(RejectedItemAction.DELETE));
     assertEquals("Leave", LootLockMainScreen.friendlyAction(RejectedItemAction.LEAVE_ON_GROUND));
   }
