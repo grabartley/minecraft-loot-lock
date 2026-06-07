@@ -5,6 +5,7 @@ import com.grahambartley.data.LootLockPlayerData;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
@@ -239,25 +240,45 @@ public final class ItemSearchScreen extends Screen {
     }
   }
 
+  private static Set<Item> operatorOnlyItems;
+  private static Set<Item> explicitBlocklist;
+
+  private static Set<Item> operatorOnlyItems() {
+    if (operatorOnlyItems == null) {
+      operatorOnlyItems =
+          Set.of(
+              Items.COMMAND_BLOCK,
+              Items.CHAIN_COMMAND_BLOCK,
+              Items.REPEATING_COMMAND_BLOCK,
+              Items.COMMAND_BLOCK_MINECART,
+              Items.STRUCTURE_BLOCK,
+              Items.JIGSAW,
+              Items.STRUCTURE_VOID,
+              Items.BARRIER,
+              Items.DEBUG_STICK,
+              Items.LIGHT);
+    }
+    return operatorOnlyItems;
+  }
+
+  private static Set<Item> explicitBlocklist() {
+    if (explicitBlocklist == null) {
+      explicitBlocklist =
+          Set.of(
+              Items.BEDROCK,
+              Items.END_PORTAL_FRAME,
+              Items.KNOWLEDGE_BOOK,
+              Items.DRAGON_EGG,
+              Items.SPAWNER);
+    }
+    return explicitBlocklist;
+  }
+
   private static boolean isUnobtainable(Item item) {
     return item == Items.AIR
-        || item == Items.LIGHT
-        || item == Items.BARRIER
-        || item == Items.STRUCTURE_VOID
-        || item == Items.COMMAND_BLOCK
-        || item == Items.CHAIN_COMMAND_BLOCK
-        || item == Items.REPEATING_COMMAND_BLOCK
-        || item == Items.COMMAND_BLOCK_MINECART
-        || item == Items.STRUCTURE_BLOCK
-        || item == Items.JIGSAW
-        || item == Items.DEBUG_STICK
-        || item == Items.KNOWLEDGE_BOOK
-        || item == Items.BEDROCK
-        || item == Items.END_PORTAL_FRAME
-        || item == Items.FARMLAND
-        || item == Items.BUDDING_AMETHYST
-        || item == Items.DRAGON_EGG
-        || item == Items.SPAWNER;
+        || !item.isEnabled(FeatureFlags.DEFAULT_ENABLED_FEATURES)
+        || operatorOnlyItems().contains(item)
+        || explicitBlocklist().contains(item);
   }
 
   private static List<ItemSearchController.ItemCandidate> allItems() {
