@@ -243,10 +243,10 @@ public final class ItemSearchScreen extends Screen {
     }
   }
 
-  private static Set<Item> operatorOnlyItems;
+  private static class OperatorItemsHolder {
+    static final Set<Item> OPERATOR_ONLY_ITEMS = loadOperatorItems();
 
-  private static Set<Item> operatorOnlyItems() {
-    if (operatorOnlyItems == null) {
+    private static Set<Item> loadOperatorItems() {
       Set<Item> items = new HashSet<>();
       ItemGroup operatorGroup = Registries.ITEM_GROUP.get(ItemGroups.OPERATOR);
       if (operatorGroup != null) {
@@ -254,9 +254,12 @@ public final class ItemSearchScreen extends Screen {
           items.add(stack.getItem());
         }
       }
-      operatorOnlyItems = Set.copyOf(items);
+      return Set.copyOf(items);
     }
-    return operatorOnlyItems;
+  }
+
+  private static Set<Item> operatorOnlyItems() {
+    return OperatorItemsHolder.OPERATOR_ONLY_ITEMS;
   }
 
   private static Set<Item> explicitBlocklist;
