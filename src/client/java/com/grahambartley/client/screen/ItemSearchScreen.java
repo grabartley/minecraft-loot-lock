@@ -26,6 +26,7 @@ public final class ItemSearchScreen extends Screen {
   private static final int GRID_GAP = 4;
   private static final int TITLE_Y = 18;
   private static final int SUBTITLE_Y = 30;
+  private static final long DOUBLE_CLICK_MS = 500L;
   private static List<ItemSearchController.ItemCandidate> cachedAllItems;
 
   private final RuleListScreen parent;
@@ -43,6 +44,8 @@ public final class ItemSearchScreen extends Screen {
   private int listTop;
   private int statusLineY;
   private int listLeft;
+  private String feedbackMessage;
+  private long feedbackExpiresAt;
 
   public ItemSearchScreen(RuleListScreen parent) {
     super(Text.literal("Item Search"));
@@ -70,6 +73,7 @@ public final class ItemSearchScreen extends Screen {
             20,
             Text.literal("Search items"));
     searchField.setMaxLength(100);
+    searchField.setPlaceholder(Text.literal("Search items..."));
     searchField.setChangedListener(
         ignored -> {
           selectedIndices.clear();
@@ -148,6 +152,17 @@ public final class ItemSearchScreen extends Screen {
     }
     context.drawTextWithShadow(textRenderer, Text.literal(status), listLeft, statusLineY, 0xA0A0A0);
 
+    if (feedbackMessage != null && System.currentTimeMillis() < feedbackExpiresAt) {
+      context.drawTextWithShadow(
+          textRenderer,
+          Text.literal(feedbackMessage),
+          addSelectedButton.getX() + addSelectedButton.getWidth() + 8,
+          statusLineY,
+          0x55FF55);
+    } else {
+      feedbackMessage = null;
+    }
+
     refreshButtonState(visible);
   }
 
@@ -172,7 +187,10 @@ public final class ItemSearchScreen extends Screen {
 
     long now = System.currentTimeMillis();
     boolean isDoubleClick =
-        button == 0 && absoluteIndex == lastClickedIndex && (now - lastClickTime) < 500L;
+        button == 0
+            && lastClickedIndex >= 0
+            && absoluteIndex == lastClickedIndex
+            && (now - lastClickTime) < DOUBLE_CLICK_MS;
     lastClickTime = now;
 
     if (Screen.hasControlDown()) {
@@ -202,10 +220,44 @@ public final class ItemSearchScreen extends Screen {
   }
 
   @Override
+  public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+    if (keyCode == 256) {
+      if (!selectedIndices.isEmpty()) {
+        selectedIndices.clear();
+        lastClickedIndex = -1;
+        refreshButtonState(visibleItems());
+        return true;
+      }
+    }
+    return super.keyPressed(keyCode, scanCode, modifiers);
+  }
+
+  @Override
   public void close() {
     if (this.client != null) {
       this.client.setScreen(parent);
     }
+  }
+
+  private static boolean isUnobtainable(Item item) {
+    return item == Items.AIR
+        || item == Items.LIGHT
+        || item == Items.BARRIER
+        || item == Items.STRUCTURE_VOID
+        || item == Items.COMMAND_BLOCK
+        || item == Items.CHAIN_COMMAND_BLOCK
+        || item == Items.REPEATING_COMMAND_BLOCK
+        || item == Items.COMMAND_BLOCK_MINECART
+        || item == Items.STRUCTURE_BLOCK
+        || item == Items.JIGSAW
+        || item == Items.DEBUG_STICK
+        || item == Items.KNOWLEDGE_BOOK
+        || item == Items.BEDROCK
+        || item == Items.END_PORTAL_FRAME
+        || item == Items.FARMLAND
+        || item == Items.BUDDING_AMETHYST
+        || item == Items.DRAGON_EGG
+        || item == Items.SPAWNER;
   }
 
   private static List<ItemSearchController.ItemCandidate> allItems() {
@@ -215,7 +267,7 @@ public final class ItemSearchScreen extends Screen {
 
     List<ItemSearchController.ItemCandidate> built = new ArrayList<>();
     for (Item item : Registries.ITEM) {
-      if (item == Items.AIR) {
+      if (isUnobtainable(item)) {
         continue;
       }
       if (!item.isEnabled(FeatureFlags.DEFAULT_ENABLED_FEATURES)) {
@@ -244,11 +296,15 @@ public final class ItemSearchScreen extends Screen {
       return;
     }
     List<Integer> indices = new ArrayList<>(selectedIndices);
+    int added = 0;
     for (int index : indices) {
       if (index >= 0 && index < visible.size()) {
-        parent.saveRuleToggle(visible.get(index).itemId());
+        parent.addRule(visible.get(index).itemId());
+        added++;
       }
     }
+    feedbackMessage = "Added " + added + " item" + (added != 1 ? "s" : "");
+    feedbackExpiresAt = System.currentTimeMillis() + 2000L;
   }
 
   private void refreshButtonState(List<ItemSearchController.ItemCandidate> visible) {

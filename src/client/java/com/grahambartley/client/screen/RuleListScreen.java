@@ -266,6 +266,17 @@ public final class RuleListScreen extends Screen {
     recomputeVisibleRules(activeProfile().orElse(null));
   }
 
+  public void addRule(String itemId) {
+    Optional<LootLockProfile> profileOptional = activeProfile();
+    if (profileOptional.isEmpty()) {
+      return;
+    }
+    List<RuleEntry> rules = profileOptional.get().getRules();
+    List<RuleEntry> next = RuleListController.withRuleAdded(rules, itemId);
+    saveRules(next);
+    recomputeVisibleRules(activeProfile().orElse(null));
+  }
+
   public void saveRuleToggle(String itemId) {
     Optional<LootLockProfile> profileOptional = activeProfile();
     if (profileOptional.isEmpty()) {
