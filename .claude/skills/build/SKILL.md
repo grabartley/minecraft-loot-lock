@@ -16,7 +16,8 @@ description: Build or implement a feature for the LootLock mod, optionally from 
 7. Run the pr skill as part of build after validation passes.
 8. Move issue to `QA testing` only after PR is opened and CI is running.
 9. After PR creation and `QA testing` transition, always provide a detailed manual QA checklist to the developer.
-10. Stop at QA testing, human performs final verification and moves to Done.
+10. If PR code changes after the PR is opened, check whether the PR description still matches the current branch state, and update it if needed so it reflects the final state only.
+11. Stop at QA testing, human performs final verification and moves to Done.
 
 ## Workflow
 
@@ -33,9 +34,10 @@ description: Build or implement a feature for the LootLock mod, optionally from 
 9. Run relevant automated tests and a local validation pass for changed behavior.
 10. Run manual validation via run-game-client when gameplay behavior changes.
 11. Invoke the pr skill for branch strategy, final checks, commit, push, and PR creation.
-12. Wait for CI to start on the PR and report status.
-13. Move issue to `QA testing` when the PR is ready for human verification.
-14. Provide a detailed manual QA checklist that the developer can run step by step.
+12. If you make additional code changes after the PR is opened, re-check the PR description and update it when necessary so it describes only the final shipped scope.
+13. Wait for CI to start on the PR and report status.
+14. Move issue to `QA testing` when the PR is ready for human verification.
+15. Provide a detailed manual QA checklist that the developer can run step by step.
 
 ## Board Status Policy
 
