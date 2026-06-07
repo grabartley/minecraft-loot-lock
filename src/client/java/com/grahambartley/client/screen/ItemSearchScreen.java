@@ -277,13 +277,13 @@ public final class ItemSearchScreen extends Screen {
       return;
     }
     List<Integer> indices = new ArrayList<>(selectedIndices);
-    int added = 0;
+    List<String> itemIds = new ArrayList<>();
     for (int index : indices) {
       if (index >= 0 && index < visible.size()) {
-        parent.addRule(visible.get(index).itemId());
-        added++;
+        itemIds.add(visible.get(index).itemId());
       }
     }
+    int added = parent.addRules(itemIds);
     feedbackMessage = "Added " + added + " item" + (added != 1 ? "s" : "");
     feedbackExpiresAt = System.currentTimeMillis() + 2000L;
   }

@@ -68,6 +68,21 @@ public final class RuleListController {
     return deduped;
   }
 
+  public static List<RuleEntry> withRulesAdded(List<RuleEntry> rules, List<String> itemIds) {
+    List<RuleEntry> deduped = dedupeRules(rules);
+    Set<String> seen = new LinkedHashSet<>();
+    for (RuleEntry rule : deduped) {
+      seen.add(rule.itemId());
+    }
+    for (String itemId : itemIds) {
+      if (itemId == null || itemId.isBlank() || !seen.add(itemId)) {
+        continue;
+      }
+      deduped.add(new RuleEntry(itemId));
+    }
+    return deduped;
+  }
+
   public static List<RuleEntry> withRuleRemoved(List<RuleEntry> rules, String itemId) {
     List<RuleEntry> updated = new ArrayList<>();
     for (RuleEntry rule : dedupeRules(rules)) {
