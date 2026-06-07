@@ -285,7 +285,7 @@ public final class LootLockMainScreen extends Screen {
     }
 
     LootLockProfile profile = activeProfile.get();
-    activeProfileButton.setMessage(Text.literal("Profile: " + profile.getName()));
+    activeProfileButton.setMessage(activeProfileButtonText(profile.getName()));
     modeButton.setMessage(Text.literal("Mode: " + friendlyMode(profile.getMode())));
     actionButton.setMessage(
         Text.literal("Action: " + friendlyAction(profile.getRejectedItemAction())));
@@ -318,6 +318,11 @@ public final class LootLockMainScreen extends Screen {
         Text.literal(allowed ? "Allowed" : "Blocked")
             .formatted(allowed ? Formatting.GREEN : Formatting.RED);
     return Text.literal("Delete policy: ").formatted(Formatting.GRAY).append(value);
+  }
+
+  static Text activeProfileButtonText(String profileName) {
+    return Text.literal("Profile: ")
+        .append(Text.literal("★ " + profileName).formatted(Formatting.YELLOW));
   }
 
   private static int deletePolicyY() {

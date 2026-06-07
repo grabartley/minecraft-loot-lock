@@ -36,6 +36,7 @@ This skill is used directly by humans and also as a handoff step from the build 
 - Commit messages: `<type>: <lowercase description>`, no period at end
 - Types: feat, fix, refactor, test, docs, chore
 - PR descriptions: bullet points under "What's included:" header
+- PR titles and descriptions must be written as public-facing text, since this repo is public and anyone can view them
 - Always link the PR Development section to the active issue via `Closes #<issue-number>` in the PR body
 - Pre-commit must complete successfully: format, test, build
 - Run `./gradlew spotlessApply` before staging so CI `spotlessCheck` stays green
