@@ -12,10 +12,10 @@ import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.registry.Registries;
-import net.minecraft.resource.featuretoggle.FeatureFlags;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
+import org.lwjgl.glfw.GLFW;
 
 public final class ItemSearchScreen extends Screen {
   private static final int ROW_HEIGHT = 22;
@@ -151,15 +151,17 @@ public final class ItemSearchScreen extends Screen {
     }
     context.drawTextWithShadow(textRenderer, Text.literal(status), listLeft, statusLineY, 0xA0A0A0);
 
-    if (feedbackMessage != null && System.currentTimeMillis() < feedbackExpiresAt) {
-      context.drawTextWithShadow(
-          textRenderer,
-          Text.literal(feedbackMessage),
-          addSelectedButton.getX() + addSelectedButton.getWidth() + 8,
-          statusLineY,
-          0x55FF55);
-    } else {
-      feedbackMessage = null;
+    if (feedbackMessage != null) {
+      if (System.currentTimeMillis() < feedbackExpiresAt) {
+        context.drawTextWithShadow(
+            textRenderer,
+            Text.literal(feedbackMessage),
+            addSelectedButton.getX() + addSelectedButton.getWidth() + 8,
+            statusLineY,
+            0x55FF55);
+      } else {
+        feedbackMessage = null;
+      }
     }
 
     refreshButtonState(visible);
@@ -220,7 +222,7 @@ public final class ItemSearchScreen extends Screen {
 
   @Override
   public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-    if (keyCode == 256) {
+    if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
       if (!selectedIndices.isEmpty()) {
         selectedIndices.clear();
         lastClickedIndex = -1;
@@ -250,9 +252,6 @@ public final class ItemSearchScreen extends Screen {
     List<ItemSearchController.ItemCandidate> built = new ArrayList<>();
     for (Item item : Registries.ITEM) {
       if (isUnobtainable(item)) {
-        continue;
-      }
-      if (!item.isEnabled(FeatureFlags.DEFAULT_ENABLED_FEATURES)) {
         continue;
       }
       Identifier id = Registries.ITEM.getId(item);

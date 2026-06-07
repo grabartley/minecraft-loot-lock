@@ -4,11 +4,11 @@ import java.util.HashSet;
 import java.util.Set;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemGroup;
-import net.minecraft.item.ItemGroups;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.registry.Registries;
 import net.minecraft.resource.featuretoggle.FeatureFlags;
+import net.minecraft.util.Identifier;
 
 public final class UnobtainableItems {
   private UnobtainableItems() {}
@@ -48,10 +48,12 @@ public final class UnobtainableItems {
 
   private static Set<Item> computeOperatorItems() {
     Set<Item> ops = new HashSet<>();
-    ItemGroup group = Registries.ITEM_GROUP.get(ItemGroups.OPERATOR);
-    if (group != null) {
-      for (ItemStack stack : group.getDisplayStacks()) {
-        ops.add(stack.getItem());
+    for (ItemGroup group : Registries.ITEM_GROUP) {
+      Identifier id = Registries.ITEM_GROUP.getId(group);
+      if (id != null && id.getPath().equals("operator")) {
+        for (ItemStack stack : group.getDisplayStacks()) {
+          ops.add(stack.getItem());
+        }
       }
     }
     return Set.copyOf(ops);
