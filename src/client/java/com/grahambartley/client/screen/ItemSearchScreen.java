@@ -11,7 +11,9 @@ import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
 import net.minecraft.registry.Registries;
+import net.minecraft.resource.featuretoggle.FeatureFlags;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
@@ -33,7 +35,9 @@ public final class ItemSearchScreen extends Screen {
   private ButtonWidget nextPageButton;
   private List<ItemSearchController.ItemCandidate> filteredItems = List.of();
   private String lastFilterQuery = "";
-  private int selectedIndex = -1;
+  private final List<Integer> selectedIndices = new ArrayList<>();
+  private int lastClickedIndex = -1;
+  private long lastClickTime;
   private int pageStart;
   private int rowsPerPage = MIN_ROWS_PER_PAGE;
   private int listTop;
@@ -68,7 +72,8 @@ public final class ItemSearchScreen extends Screen {
     searchField.setMaxLength(100);
     searchField.setChangedListener(
         ignored -> {
-          selectedIndex = -1;
+          selectedIndices.clear();
+          lastClickedIndex = -1;
           pageStart = 0;
           invalidateFilter();
         });
@@ -123,7 +128,7 @@ public final class ItemSearchScreen extends Screen {
       ItemSearchController.ItemCandidate candidate = visible.get(absoluteIndex);
       int rowY = listTop + row * ROW_HEIGHT;
 
-      if (absoluteIndex == selectedIndex) {
+      if (selectedIndices.contains(absoluteIndex)) {
         context.fill(listLeft, rowY - 1, listLeft + LIST_WIDTH, rowY + ROW_HEIGHT - 1, 0x40FFFFFF);
       }
 
@@ -161,12 +166,39 @@ public final class ItemSearchScreen extends Screen {
     int row = (int) ((mouseY - listTop) / ROW_HEIGHT);
     int absoluteIndex = pageStart + row;
     List<ItemSearchController.ItemCandidate> visible = visibleItems();
-    if (absoluteIndex >= 0 && absoluteIndex < visible.size()) {
-      selectedIndex = absoluteIndex;
-      refreshButtonState(visible);
-      return true;
+    if (absoluteIndex < 0 || absoluteIndex >= visible.size()) {
+      return false;
     }
-    return false;
+
+    long now = System.currentTimeMillis();
+    boolean isDoubleClick =
+        button == 0 && absoluteIndex == lastClickedIndex && (now - lastClickTime) < 500L;
+    lastClickTime = now;
+
+    if (Screen.hasControlDown()) {
+      if (selectedIndices.contains(absoluteIndex)) {
+        selectedIndices.remove(Integer.valueOf(absoluteIndex));
+      } else {
+        selectedIndices.add(absoluteIndex);
+      }
+    } else if (Screen.hasShiftDown() && lastClickedIndex >= 0) {
+      int start = Math.min(lastClickedIndex, absoluteIndex);
+      int end = Math.max(lastClickedIndex, absoluteIndex);
+      selectedIndices.clear();
+      for (int i = start; i <= end; i++) {
+        selectedIndices.add(i);
+      }
+    } else {
+      selectedIndices.clear();
+      selectedIndices.add(absoluteIndex);
+    }
+    lastClickedIndex = absoluteIndex;
+    refreshButtonState(visible);
+
+    if (isDoubleClick) {
+      addSelected();
+    }
+    return true;
   }
 
   @Override
@@ -183,6 +215,12 @@ public final class ItemSearchScreen extends Screen {
 
     List<ItemSearchController.ItemCandidate> built = new ArrayList<>();
     for (Item item : Registries.ITEM) {
+      if (item == Items.AIR) {
+        continue;
+      }
+      if (!item.isEnabled(FeatureFlags.DEFAULT_ENABLED_FEATURES)) {
+        continue;
+      }
       Identifier id = Registries.ITEM.getId(item);
       String itemId = id.toString();
       String name = item.getName().getString();
@@ -202,11 +240,15 @@ public final class ItemSearchScreen extends Screen {
 
   private void addSelected() {
     List<ItemSearchController.ItemCandidate> visible = visibleItems();
-    if (selectedIndex < 0 || selectedIndex >= visible.size()) {
+    if (selectedIndices.isEmpty()) {
       return;
     }
-    parent.saveRuleToggle(visible.get(selectedIndex).itemId());
-    close();
+    List<Integer> indices = new ArrayList<>(selectedIndices);
+    for (int index : indices) {
+      if (index >= 0 && index < visible.size()) {
+        parent.saveRuleToggle(visible.get(index).itemId());
+      }
+    }
   }
 
   private void refreshButtonState(List<ItemSearchController.ItemCandidate> visible) {
@@ -215,7 +257,7 @@ public final class ItemSearchScreen extends Screen {
             .getSnapshot()
             .map(LootLockPlayerData::isClientCanEdit)
             .orElse(false);
-    boolean hasSelection = selectedIndex >= 0 && selectedIndex < visible.size();
+    boolean hasSelection = !selectedIndices.isEmpty();
     addSelectedButton.active = editable && hasSelection;
     previousPageButton.active = pageStart > 0;
     nextPageButton.active = pageStart + rowsPerPage < visible.size();
@@ -240,14 +282,17 @@ public final class ItemSearchScreen extends Screen {
 
   private void invalidateFilter() {
     lastFilterQuery = "__invalidate__";
+    selectedIndices.clear();
+    lastClickedIndex = -1;
   }
 
   private void recomputeFilter() {
     String query = searchField == null ? "" : searchField.getText();
     filteredItems = ItemSearchController.filter(allItems(), query);
     lastFilterQuery = query;
-    if (selectedIndex >= filteredItems.size()) {
-      selectedIndex = -1;
+    selectedIndices.removeIf(i -> i >= filteredItems.size());
+    if (lastClickedIndex >= filteredItems.size()) {
+      lastClickedIndex = -1;
     }
   }
 }

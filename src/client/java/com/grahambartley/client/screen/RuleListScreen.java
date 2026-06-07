@@ -3,7 +3,6 @@ package com.grahambartley.client.screen;
 import com.grahambartley.client.LootLockClient;
 import com.grahambartley.client.state.ClientLootLockState;
 import com.grahambartley.client.state.ClientLootLockState.ClientDraftSaveRequest;
-import com.grahambartley.data.FilterMode;
 import com.grahambartley.data.LootLockPlayerData;
 import com.grahambartley.data.LootLockProfile;
 import com.grahambartley.data.RuleEntry;
@@ -187,16 +186,6 @@ public final class RuleListScreen extends Screen {
       status += " \u00b7 Page " + currentPage + "/" + totalPages;
     }
     context.drawTextWithShadow(textRenderer, Text.literal(status), listLeft, statusLineY, 0xA0A0A0);
-
-    if (profile.getMode() == FilterMode.ALLOWLIST && profile.getRules().isEmpty()) {
-      context.drawTextWithShadow(
-          textRenderer,
-          Text.literal("Warning: allowlist has zero rules, all pickups blocked")
-              .formatted(Formatting.RED),
-          listLeft,
-          statusLineY + 12,
-          0xE06666);
-    }
 
     refreshButtonState(profile, visible);
   }
