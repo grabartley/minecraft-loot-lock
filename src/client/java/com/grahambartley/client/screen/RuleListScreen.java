@@ -19,12 +19,20 @@ import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.item.ItemStack;
 import net.minecraft.registry.Registries;
 import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 
 public final class RuleListScreen extends Screen {
   private static final int ROW_HEIGHT = 22;
   private static final int MIN_ROWS_PER_PAGE = 4;
   private static final long CLEAR_CONFIRM_TIMEOUT_MS = 3000L;
+  private static final int LIST_WIDTH = 304;
+  private static final int GRID_BUTTON_WIDTH = 150;
+  private static final int GRID_GAP = 4;
+  private static final int BACK_BUTTON_WIDTH = 200;
+  private static final int TITLE_Y = 18;
+  private static final int SUBTITLE_Y = 30;
+  private static final int FILTER_Y = 54;
 
   private final Screen parent;
   private TextFieldWidget searchField;
@@ -39,8 +47,8 @@ public final class RuleListScreen extends Screen {
   private int pageStart;
   private int rowsPerPage = MIN_ROWS_PER_PAGE;
   private int listTop;
-  private int helperTextY;
-  private int clearButtonY;
+  private int listLeft;
+  private int statusLineY;
   private boolean confirmClear;
   private long clearConfirmExpiresAt;
 
@@ -51,20 +59,25 @@ public final class RuleListScreen extends Screen {
 
   @Override
   protected void init() {
-    int left = this.width / 2 - 100;
-    int top = this.height / 5;
-    int pagerY = this.height - 76;
-    int addRemoveY = this.height - 52;
-    int clearY = this.height - 28;
-    clearButtonY = clearY;
-    listTop = top + 26;
-    helperTextY = pagerY - 12;
-    int availableListHeight = Math.max(ROW_HEIGHT, helperTextY - 8 - listTop);
+    listLeft = this.width / 2 - LIST_WIDTH / 2;
+    int rightColumn = listLeft + GRID_BUTTON_WIDTH + GRID_GAP;
+    int backLeft = this.width / 2 - BACK_BUTTON_WIDTH / 2;
+
+    int backY = this.height - 28;
+    int clearY = backY - 24;
+    int pagerY = clearY - 24;
+    int addRemoveY = pagerY - 24;
+    statusLineY = addRemoveY - 12;
+    listTop = FILTER_Y + 26;
+
+    int availableListHeight = Math.max(ROW_HEIGHT, statusLineY - 4 - listTop);
     rowsPerPage = Math.max(MIN_ROWS_PER_PAGE, availableListHeight / ROW_HEIGHT);
 
     searchField =
-        new TextFieldWidget(this.textRenderer, left, top, 200, 20, Text.literal("Search"));
+        new TextFieldWidget(
+            this.textRenderer, listLeft, FILTER_Y, LIST_WIDTH, 20, Text.literal("Filter rules..."));
     searchField.setMaxLength(80);
+    searchField.setPlaceholder(Text.literal("Filter rules..."));
     searchField.setChangedListener(
         ignored -> {
           selectedIndex = -1;
@@ -78,32 +91,33 @@ public final class RuleListScreen extends Screen {
         ButtonWidget.builder(
                 Text.literal("Add Item"),
                 button -> this.client.setScreen(new ItemSearchScreen(this)))
-            .dimensions(left, addRemoveY, 97, 20)
+            .dimensions(listLeft, addRemoveY, GRID_BUTTON_WIDTH, 20)
             .build());
     removeButton =
         addDrawableChild(
             ButtonWidget.builder(Text.literal("Remove"), button -> removeSelectedRule())
-                .dimensions(left + 103, addRemoveY, 97, 20)
-                .build());
-    clearButton =
-        addDrawableChild(
-            ButtonWidget.builder(Text.literal("Clear All"), button -> clearRulesWithConfirm())
-                .dimensions(left, clearY, 97, 20)
+                .dimensions(rightColumn, addRemoveY, GRID_BUTTON_WIDTH, 20)
                 .build());
     previousPageButton =
         addDrawableChild(
             ButtonWidget.builder(Text.literal("Prev"), button -> previousPage())
-                .dimensions(left, pagerY, 97, 20)
+                .dimensions(listLeft, pagerY, GRID_BUTTON_WIDTH, 20)
                 .build());
     nextPageButton =
         addDrawableChild(
             ButtonWidget.builder(Text.literal("Next"), button -> nextPage())
-                .dimensions(left + 103, pagerY, 97, 20)
+                .dimensions(rightColumn, pagerY, GRID_BUTTON_WIDTH, 20)
+                .build());
+    clearButton =
+        addDrawableChild(
+            ButtonWidget.builder(Text.literal("Clear All"), button -> clearRulesWithConfirm())
+                .dimensions(listLeft, clearY, LIST_WIDTH, 20)
                 .build());
     addDrawableChild(
         ButtonWidget.builder(Text.literal("Back"), button -> close())
-            .dimensions(left + 103, clearY, 97, 20)
+            .dimensions(backLeft, backY, BACK_BUTTON_WIDTH, 20)
             .build());
+
     recomputeVisibleRules(activeProfile().orElse(null));
     refreshButtonState(activeProfile().orElse(null), filteredRules);
   }
@@ -112,7 +126,7 @@ public final class RuleListScreen extends Screen {
   public void render(DrawContext context, int mouseX, int mouseY, float delta) {
     renderBackground(context);
     super.render(context, mouseX, mouseY, delta);
-    context.drawCenteredTextWithShadow(textRenderer, this.title, this.width / 2, 18, 0xFFFFFF);
+    context.drawCenteredTextWithShadow(textRenderer, this.title, this.width / 2, TITLE_Y, 0xFFFFFF);
 
     if (confirmClear && System.currentTimeMillis() >= clearConfirmExpiresAt) {
       resetClearConfirmation();
@@ -121,35 +135,37 @@ public final class RuleListScreen extends Screen {
     Optional<LootLockProfile> profileOptional = activeProfile();
     if (profileOptional.isEmpty()) {
       context.drawTextWithShadow(
-          textRenderer, Text.literal("No active profile"), this.width / 2 - 100, 40, 0xE06666);
+          textRenderer, Text.literal("No active profile"), listLeft, SUBTITLE_Y + 4, 0xE06666);
       refreshButtonState(null, List.of());
       return;
     }
 
     LootLockProfile profile = profileOptional.get();
+    subtitleText(context, profile);
     List<RuleEntry> visible = visibleRules(profile);
+
     for (int row = 0; row < rowsPerPage; row++) {
       int absoluteIndex = pageStart + row;
       if (absoluteIndex >= visible.size()) {
         break;
       }
       RuleEntry rule = visible.get(absoluteIndex);
-      int color = absoluteIndex == selectedIndex ? 0xFFF3B0 : 0xDADADA;
       int rowY = listTop + row * ROW_HEIGHT;
-      drawRuleItemIcon(context, rule.itemId(), this.width / 2 - 98, rowY);
+
+      if (absoluteIndex == selectedIndex) {
+        context.fill(listLeft, rowY - 1, listLeft + LIST_WIDTH, rowY + ROW_HEIGHT - 1, 0x40FFFFFF);
+      }
+
+      drawRuleItemIcon(context, rule.itemId(), listLeft + 2, rowY);
       Identifier identifier = Identifier.tryParse(rule.itemId());
-      String displayLine = rule.itemId();
+      String displayName = rule.itemId();
       if (identifier != null && Registries.ITEM.containsId(identifier)) {
-        displayLine =
-            Registries.ITEM.get(identifier).getName().getString()
-                + " ["
-                + identifier.getNamespace()
-                + "]";
+        displayName = Registries.ITEM.get(identifier).getName().getString();
       }
       context.drawTextWithShadow(
-          textRenderer, Text.literal(displayLine), this.width / 2 - 78, rowY, color);
+          textRenderer, Text.literal(displayName), listLeft + 24, rowY + 2, 0xDADADA);
       context.drawTextWithShadow(
-          textRenderer, Text.literal(rule.itemId()), this.width / 2 - 78, rowY + 10, 0x9A9A9A);
+          textRenderer, Text.literal(rule.itemId()), listLeft + 24, rowY + 12, 0x9A9A9A);
     }
 
     List<RuleEntry> unresolved =
@@ -158,26 +174,35 @@ public final class RuleListScreen extends Screen {
       context.drawTextWithShadow(
           textRenderer,
           Text.literal("Unresolved: " + unresolved.get(i).itemId()),
-          this.width / 2 - 98,
-          listTop + rowsPerPage * ROW_HEIGHT + 4 + i * 10,
+          listLeft,
+          statusLineY - 12 + i * 10,
           0xE8A87C);
     }
 
+    int totalRules = RuleListController.dedupeRules(profile.getRules()).size();
+    int totalPages = Math.max(1, (int) Math.ceil((double) visible.size() / rowsPerPage));
+    String status = totalRules + " rules";
+    if (totalPages > 1) {
+      int currentPage = (pageStart / rowsPerPage) + 1;
+      status += " \u00b7 Page " + currentPage + "/" + totalPages;
+    }
     context.drawTextWithShadow(
         textRenderer,
-        Text.literal("Search id, name, or namespace in Add Item"),
-        this.width / 2 - 100,
-        helperTextY,
-        0xB0B0B0);
+        Text.literal(status).formatted(Formatting.GRAY),
+        listLeft,
+        statusLineY,
+        0xA0A0A0);
 
     if (profile.getMode() == FilterMode.ALLOWLIST && profile.getRules().isEmpty()) {
       context.drawTextWithShadow(
           textRenderer,
-          Text.literal("Warning: allowlist has zero rules, all pickups blocked"),
-          this.width / 2 - 100,
-          clearButtonY + 24,
+          Text.literal("Warning: allowlist has zero rules, all pickups blocked")
+              .formatted(Formatting.RED),
+          listLeft,
+          statusLineY + 12,
           0xE06666);
     }
+
     refreshButtonState(profile, visible);
   }
 
@@ -190,9 +215,11 @@ public final class RuleListScreen extends Screen {
     if (profileOptional.isEmpty()) {
       return false;
     }
-    int left = this.width / 2 - 100;
     int listBottom = listTop + rowsPerPage * ROW_HEIGHT;
-    if (mouseX < left || mouseX > left + 200 || mouseY < listTop || mouseY > listBottom) {
+    if (mouseX < listLeft
+        || mouseX > listLeft + LIST_WIDTH
+        || mouseY < listTop
+        || mouseY > listBottom) {
       return false;
     }
     int row = (int) ((mouseY - listTop) / ROW_HEIGHT);
@@ -211,6 +238,19 @@ public final class RuleListScreen extends Screen {
     if (this.client != null) {
       this.client.setScreen(parent);
     }
+  }
+
+  private void subtitleText(DrawContext context, LootLockProfile profile) {
+    context.drawCenteredTextWithShadow(
+        textRenderer, subtitle(profile), this.width / 2, SUBTITLE_Y, 0xFFFFFF);
+  }
+
+  static Text subtitle(LootLockProfile profile) {
+    return Text.literal("Profile: ")
+        .formatted(Formatting.GRAY)
+        .append(Text.literal(profile.getName()).formatted(Formatting.YELLOW))
+        .append(Text.literal(" \u00b7 Mode: ").formatted(Formatting.GRAY))
+        .append(Text.literal(friendlyMode(profile.getMode())).formatted(Formatting.YELLOW));
   }
 
   private void removeSelectedRule() {
@@ -363,5 +403,12 @@ public final class RuleListScreen extends Screen {
       return;
     }
     context.drawItem(new ItemStack(Registries.ITEM.get(identifier)), x, y);
+  }
+
+  static String friendlyMode(FilterMode mode) {
+    if (mode == FilterMode.ALLOWLIST) {
+      return "Allowlist";
+    }
+    return "Denylist";
   }
 }
