@@ -67,7 +67,7 @@ public final class RuleListScreen extends Screen {
     int clearY = backY - 24;
     int pagerY = clearY - 24;
     int addRemoveY = pagerY - 24;
-    statusLineY = addRemoveY - 12;
+    statusLineY = addRemoveY - 28;
     listTop = FILTER_Y + 26;
 
     int availableListHeight = Math.max(ROW_HEIGHT, statusLineY - 4 - listTop);
@@ -277,13 +277,13 @@ public final class RuleListScreen extends Screen {
     recomputeVisibleRules(activeProfile().orElse(null));
   }
 
-  public void saveRuleToggle(String itemId) {
+  public void addRule(String itemId) {
     Optional<LootLockProfile> profileOptional = activeProfile();
     if (profileOptional.isEmpty()) {
       return;
     }
     List<RuleEntry> rules = profileOptional.get().getRules();
-    List<RuleEntry> next = RuleListController.toggleRule(rules, itemId);
+    List<RuleEntry> next = RuleListController.withRuleAdded(rules, itemId);
     saveRules(next);
     recomputeVisibleRules(activeProfile().orElse(null));
   }
