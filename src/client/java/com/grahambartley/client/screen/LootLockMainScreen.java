@@ -16,10 +16,13 @@ import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.ConfirmScreen;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
+import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 
 public final class LootLockMainScreen extends Screen {
   private final Screen parent;
+  private ButtonWidget profilesButton;
   private ButtonWidget activeProfileButton;
   private ButtonWidget modeButton;
   private ButtonWidget actionButton;
@@ -27,7 +30,6 @@ public final class LootLockMainScreen extends Screen {
   private ButtonWidget editRulesButton;
   private ButtonWidget settingsButton;
   private ButtonWidget importExportButton;
-  private ButtonWidget policyDeleteToggleButton;
 
   public LootLockMainScreen(Screen parent) {
     super(Text.literal("LootLock"));
@@ -36,32 +38,34 @@ public final class LootLockMainScreen extends Screen {
 
   @Override
   protected void init() {
-    int left = this.width / 2 - 100;
-    int totalHeight = 200;
-    int rowY = Math.max(34, (this.height - totalHeight) / 2);
+    int left = this.width / 2 - 152;
+    int right = this.width / 2 + 2;
+    int subtitleY = 30;
+    int rowY = subtitleY + 20;
+    int rowSpacing = 24;
 
     activeProfileButton =
         addDrawableChild(
-            ButtonWidget.builder(Text.literal("Active: -"), button -> cycleActiveProfile())
-                .dimensions(left, rowY, 200, 20)
-                .build());
-
-    modeButton =
-        addDrawableChild(
-            ButtonWidget.builder(Text.literal("Mode: -"), button -> toggleMode())
-                .dimensions(left, rowY + 24, 200, 20)
-                .build());
-
-    actionButton =
-        addDrawableChild(
-            ButtonWidget.builder(Text.literal("Action: -"), button -> toggleAction())
-                .dimensions(left, rowY + 48, 200, 20)
+            ButtonWidget.builder(Text.literal("Profile: -"), button -> cycleActiveProfile())
+                .dimensions(left, rowY, 150, 20)
                 .build());
 
     enabledButton =
         addDrawableChild(
             ButtonWidget.builder(Text.literal("Enabled: -"), button -> toggleEnabled())
-                .dimensions(left, rowY + 72, 200, 20)
+                .dimensions(right, rowY, 150, 20)
+                .build());
+
+    modeButton =
+        addDrawableChild(
+            ButtonWidget.builder(Text.literal("Mode: -"), button -> toggleMode())
+                .dimensions(left, rowY + rowSpacing, 150, 20)
+                .build());
+
+    actionButton =
+        addDrawableChild(
+            ButtonWidget.builder(Text.literal("Action: -"), button -> toggleAction())
+                .dimensions(right, rowY + rowSpacing, 150, 20)
                 .build());
 
     editRulesButton =
@@ -69,37 +73,32 @@ public final class LootLockMainScreen extends Screen {
             ButtonWidget.builder(
                     Text.literal("Edit Rules"),
                     button -> this.client.setScreen(new RuleListScreen(this)))
-                .dimensions(left, rowY + 104, 97, 20)
+                .dimensions(left, rowY + rowSpacing * 2, 150, 20)
                 .build());
-    addDrawableChild(
-        ButtonWidget.builder(
-                Text.literal("Profiles"),
-                button -> this.client.setScreen(new ProfileListScreen(this)))
-            .dimensions(left + 103, rowY + 104, 97, 20)
-            .build());
+    profilesButton =
+        addDrawableChild(
+            ButtonWidget.builder(
+                    Text.literal("Profiles"),
+                    button -> this.client.setScreen(new ProfileListScreen(this)))
+                .dimensions(right, rowY + rowSpacing * 2, 150, 20)
+                .build());
 
     settingsButton =
         addDrawableChild(
             ButtonWidget.builder(
                     Text.literal("Settings"),
                     button -> this.client.setScreen(new SettingsScreen(this)))
-                .dimensions(left, rowY + 128, 97, 20)
+                .dimensions(left, rowY + rowSpacing * 3, 150, 20)
                 .build());
     importExportButton =
         addDrawableChild(
-            ButtonWidget.builder(Text.literal("Import / Export (soon)"), button -> {})
-                .dimensions(left + 103, rowY + 128, 97, 20)
-                .build());
-
-    policyDeleteToggleButton =
-        addDrawableChild(
-            ButtonWidget.builder(Text.literal("Policy: -"), button -> toggleServerPolicyDelete())
-                .dimensions(left, rowY + 152, 200, 20)
+            ButtonWidget.builder(Text.literal("Import / Export"), button -> {})
+                .dimensions(right, rowY + rowSpacing * 3, 150, 20)
                 .build());
 
     addDrawableChild(
         ButtonWidget.builder(Text.literal("Done"), button -> close())
-            .dimensions(left, rowY + 180, 200, 20)
+            .dimensions(this.width / 2 - 100, this.height - 27, 200, 20)
             .build());
 
     refreshButtons();
@@ -112,19 +111,18 @@ public final class LootLockMainScreen extends Screen {
     context.drawCenteredTextWithShadow(textRenderer, this.title, this.width / 2, 18, 0xFFFFFF);
 
     ClientLootLockState state = LootLockClient.getState();
-    boolean canEdit = state.getSnapshot().map(LootLockPlayerData::isClientCanEdit).orElse(false);
-    SupportStateViewModel supportState =
-        SupportStateViewModel.fromState(
-            state.isServerSupportsLootLock(), state.isSynced(), canEdit);
-    String serverState = state.isServerSupportsLootLock() ? "Supported" : "Unsupported";
-    context.drawTextWithShadow(
-        textRenderer, Text.literal("Server: " + serverState), this.width / 2 - 100, 40, 0xC0C0C0);
-    context.drawTextWithShadow(
+    context.drawCenteredTextWithShadow(
         textRenderer,
-        Text.literal(supportState.message()),
-        this.width / 2 - 100,
-        52,
-        supportState.color());
+        serverStateText(state.isServerSupportsLootLock()),
+        this.width / 2,
+        30,
+        0xFFFFFF);
+    context.drawCenteredTextWithShadow(
+        textRenderer,
+        deletePolicyText(state.isAllowDeleteRejectedItems()),
+        this.width / 2,
+        156,
+        0xA0A0A0);
 
     refreshButtons();
   }
@@ -192,11 +190,6 @@ public final class LootLockMainScreen extends Screen {
                     : RejectedItemAction.LEAVE_ON_GROUND));
   }
 
-  private void toggleServerPolicyDelete() {
-    ClientMutationSync.sendServerPolicyUpdateRequest(
-        !LootLockClient.getState().isAllowDeleteRejectedItems());
-  }
-
   private boolean shouldConfirmEnableDelete() {
     if (this.client == null) {
       return false;
@@ -262,7 +255,7 @@ public final class LootLockMainScreen extends Screen {
     enabledButton.active = synced && editable && activeAvailable;
 
     editRulesButton.active = synced && editable && activeAvailable;
-    policyDeleteToggleButton.active = synced && editable;
+    profilesButton.active = true;
     settingsButton.active = true;
     // Import/export UI is still pending follow-up implementation.
     importExportButton.active = false;
@@ -278,17 +271,11 @@ public final class LootLockMainScreen extends Screen {
     }
 
     LootLockProfile profile = activeProfile.get();
-    activeProfileButton.setMessage(Text.literal("Active: " + profile.getName()));
+    activeProfileButton.setMessage(Text.literal("Profile: " + profile.getName()));
     modeButton.setMessage(Text.literal("Mode: " + friendlyMode(profile.getMode())));
     actionButton.setMessage(
         Text.literal("Action: " + friendlyAction(profile.getRejectedItemAction())));
     enabledButton.setMessage(Text.literal("Enabled: " + (profile.isEnabled() ? "On" : "Off")));
-    policyDeleteToggleButton.setMessage(
-        Text.literal(
-            "Policy Delete: "
-                + (LootLockClient.getState().isAllowDeleteRejectedItems()
-                    ? "Allowed"
-                    : "Blocked")));
   }
 
   private static String friendlyMode(FilterMode mode) {
@@ -297,12 +284,26 @@ public final class LootLockMainScreen extends Screen {
 
   static String friendlyAction(RejectedItemAction action) {
     if (action == RejectedItemAction.LEAVE_ON_GROUND) {
-      return "Leave on ground";
+      return "Leave";
     }
     if (action == RejectedItemAction.DELETE) {
-      return "Delete (permanent)";
+      return "Delete";
     }
     return action == null ? "Unknown" : titleCase(action.name());
+  }
+
+  static Text serverStateText(boolean supported) {
+    return Text.literal("Server: ")
+        .append(
+            Text.literal(supported ? "Supported" : "Unsupported")
+                .formatted(supported ? Formatting.GREEN : Formatting.RED));
+  }
+
+  static Text deletePolicyText(boolean allowed) {
+    MutableText value =
+        Text.literal(allowed ? "Allowed" : "Blocked")
+            .formatted(allowed ? Formatting.GREEN : Formatting.RED);
+    return Text.literal("Delete policy: ").formatted(Formatting.GRAY).append(value);
   }
 
   static String deleteConfirmTitle() {
