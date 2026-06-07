@@ -41,13 +41,6 @@ class ProfileListScreenTest {
   }
 
   @Test
-  void listStatusTextDescribesVisibleTruncationWithoutFakePagination() {
-    assertEquals("4 profiles", ProfileListScreen.listStatusText(4, 5).getString());
-    assertEquals(
-        "11 profiles (showing first 5)", ProfileListScreen.listStatusText(11, 5).getString());
-  }
-
-  @Test
   void activeSubtitleUsesCurrentActiveProfileFromPlayerData() {
     LootLockProfile defaultProfile = LootLockProfile.createDefault();
     LootLockProfile farmingProfile = LootLockProfile.createDefault();

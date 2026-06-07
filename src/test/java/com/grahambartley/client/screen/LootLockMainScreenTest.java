@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.grahambartley.data.RejectedItemAction;
 import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 import org.junit.jupiter.api.Test;
 
 class LootLockMainScreenTest {
@@ -35,5 +36,16 @@ class LootLockMainScreenTest {
   void deletePolicyCopyUsesPassiveFooterText() {
     assertEquals("Delete policy: Allowed", LootLockMainScreen.deletePolicyText(true).getString());
     assertEquals("Delete policy: Blocked", LootLockMainScreen.deletePolicyText(false).getString());
+  }
+
+  @Test
+  void activeProfileButtonTextUsesYellowStarTreatment() {
+    Text text = LootLockMainScreen.activeProfileButtonText("Farming");
+
+    assertEquals("Profile: ★ Farming", text.getString());
+    assertEquals("★ Farming", text.getSiblings().get(0).getString());
+    assertEquals(
+        Formatting.YELLOW.getColorValue(),
+        text.getSiblings().get(0).getStyle().getColor().getRgb());
   }
 }

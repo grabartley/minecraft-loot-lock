@@ -39,7 +39,6 @@ public final class ProfileListScreen extends Screen {
   private ButtonWidget activateButton;
   private int selectedIndex;
   private int visibleProfileRows = MIN_VISIBLE_PROFILE_ROWS;
-  private int statusLineY;
   private int inputLabelY;
   private Text cachedActiveTagText;
   private int cachedActiveTagWidth;
@@ -64,8 +63,7 @@ public final class ProfileListScreen extends Screen {
     int activateRowY = createRowY - 24;
     int nameFieldY = activateRowY - 28;
     inputLabelY = nameFieldY - 10;
-    statusLineY = inputLabelY - 16;
-    int availableListHeight = Math.max(PROFILE_ROW_HEIGHT, statusLineY - 8 - LIST_TOP);
+    int availableListHeight = Math.max(PROFILE_ROW_HEIGHT, inputLabelY - 8 - LIST_TOP);
     visibleProfileRows =
         Math.max(MIN_VISIBLE_PROFILE_ROWS, availableListHeight / PROFILE_ROW_HEIGHT);
 
@@ -167,13 +165,7 @@ public final class ProfileListScreen extends Screen {
 
     context.drawTextWithShadow(
         textRenderer,
-        listStatusText(profiles.size(), visibleProfileRows),
-        listLeft,
-        statusLineY,
-        0xA0A0A0);
-    context.drawTextWithShadow(
-        textRenderer,
-        Text.literal("Profile name (max 32 chars):"),
+        Text.literal("Profile name").formatted(Formatting.GRAY),
         listLeft,
         inputLabelY,
         0xA0A0A0);
@@ -380,13 +372,5 @@ public final class ProfileListScreen extends Screen {
 
   static MutableText activeTagText() {
     return Text.literal("★ active").formatted(Formatting.YELLOW);
-  }
-
-  static Text listStatusText(int profileCount, int visibleRows) {
-    String status = profileCount + (profileCount == 1 ? " profile" : " profiles");
-    if (profileCount <= visibleRows) {
-      return Text.literal(status).formatted(Formatting.GRAY);
-    }
-    return Text.literal(status + " (showing first " + visibleRows + ")").formatted(Formatting.GRAY);
   }
 }
