@@ -9,6 +9,7 @@ import com.grahambartley.data.LootLockProfile;
 import com.grahambartley.network.ClientMutationSync;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.function.Consumer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
@@ -27,7 +28,7 @@ public final class ProfileListScreen extends Screen {
   private static final int BACK_BUTTON_WIDTH = 200;
   private static final int TITLE_Y = 18;
   private static final int SUBTITLE_Y = 30;
-  private static final int LIST_TOP = 52;
+  private static final int LIST_TOP = 50;
 
   private final Screen parent;
   private TextFieldWidget nameField;
@@ -40,6 +41,11 @@ public final class ProfileListScreen extends Screen {
   private int visibleProfileRows = MIN_VISIBLE_PROFILE_ROWS;
   private int statusLineY;
   private int inputLabelY;
+  private Text cachedActiveTagText;
+  private int cachedActiveTagWidth;
+  private UUID cachedSubtitleProfileId;
+  private String cachedSubtitleProfileName;
+  private Optional<Text> cachedSubtitle = Optional.empty();
 
   public ProfileListScreen(Screen parent) {
     super(Text.literal("Profiles"));
@@ -102,6 +108,9 @@ public final class ProfileListScreen extends Screen {
             .dimensions(backLeft, backY, BACK_BUTTON_WIDTH, 20)
             .build());
 
+    cachedActiveTagText = activeTagText();
+    cachedActiveTagWidth = textRenderer.getWidth(cachedActiveTagText);
+    cachedSubtitleProfileName = null;
     seedSelectionFromSnapshot();
     refreshButtonState();
   }
@@ -122,11 +131,11 @@ public final class ProfileListScreen extends Screen {
 
     LootLockPlayerData data = dataOptional.get();
     int listLeft = this.width / 2 - LIST_WIDTH / 2;
-    Optional<Text> subtitle = activeSubtitle(data);
-    subtitle.ifPresent(
-        text ->
-            context.drawCenteredTextWithShadow(
-                textRenderer, text, this.width / 2, SUBTITLE_Y, 0xFFFFFF));
+    cachedSubtitle(data)
+        .ifPresent(
+            text ->
+                context.drawCenteredTextWithShadow(
+                    textRenderer, text, this.width / 2, SUBTITLE_Y, 0xFFFFFF));
 
     List<LootLockProfile> profiles = data.getProfiles();
     for (int i = 0; i < profiles.size() && i < visibleProfileRows; i++) {
@@ -147,11 +156,10 @@ public final class ProfileListScreen extends Screen {
           rowY + 6,
           0xFFFFFF);
       if (active) {
-        Text tag = activeTagText();
         context.drawTextWithShadow(
             textRenderer,
-            tag,
-            listLeft + LIST_WIDTH - 4 - textRenderer.getWidth(tag),
+            cachedActiveTagText,
+            listLeft + LIST_WIDTH - 4 - cachedActiveTagWidth,
             rowY + 6,
             0xFFFFFF);
       }
@@ -331,6 +339,27 @@ public final class ProfileListScreen extends Screen {
     deleteButton.active = editable && hasSelection && canDelete;
   }
 
+  private Optional<Text> cachedSubtitle(LootLockPlayerData data) {
+    Optional<LootLockProfile> activeProfile = data.getActiveProfile();
+    if (activeProfile.isEmpty()) {
+      cachedSubtitleProfileId = null;
+      cachedSubtitleProfileName = null;
+      cachedSubtitle = Optional.empty();
+      return cachedSubtitle;
+    }
+
+    LootLockProfile profile = activeProfile.get();
+    if (profile.getId().equals(cachedSubtitleProfileId)
+        && profile.getName().equals(cachedSubtitleProfileName)) {
+      return cachedSubtitle;
+    }
+
+    cachedSubtitleProfileId = profile.getId();
+    cachedSubtitleProfileName = profile.getName();
+    cachedSubtitle = Optional.of(activeSubtitle(profile.getName()));
+    return cachedSubtitle;
+  }
+
   static Optional<Text> activeSubtitle(LootLockPlayerData data) {
     return data.getActiveProfile().map(profile -> activeSubtitle(profile.getName()));
   }
@@ -358,7 +387,6 @@ public final class ProfileListScreen extends Screen {
     if (profileCount <= visibleRows) {
       return Text.literal(status).formatted(Formatting.GRAY);
     }
-    int pageCount = (int) Math.ceil((double) profileCount / Math.max(1, visibleRows));
-    return Text.literal(status + ", Page 1/" + pageCount).formatted(Formatting.GRAY);
+    return Text.literal(status + " (showing first " + visibleRows + ")").formatted(Formatting.GRAY);
   }
 }
