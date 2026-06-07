@@ -10,16 +10,6 @@ import org.junit.jupiter.api.Test;
 
 class RuleListScreenTest {
   @Test
-  void friendlyModeReturnsDenylistForDenylistMode() {
-    assertEquals("Denylist", RuleListScreen.friendlyMode(FilterMode.DENYLIST));
-  }
-
-  @Test
-  void friendlyModeReturnsAllowlistForAllowlistMode() {
-    assertEquals("Allowlist", RuleListScreen.friendlyMode(FilterMode.ALLOWLIST));
-  }
-
-  @Test
   void subtitleShowsProfileNameAndModeWithCorrectValues() {
     LootLockProfile profile = LootLockProfile.createDefault();
     profile.setName("Farming");
@@ -62,5 +52,19 @@ class RuleListScreenTest {
     assertEquals(
         Formatting.GRAY.getColorValue(),
         result.getSiblings().get(1).getStyle().getColor().getRgb());
+  }
+
+  @Test
+  void subtitleHasExactlyThreeSiblingsInCorrectOrder() {
+    LootLockProfile profile = LootLockProfile.createDefault();
+    profile.setName("Mining");
+    profile.setMode(FilterMode.ALLOWLIST);
+
+    Text result = RuleListScreen.subtitle(profile);
+
+    assertEquals(3, result.getSiblings().size());
+    assertEquals("Mining", result.getSiblings().get(0).getString());
+    assertEquals(" · Mode: ", result.getSiblings().get(1).getString());
+    assertEquals("Allowlist", result.getSiblings().get(2).getString());
   }
 }

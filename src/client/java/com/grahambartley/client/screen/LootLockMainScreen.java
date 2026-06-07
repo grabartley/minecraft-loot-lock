@@ -286,14 +286,10 @@ public final class LootLockMainScreen extends Screen {
 
     LootLockProfile profile = activeProfile.get();
     activeProfileButton.setMessage(activeProfileButtonText(profile.getName()));
-    modeButton.setMessage(Text.literal("Mode: " + friendlyMode(profile.getMode())));
+    modeButton.setMessage(Text.literal("Mode: " + profile.getMode().displayName()));
     actionButton.setMessage(
         Text.literal("Action: " + friendlyAction(profile.getRejectedItemAction())));
     enabledButton.setMessage(Text.literal("Enabled: " + (profile.isEnabled() ? "On" : "Off")));
-  }
-
-  private static String friendlyMode(FilterMode mode) {
-    return mode == null ? "Unknown" : titleCase(mode.name());
   }
 
   static String friendlyAction(RejectedItemAction action) {

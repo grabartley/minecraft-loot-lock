@@ -175,7 +175,7 @@ public final class RuleListScreen extends Screen {
           textRenderer,
           Text.literal("Unresolved: " + unresolved.get(i).itemId()),
           listLeft,
-          statusLineY - 12 + i * 10,
+          statusLineY - 10 - i * 10,
           0xE8A87C);
     }
 
@@ -183,15 +183,10 @@ public final class RuleListScreen extends Screen {
     int totalPages = Math.max(1, (int) Math.ceil((double) visible.size() / rowsPerPage));
     String status = totalRules + " rules";
     if (totalPages > 1) {
-      int currentPage = (pageStart / rowsPerPage) + 1;
+      int currentPage = Math.min(totalPages, (pageStart / rowsPerPage) + 1);
       status += " \u00b7 Page " + currentPage + "/" + totalPages;
     }
-    context.drawTextWithShadow(
-        textRenderer,
-        Text.literal(status).formatted(Formatting.GRAY),
-        listLeft,
-        statusLineY,
-        0xA0A0A0);
+    context.drawTextWithShadow(textRenderer, Text.literal(status), listLeft, statusLineY, 0xA0A0A0);
 
     if (profile.getMode() == FilterMode.ALLOWLIST && profile.getRules().isEmpty()) {
       context.drawTextWithShadow(
@@ -250,7 +245,7 @@ public final class RuleListScreen extends Screen {
         .formatted(Formatting.GRAY)
         .append(Text.literal(profile.getName()).formatted(Formatting.YELLOW))
         .append(Text.literal(" \u00b7 Mode: ").formatted(Formatting.GRAY))
-        .append(Text.literal(friendlyMode(profile.getMode())).formatted(Formatting.YELLOW));
+        .append(Text.literal(profile.getMode().displayName()).formatted(Formatting.YELLOW));
   }
 
   private void removeSelectedRule() {
@@ -403,12 +398,5 @@ public final class RuleListScreen extends Screen {
       return;
     }
     context.drawItem(new ItemStack(Registries.ITEM.get(identifier)), x, y);
-  }
-
-  static String friendlyMode(FilterMode mode) {
-    if (mode == FilterMode.ALLOWLIST) {
-      return "Allowlist";
-    }
-    return "Denylist";
   }
 }
