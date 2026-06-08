@@ -12,6 +12,7 @@ import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
+import net.minecraft.client.util.InputUtil;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.registry.Registries;
@@ -39,7 +40,7 @@ public final class ItemSearchScreen extends Screen {
   private List<ItemSearchController.ItemCandidate> filteredItems = List.of();
   private String lastFilterQuery = "";
   private String lastRuleSignature = "";
-  private final List<Integer> selectedIndices = new ArrayList<>();
+  private List<String> selectedItemIds = List.of();
   private int lastClickedIndex = -1;
   private long lastClickTime;
   private int pageStart;
@@ -79,7 +80,7 @@ public final class ItemSearchScreen extends Screen {
     searchField.setPlaceholder(Text.literal("Search items..."));
     searchField.setChangedListener(
         ignored -> {
-          selectedIndices.clear();
+          selectedItemIds = List.of();
           lastClickedIndex = -1;
           pageStart = 0;
           invalidateFilter();
@@ -135,7 +136,7 @@ public final class ItemSearchScreen extends Screen {
       ItemSearchController.ItemCandidate candidate = visible.get(absoluteIndex);
       int rowY = listTop + row * ROW_HEIGHT;
 
-      if (selectedIndices.contains(absoluteIndex)) {
+      if (selectedItemIds.contains(candidate.itemId())) {
         context.fill(listLeft, rowY - 1, listLeft + LIST_WIDTH, rowY + ROW_HEIGHT - 1, 0x40FFFFFF);
       }
 
@@ -190,32 +191,30 @@ public final class ItemSearchScreen extends Screen {
       return false;
     }
 
+    boolean additiveSelection = isAdditiveSelection();
+    boolean shiftDown = Screen.hasShiftDown();
     long now = System.currentTimeMillis();
     boolean isDoubleClick =
-        button == 0
-            && lastClickedIndex >= 0
-            && absoluteIndex == lastClickedIndex
-            && (now - lastClickTime) < DOUBLE_CLICK_MS;
+        isPrimaryDoubleClick(
+            button,
+            additiveSelection,
+            shiftDown,
+            lastClickedIndex,
+            absoluteIndex,
+            lastClickTime,
+            now);
     lastClickTime = now;
 
-    if (Screen.hasControlDown()) {
-      if (selectedIndices.contains(absoluteIndex)) {
-        selectedIndices.remove(Integer.valueOf(absoluteIndex));
-      } else {
-        selectedIndices.add(absoluteIndex);
-      }
-    } else if (Screen.hasShiftDown() && lastClickedIndex >= 0) {
-      int start = Math.min(lastClickedIndex, absoluteIndex);
-      int end = Math.max(lastClickedIndex, absoluteIndex);
-      selectedIndices.clear();
-      for (int i = start; i <= end; i++) {
-        selectedIndices.add(i);
-      }
-    } else {
-      selectedIndices.clear();
-      selectedIndices.add(absoluteIndex);
-    }
-    lastClickedIndex = absoluteIndex;
+    ItemSearchController.SelectionState selectionState =
+        ItemSearchController.select(
+            visible,
+            selectedItemIds,
+            lastClickedIndex,
+            absoluteIndex,
+            additiveSelection,
+            shiftDown);
+    selectedItemIds = selectionState.selectedItemIds();
+    lastClickedIndex = selectionState.lastClickedIndex();
     refreshButtonState(visible);
 
     if (isDoubleClick) {
@@ -227,8 +226,8 @@ public final class ItemSearchScreen extends Screen {
   @Override
   public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
     if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
-      if (!selectedIndices.isEmpty()) {
-        selectedIndices.clear();
+      if (!selectedItemIds.isEmpty()) {
+        selectedItemIds = List.of();
         lastClickedIndex = -1;
         refreshButtonState(visibleItems());
         return true;
@@ -278,16 +277,11 @@ public final class ItemSearchScreen extends Screen {
 
   private void addSelected() {
     List<ItemSearchController.ItemCandidate> visible = visibleItems();
-    if (selectedIndices.isEmpty()) {
+    if (selectedItemIds.isEmpty()) {
       return;
     }
-    List<Integer> indices = new ArrayList<>(selectedIndices);
-    List<String> itemIds = new ArrayList<>();
-    for (int index : indices) {
-      if (index >= 0 && index < visible.size()) {
-        itemIds.add(visible.get(index).itemId());
-      }
-    }
+    List<String> itemIds =
+        ItemSearchController.selectedItemIdsInVisibleOrder(visible, selectedItemIds);
     int added = parent.addRules(itemIds);
     feedbackMessage = "Added " + added + " item" + (added != 1 ? "s" : "");
     feedbackExpiresAt = System.currentTimeMillis() + 2000L;
@@ -299,7 +293,7 @@ public final class ItemSearchScreen extends Screen {
             .getSnapshot()
             .map(LootLockPlayerData::isClientCanEdit)
             .orElse(false);
-    boolean hasSelection = !selectedIndices.isEmpty();
+    boolean hasSelection = !selectedItemIds.isEmpty();
     addSelectedButton.active = editable && hasSelection;
     previousPageButton.active = pageStart > 0;
     nextPageButton.active = pageStart + rowsPerPage < visible.size();
@@ -322,9 +316,49 @@ public final class ItemSearchScreen extends Screen {
         .append(Text.literal(profileName).formatted(Formatting.YELLOW));
   }
 
+  /**
+   * Returns true when a click should add to (rather than replace) the current selection.
+   *
+   * <p>{@code controlDown} covers Ctrl on all platforms. {@code commandDown} covers the Cmd key on
+   * macOS, which is the standard additive modifier in Mac UI conventions across Finder, file
+   * dialogs, and every major Mac application.
+   */
+  static boolean isAdditiveSelectionClick(boolean controlDown, boolean commandDown) {
+    return controlDown || commandDown;
+  }
+
+  static boolean isPrimaryDoubleClick(
+      int button,
+      boolean additiveSelection,
+      boolean shiftDown,
+      int lastClickedIndex,
+      int absoluteIndex,
+      long lastClickTime,
+      long now) {
+    return button == 0
+        && !additiveSelection
+        && !shiftDown
+        && lastClickedIndex >= 0
+        && absoluteIndex == lastClickedIndex
+        && (now - lastClickTime) < DOUBLE_CLICK_MS;
+  }
+
+  private boolean isAdditiveSelection() {
+    long windowHandle = this.client != null ? this.client.getWindow().getHandle() : -1L;
+    return isAdditiveSelectionClick(Screen.hasControlDown(), isCommandDown(windowHandle));
+  }
+
+  static boolean isCommandDown(long windowHandle) {
+    if (windowHandle < 0) {
+      return false;
+    }
+    return InputUtil.isKeyPressed(windowHandle, GLFW.GLFW_KEY_LEFT_SUPER)
+        || InputUtil.isKeyPressed(windowHandle, GLFW.GLFW_KEY_RIGHT_SUPER);
+  }
+
   private void invalidateFilter() {
     lastFilterQuery = "__invalidate__";
-    selectedIndices.clear();
+    selectedItemIds = List.of();
     lastClickedIndex = -1;
   }
 
@@ -340,7 +374,7 @@ public final class ItemSearchScreen extends Screen {
     lastFilterQuery = query;
     lastRuleSignature =
         profile.map(LootLockProfile::getRules).map(ItemSearchScreen::rulesSignature).orElse("");
-    selectedIndices.removeIf(i -> i >= filteredItems.size());
+    selectedItemIds = ItemSearchController.retainVisibleSelection(filteredItems, selectedItemIds);
     if (lastClickedIndex >= filteredItems.size()) {
       lastClickedIndex = -1;
     }

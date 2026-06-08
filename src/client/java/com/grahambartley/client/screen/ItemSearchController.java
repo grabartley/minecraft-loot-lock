@@ -46,6 +46,67 @@ public final class ItemSearchController {
     return filtered;
   }
 
+  static SelectionState select(
+      List<ItemCandidate> visible,
+      List<String> selectedItemIds,
+      int lastClickedIndex,
+      int clickedIndex,
+      boolean controlDown,
+      boolean shiftDown) {
+    if (clickedIndex < 0 || clickedIndex >= visible.size()) {
+      return new SelectionState(List.copyOf(selectedItemIds), lastClickedIndex);
+    }
+
+    String clickedItemId = visible.get(clickedIndex).itemId();
+    List<String> updatedSelection = new ArrayList<>();
+    if (controlDown) {
+      updatedSelection.addAll(selectedItemIds);
+      if (updatedSelection.contains(clickedItemId)) {
+        updatedSelection.remove(clickedItemId);
+      } else {
+        updatedSelection.add(clickedItemId);
+      }
+    } else if (shiftDown && lastClickedIndex >= 0 && lastClickedIndex < visible.size()) {
+      int start = Math.min(lastClickedIndex, clickedIndex);
+      int end = Math.max(lastClickedIndex, clickedIndex);
+      for (int i = start; i <= end; i++) {
+        updatedSelection.add(visible.get(i).itemId());
+      }
+    } else {
+      updatedSelection.add(clickedItemId);
+    }
+
+    return new SelectionState(List.copyOf(updatedSelection), clickedIndex);
+  }
+
+  static List<String> retainVisibleSelection(
+      List<ItemCandidate> visible, List<String> selectedItemIds) {
+    Set<String> visibleIds = new HashSet<>();
+    for (ItemCandidate candidate : visible) {
+      visibleIds.add(candidate.itemId());
+    }
+
+    List<String> retained = new ArrayList<>();
+    for (String selectedItemId : selectedItemIds) {
+      if (visibleIds.contains(selectedItemId)) {
+        retained.add(selectedItemId);
+      }
+    }
+    return List.copyOf(retained);
+  }
+
+  static List<String> selectedItemIdsInVisibleOrder(
+      List<ItemCandidate> visible, List<String> selectedItemIds) {
+    Set<String> selectedIds = new HashSet<>(selectedItemIds);
+    List<String> ordered = new ArrayList<>();
+    for (ItemCandidate candidate : visible) {
+      if (selectedIds.contains(candidate.itemId())) {
+        ordered.add(candidate.itemId());
+      }
+    }
+    return ordered;
+  }
+
   private static boolean matchesTokens(String searchable, String[] queryTokens) {
     for (String token : queryTokens) {
       if (!searchable.contains(token)) {
@@ -65,6 +126,8 @@ public final class ItemSearchController {
         .replaceAll("\\s+", " ")
         .trim();
   }
+
+  record SelectionState(List<String> selectedItemIds, int lastClickedIndex) {}
 
   public record ItemCandidate(String itemId, String displayName, String namespace, Item item) {}
 }

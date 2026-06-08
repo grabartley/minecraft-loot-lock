@@ -94,4 +94,47 @@ class ItemSearchControllerTest {
         List.of("minecraft:diamond", "minecraft:stone"),
         filtered.stream().map(ItemSearchController.ItemCandidate::itemId).toList());
   }
+
+  @Test
+  void selectControlClickAddsAndRemovesWithoutClearingOtherSelections() {
+    ItemSearchController.SelectionState added =
+        ItemSearchController.select(ITEMS, List.of("minecraft:apple"), 1, 3, true, false);
+
+    assertEquals(List.of("minecraft:apple", "create:andesite"), added.selectedItemIds());
+    assertEquals(3, added.lastClickedIndex());
+
+    ItemSearchController.SelectionState removed =
+        ItemSearchController.select(ITEMS, added.selectedItemIds(), 3, 1, true, false);
+
+    assertEquals(List.of("create:andesite"), removed.selectedItemIds());
+    assertEquals(1, removed.lastClickedIndex());
+  }
+
+  @Test
+  void selectShiftClickBuildsRangeFromLastClickedIndex() {
+    ItemSearchController.SelectionState range =
+        ItemSearchController.select(ITEMS, List.of("minecraft:apple"), 1, 3, false, true);
+
+    assertEquals(
+        List.of("minecraft:apple", "create:zinc_ore", "create:andesite"), range.selectedItemIds());
+    assertEquals(3, range.lastClickedIndex());
+  }
+
+  @Test
+  void retainVisibleSelectionPreservesSelectionsAcrossPagesOfSameResultSet() {
+    List<String> retained =
+        ItemSearchController.retainVisibleSelection(
+            ITEMS, List.of("minecraft:apple", "minecraft:diamond"));
+
+    assertEquals(List.of("minecraft:apple", "minecraft:diamond"), retained);
+  }
+
+  @Test
+  void selectedItemIdsInVisibleOrderIncludesSelectionsFromMultiplePages() {
+    List<String> ordered =
+        ItemSearchController.selectedItemIdsInVisibleOrder(
+            ITEMS, List.of("minecraft:diamond", "minecraft:apple"));
+
+    assertEquals(List.of("minecraft:apple", "minecraft:diamond"), ordered);
+  }
 }

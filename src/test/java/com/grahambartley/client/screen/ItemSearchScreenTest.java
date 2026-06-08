@@ -1,13 +1,17 @@
 package com.grahambartley.client.screen;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.stream.Stream;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.lwjgl.glfw.GLFW;
 
 class ItemSearchScreenTest {
   @ParameterizedTest
@@ -35,6 +39,33 @@ class ItemSearchScreenTest {
     Text result = ItemSearchScreen.subtitle(profileName);
 
     assertEquals(Formatting.GRAY.getColorValue(), result.getStyle().getColor().getRgb());
+  }
+
+  @Test
+  void additiveSelectionClickDetectsControlOrCommand() {
+    assertTrue(ItemSearchScreen.isAdditiveSelectionClick(true, false));
+    assertTrue(ItemSearchScreen.isAdditiveSelectionClick(false, true));
+    assertTrue(ItemSearchScreen.isAdditiveSelectionClick(true, true));
+    assertFalse(ItemSearchScreen.isAdditiveSelectionClick(false, false));
+  }
+
+  @Test
+  void primaryDoubleClickRequiresPlainPrimaryClick() {
+    assertTrue(
+        ItemSearchScreen.isPrimaryDoubleClick(
+            GLFW.GLFW_MOUSE_BUTTON_LEFT, false, false, 4, 4, 100L, 400L));
+    assertFalse(
+        ItemSearchScreen.isPrimaryDoubleClick(
+            GLFW.GLFW_MOUSE_BUTTON_RIGHT, false, false, 4, 4, 100L, 400L));
+    assertFalse(
+        ItemSearchScreen.isPrimaryDoubleClick(
+            GLFW.GLFW_MOUSE_BUTTON_LEFT, true, false, 4, 4, 100L, 400L));
+    assertFalse(
+        ItemSearchScreen.isPrimaryDoubleClick(
+            GLFW.GLFW_MOUSE_BUTTON_LEFT, false, true, 4, 4, 100L, 400L));
+    assertFalse(
+        ItemSearchScreen.isPrimaryDoubleClick(
+            GLFW.GLFW_MOUSE_BUTTON_LEFT, false, false, 4, 5, 100L, 400L));
   }
 
   static Stream<Arguments> profileNames() {
