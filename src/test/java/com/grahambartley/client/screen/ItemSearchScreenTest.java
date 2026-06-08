@@ -42,19 +42,27 @@ class ItemSearchScreenTest {
   }
 
   @Test
-  void additiveSelectionClickTreatsMacSecondaryClickAsControl() {
-    assertTrue(ItemSearchScreen.isAdditiveSelectionClick(1, false, false, true));
-    assertFalse(ItemSearchScreen.isAdditiveSelectionClick(1, false, false, false));
-    assertTrue(ItemSearchScreen.isAdditiveSelectionClick(0, true, false, false));
-    assertTrue(ItemSearchScreen.isAdditiveSelectionClick(0, false, true, false));
+  void additiveSelectionClickDetectsControlOrCommand() {
+    assertTrue(ItemSearchScreen.isAdditiveSelectionClick(true, false));
+    assertTrue(ItemSearchScreen.isAdditiveSelectionClick(false, true));
+    assertTrue(ItemSearchScreen.isAdditiveSelectionClick(true, true));
+    assertFalse(ItemSearchScreen.isAdditiveSelectionClick(false, false));
   }
 
   @Test
   void primaryDoubleClickRequiresPlainPrimaryClick() {
-    assertTrue(ItemSearchScreen.isPrimaryDoubleClick(0, false, false, 4, 4, 100L, 400L));
-    assertFalse(ItemSearchScreen.isPrimaryDoubleClick(1, false, false, 4, 4, 100L, 400L));
-    assertFalse(ItemSearchScreen.isPrimaryDoubleClick(0, true, false, 4, 4, 100L, 400L));
-    assertFalse(ItemSearchScreen.isPrimaryDoubleClick(0, false, true, 4, 4, 100L, 400L));
+    assertTrue(
+        ItemSearchScreen.isPrimaryDoubleClick(
+            GLFW.GLFW_MOUSE_BUTTON_LEFT, false, false, 4, 4, 100L, 400L));
+    assertFalse(
+        ItemSearchScreen.isPrimaryDoubleClick(
+            GLFW.GLFW_MOUSE_BUTTON_RIGHT, false, false, 4, 4, 100L, 400L));
+    assertFalse(
+        ItemSearchScreen.isPrimaryDoubleClick(
+            GLFW.GLFW_MOUSE_BUTTON_LEFT, true, false, 4, 4, 100L, 400L));
+    assertFalse(
+        ItemSearchScreen.isPrimaryDoubleClick(
+            GLFW.GLFW_MOUSE_BUTTON_LEFT, false, true, 4, 4, 100L, 400L));
     assertFalse(
         ItemSearchScreen.isPrimaryDoubleClick(
             GLFW.GLFW_MOUSE_BUTTON_LEFT, false, false, 4, 5, 100L, 400L));

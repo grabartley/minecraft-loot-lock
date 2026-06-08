@@ -19,7 +19,6 @@ import net.minecraft.registry.Registries;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.Util;
 import org.lwjgl.glfw.GLFW;
 
 public final class ItemSearchScreen extends Screen {
@@ -192,7 +191,7 @@ public final class ItemSearchScreen extends Screen {
       return false;
     }
 
-    boolean additiveSelection = isAdditiveSelection(button);
+    boolean additiveSelection = isAdditiveSelection();
     boolean shiftDown = Screen.hasShiftDown();
     long now = System.currentTimeMillis();
     boolean isDoubleClick =
@@ -317,9 +316,15 @@ public final class ItemSearchScreen extends Screen {
         .append(Text.literal(profileName).formatted(Formatting.YELLOW));
   }
 
-  static boolean isAdditiveSelectionClick(
-      int button, boolean controlDown, boolean commandDown, boolean secondaryClickActsAsControl) {
-    return controlDown || commandDown || (secondaryClickActsAsControl && button == 1);
+  /**
+   * Returns true when a click should add to (rather than replace) the current selection.
+   *
+   * <p>{@code controlDown} covers Ctrl on all platforms. {@code commandDown} covers the Cmd key on
+   * macOS, which is the standard additive modifier in Mac UI conventions across Finder, file
+   * dialogs, and every major Mac application.
+   */
+  static boolean isAdditiveSelectionClick(boolean controlDown, boolean commandDown) {
+    return controlDown || commandDown;
   }
 
   static boolean isPrimaryDoubleClick(
@@ -338,21 +343,17 @@ public final class ItemSearchScreen extends Screen {
         && (now - lastClickTime) < DOUBLE_CLICK_MS;
   }
 
-  private boolean isAdditiveSelection(int button) {
-    return isAdditiveSelectionClick(button, Screen.hasControlDown(), isCommandDown(), isMacOs());
+  private boolean isAdditiveSelection() {
+    long windowHandle = this.client != null ? this.client.getWindow().getHandle() : -1L;
+    return isAdditiveSelectionClick(Screen.hasControlDown(), isCommandDown(windowHandle));
   }
 
-  private boolean isCommandDown() {
-    if (this.client == null) {
+  static boolean isCommandDown(long windowHandle) {
+    if (windowHandle < 0) {
       return false;
     }
-    long windowHandle = this.client.getWindow().getHandle();
     return InputUtil.isKeyPressed(windowHandle, GLFW.GLFW_KEY_LEFT_SUPER)
         || InputUtil.isKeyPressed(windowHandle, GLFW.GLFW_KEY_RIGHT_SUPER);
-  }
-
-  private static boolean isMacOs() {
-    return Util.getOperatingSystem() == Util.OperatingSystem.OSX;
   }
 
   private void invalidateFilter() {
