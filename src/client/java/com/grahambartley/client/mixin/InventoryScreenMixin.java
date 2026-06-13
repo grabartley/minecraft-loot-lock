@@ -36,15 +36,19 @@ public abstract class InventoryScreenMixin {
       return;
     }
 
-    int panelX = self.width / 2 + 100;
-    int panelY = (self.height - LootLockInventoryPanel.HEIGHT) / 2;
-    int entryX = panelX - 24;
-    int entryY = panelY;
+    // Anchor everything to the vanilla inventory's actual top-left so the button sits beside the
+    // recipe-book button and the panel docks flush against the inventory's right edge.
+    int invX = (self.width - 176) / 2;
+    int invY = (self.height - 166) / 2;
+    int entryX = invX + 124;
+    int entryY = self.height / 2 - 22;
+    int panelX = invX + 176 + 4;
+    int panelY = invY;
 
     ScreenAccessor accessor = (ScreenAccessor) self;
     lootlock$entryButton =
         accessor.lootlock$invokeAddDrawableChild(
-            new LootLockIconButton(entryX, entryY, 20, 20, button -> lootlock$onEntryClicked()));
+            new LootLockIconButton(entryX, entryY, 20, 18, button -> lootlock$onEntryClicked()));
 
     lootlock$panel = new LootLockInventoryPanel();
     lootlock$panel.attach(self, panelX, panelY, accessor::lootlock$invokeAddDrawableChild);

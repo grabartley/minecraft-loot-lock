@@ -22,24 +22,30 @@ import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.ClickableWidget;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
+import net.minecraft.util.Identifier;
 
 /**
- * Docked Loot Lock panel rendered alongside the survival inventory. Composes a header (title +
- * Client interactive switch + Server read-only switch), a profile bar with cycle arrows and a
- * dropdown manager, master Mode and Action segmented controls, a plain-English live summary, and a
- * lockable region that disables every control below the header when the global Client toggle is
- * off.
- *
- * <p>All widgets persist as drawable children of the host {@link InventoryScreen} and use their
- * {@code visible} flag to fade in and out, which keeps input routing inside the vanilla widget
- * dispatch.
+ * Docked Loot Lock panel rendered alongside the survival inventory, styled pixel-faithful to the
+ * vanilla Minecraft GUI prototype in {@code ux_redesign_2/Loot Lock.html}. Composes the brand
+ * header (icon + title + Client interactive switch + Server read-only switch), a profile bar with
+ * cycle arrows and a dropdown manager, master Mode and Action segmented controls, a plain-English
+ * live summary, a tab strip, and a content well for the active tab. The whole region below the
+ * header dims and stops accepting input when the global Client toggle is off.
  */
 public final class LootLockInventoryPanel {
-  public static final int WIDTH = 220;
-  public static final int HEIGHT = 320;
-  private static final int SIDE_PADDING = 8;
-  private static final int ROW_HEIGHT = 20;
-  private static final int ROW_GAP = 4;
+  public static final int WIDTH = 240;
+  public static final int HEIGHT = 280;
+  private static final int SIDE_PADDING = 6;
+  private static final int HEADER_HEIGHT = 24;
+  private static final int PROFILE_ROW_HEIGHT = 20;
+  private static final int CONTROL_ROW_HEIGHT = 18;
+  private static final int SUMMARY_HEIGHT = 36;
+  private static final int TAB_HEIGHT = 20;
+  private static final int CONTENT_PADDING = 4;
+  private static final int SWITCH_WIDTH = 42;
+  private static final int SWITCH_HEIGHT = 16;
+  private static final int CTL_LABEL_WIDTH = 48;
+  private static final Identifier ICON_TEXTURE = LootLockIconButton.ICON_TEXTURE;
 
   private final List<ClickableWidget> allWidgets = new ArrayList<>();
   private final List<ClickableWidget> lockableWidgets = new ArrayList<>();
@@ -49,26 +55,34 @@ public final class LootLockInventoryPanel {
   private final SettingsTabView settingsView = new SettingsTabView();
   private PanelTab activeTab = PanelTab.RULES;
 
-  private ButtonWidget rulesTabButton;
-  private ButtonWidget settingsTabButton;
-
   private InventoryScreen host;
   private int panelX;
   private int panelY;
   private boolean open;
   private boolean dropdownOpen;
 
-  private ButtonWidget clientToggle;
-  private ButtonWidget serverToggle;
-  private ButtonWidget prevProfileButton;
-  private ButtonWidget nextProfileButton;
-  private ButtonWidget profilePillButton;
-  private ButtonWidget modeAllowButton;
-  private ButtonWidget modeDenyButton;
-  private ButtonWidget actionLeaveButton;
-  private ButtonWidget actionDeleteButton;
-
+  private VanillaTab rulesTabButton;
+  private VanillaTab settingsTabButton;
+  private VanillaSwitch clientSwitch;
+  private VanillaSwitch serverSwitch;
+  private NavArrowButton prevProfileButton;
+  private NavArrowButton nextProfileButton;
+  private ProfilePill profilePill;
+  private SegmentedButton modeAllowButton;
+  private SegmentedButton modeDenyButton;
+  private SegmentedButton actionLeaveButton;
+  private SegmentedButton actionDeleteButton;
   private ButtonWidget newProfileButton;
+
+  // Position references for paint code that draws labels.
+  private int headerY;
+  private int profileY;
+  private int modeY;
+  private int actionY;
+  private int summaryY;
+  private int tabsY;
+  private int contentY;
+  private int contentHeight;
 
   public boolean isOpen() {
     return open;
@@ -86,7 +100,6 @@ public final class LootLockInventoryPanel {
     setOpen(!open);
   }
 
-  /** Attaches the panel widgets to the host inventory screen at the given anchor position. */
   public void attach(
       InventoryScreen host, int panelX, int panelY, Consumer<ClickableWidget> addDrawableChild) {
     this.host = host;
@@ -96,210 +109,294 @@ public final class LootLockInventoryPanel {
     lockableWidgets.clear();
     dropdownWidgets.clear();
 
+    int innerLeft = panelX + SIDE_PADDING;
+    int innerRight = panelX + WIDTH - SIDE_PADDING;
+    int innerWidth = innerRight - innerLeft;
     int cursorY = panelY + SIDE_PADDING;
 
-    // Header: title row uses static text drawn in render(); add Client + Server toggle buttons.
-    int toggleWidth = 70;
-    int toggleX = panelX + WIDTH - SIDE_PADDING - toggleWidth;
-    clientToggle =
-        addButton(
-            addDrawableChild,
-            toggleX,
-            cursorY,
-            toggleWidth,
-            ROW_HEIGHT,
-            Text.literal("Client: ..."),
-            button -> handleClientToggle());
-    cursorY += ROW_HEIGHT + ROW_GAP;
-    serverToggle =
-        addButton(
-            addDrawableChild,
-            toggleX,
-            cursorY,
-            toggleWidth,
-            ROW_HEIGHT,
-            Text.literal("Server: ..."),
-            button -> {});
-    serverToggle.active = false;
-    cursorY += ROW_HEIGHT + ROW_GAP;
+    // Header: icon + title + Client + Server switches in one row.
+    headerY = cursorY;
+    int switchY = cursorY + (HEADER_HEIGHT - SWITCH_HEIGHT) / 2;
+    int serverSwitchX = innerRight - SWITCH_WIDTH;
+    int serverLabelX = serverSwitchX - 32;
+    int clientSwitchX = serverLabelX - SWITCH_WIDTH - 4;
+    int clientLabelX = clientSwitchX - 32;
+    serverSwitch =
+        new VanillaSwitch(
+            serverSwitchX,
+            switchY,
+            SWITCH_WIDTH,
+            SWITCH_HEIGHT,
+            () -> LootLockClient.getState().isServerSupportsLootLock(),
+            null,
+            true,
+            true);
+    addDrawableChild.accept(serverSwitch);
+    allWidgets.add(serverSwitch);
+    clientSwitch =
+        new VanillaSwitch(
+            clientSwitchX,
+            switchY,
+            SWITCH_WIDTH,
+            SWITCH_HEIGHT,
+            () -> currentGloballyEnabled(),
+            this::onClientSwitchPressed,
+            false,
+            false);
+    addDrawableChild.accept(clientSwitch);
+    allWidgets.add(clientSwitch);
+    cursorY += HEADER_HEIGHT + 2;
 
-    // Profile bar: previous, profile pill (opens dropdown), next.
-    int navWidth = 20;
-    int pillWidth = WIDTH - SIDE_PADDING * 2 - navWidth * 2 - 4;
-    int prevX = panelX + SIDE_PADDING;
-    int pillX = prevX + navWidth + 2;
-    int nextX = pillX + pillWidth + 2;
+    // Profile bar: prev | pill | next.
+    profileY = cursorY;
+    int navWidth = 14;
+    int pillX = innerLeft + navWidth + 3;
+    int pillWidth = innerWidth - navWidth * 2 - 6;
+    int nextX = pillX + pillWidth + 3;
     prevProfileButton =
-        addButton(
-            addDrawableChild,
-            prevX,
-            cursorY,
-            navWidth,
-            ROW_HEIGHT,
-            Text.literal("<"),
-            button -> cycleActiveProfile(-1));
-    profilePillButton =
-        addButton(
-            addDrawableChild,
+        new NavArrowButton(
+            innerLeft, cursorY, navWidth, PROFILE_ROW_HEIGHT, false, () -> cycleActiveProfile(-1));
+    addDrawableChild.accept(prevProfileButton);
+    allWidgets.add(prevProfileButton);
+    lockableWidgets.add(prevProfileButton);
+    profilePill =
+        new ProfilePill(
             pillX,
             cursorY,
             pillWidth,
-            ROW_HEIGHT,
-            Text.literal("Profile..."),
-            button -> toggleDropdown());
+            PROFILE_ROW_HEIGHT,
+            () -> activeProfile().map(LootLockInventoryPanel::colorForProfile).orElse(Palette.SLOT),
+            () -> activeProfile().map(LootLockProfile::getName).orElse("--"),
+            () -> activeProfile().map(LootLockInventoryPanel::ruleCountLabel).orElse(""),
+            this::toggleDropdown);
+    addDrawableChild.accept(profilePill);
+    allWidgets.add(profilePill);
+    lockableWidgets.add(profilePill);
     nextProfileButton =
-        addButton(
-            addDrawableChild,
-            nextX,
-            cursorY,
-            navWidth,
-            ROW_HEIGHT,
-            Text.literal(">"),
-            button -> cycleActiveProfile(1));
-    lockableWidgets.add(prevProfileButton);
-    lockableWidgets.add(profilePillButton);
+        new NavArrowButton(
+            nextX, cursorY, navWidth, PROFILE_ROW_HEIGHT, true, () -> cycleActiveProfile(1));
+    addDrawableChild.accept(nextProfileButton);
+    allWidgets.add(nextProfileButton);
     lockableWidgets.add(nextProfileButton);
-    cursorY += ROW_HEIGHT + ROW_GAP;
+    cursorY += PROFILE_ROW_HEIGHT + 3;
 
-    // Master controls: Mode (Allow / Deny) and Action (Leave / Delete) segmented buttons.
-    int segWidth = (WIDTH - SIDE_PADDING * 2) / 2;
+    // Mode row.
+    modeY = cursorY;
+    int segLeft = innerLeft + CTL_LABEL_WIDTH;
+    int segWidth = (innerRight - segLeft) / 2;
     modeAllowButton =
-        addButton(
-            addDrawableChild,
-            panelX + SIDE_PADDING,
+        new SegmentedButton(
+            segLeft,
             cursorY,
             segWidth,
-            ROW_HEIGHT,
-            Text.literal("Allow"),
-            button -> setMode(FilterMode.ALLOWLIST));
-    modeDenyButton =
-        addButton(
-            addDrawableChild,
-            panelX + SIDE_PADDING + segWidth,
-            cursorY,
-            segWidth,
-            ROW_HEIGHT,
-            Text.literal("Deny"),
-            button -> setMode(FilterMode.DENYLIST));
+            CONTROL_ROW_HEIGHT,
+            Text.literal("Allowlist"),
+            Palette.ALLOW,
+            () -> activeProfile().map(p -> p.getMode() == FilterMode.ALLOWLIST).orElse(false),
+            () -> setMode(FilterMode.ALLOWLIST));
+    addDrawableChild.accept(modeAllowButton);
+    allWidgets.add(modeAllowButton);
     lockableWidgets.add(modeAllowButton);
+    modeDenyButton =
+        new SegmentedButton(
+            segLeft + segWidth,
+            cursorY,
+            segWidth,
+            CONTROL_ROW_HEIGHT,
+            Text.literal("Denylist"),
+            Palette.DENY,
+            () -> activeProfile().map(p -> p.getMode() == FilterMode.DENYLIST).orElse(false),
+            () -> setMode(FilterMode.DENYLIST));
+    addDrawableChild.accept(modeDenyButton);
+    allWidgets.add(modeDenyButton);
     lockableWidgets.add(modeDenyButton);
-    cursorY += ROW_HEIGHT + ROW_GAP;
+    cursorY += CONTROL_ROW_HEIGHT + 2;
 
+    // Action row.
+    actionY = cursorY;
     actionLeaveButton =
-        addButton(
-            addDrawableChild,
-            panelX + SIDE_PADDING,
+        new SegmentedButton(
+            segLeft,
             cursorY,
             segWidth,
-            ROW_HEIGHT,
+            CONTROL_ROW_HEIGHT,
             Text.literal("Leave"),
-            button -> setAction(RejectedItemAction.LEAVE_ON_GROUND));
+            0xFF6A6F78,
+            () ->
+                activeProfile()
+                    .map(p -> p.getRejectedItemAction() == RejectedItemAction.LEAVE_ON_GROUND)
+                    .orElse(false),
+            () -> setAction(RejectedItemAction.LEAVE_ON_GROUND));
+    addDrawableChild.accept(actionLeaveButton);
+    allWidgets.add(actionLeaveButton);
+    lockableWidgets.add(actionLeaveButton);
     actionDeleteButton =
-        addButton(
-            addDrawableChild,
-            panelX + SIDE_PADDING + segWidth,
+        new SegmentedButton(
+            segLeft + segWidth,
             cursorY,
             segWidth,
-            ROW_HEIGHT,
+            CONTROL_ROW_HEIGHT,
             Text.literal("Delete"),
-            button -> setAction(RejectedItemAction.DELETE));
-    lockableWidgets.add(actionLeaveButton);
+            Palette.DENY,
+            () ->
+                activeProfile()
+                    .map(p -> p.getRejectedItemAction() == RejectedItemAction.DELETE)
+                    .orElse(false),
+            () -> setAction(RejectedItemAction.DELETE));
+    addDrawableChild.accept(actionDeleteButton);
+    allWidgets.add(actionDeleteButton);
     lockableWidgets.add(actionDeleteButton);
-    cursorY += ROW_HEIGHT + ROW_GAP;
+    cursorY += CONTROL_ROW_HEIGHT + 4;
 
-    // Tab strip below the master controls.
-    int tabsY = cursorY;
-    int tabWidth = (WIDTH - SIDE_PADDING * 2) / 2;
+    // Summary block (painted in render()).
+    summaryY = cursorY;
+    cursorY += SUMMARY_HEIGHT + 3;
+
+    // Tab strip.
+    tabsY = cursorY;
+    int tabWidth = innerWidth / 2;
     rulesTabButton =
-        addButton(
-            addDrawableChild,
-            panelX + SIDE_PADDING,
-            tabsY,
+        new VanillaTab(
+            innerLeft,
+            cursorY,
             tabWidth,
-            ROW_HEIGHT,
+            TAB_HEIGHT,
             Text.literal("Rules"),
-            button -> setTab(PanelTab.RULES));
-    settingsTabButton =
-        addButton(
-            addDrawableChild,
-            panelX + SIDE_PADDING + tabWidth,
-            tabsY,
-            tabWidth,
-            ROW_HEIGHT,
-            Text.literal("Settings"),
-            button -> setTab(PanelTab.SETTINGS));
+            () -> activeTab == PanelTab.RULES,
+            () -> setTab(PanelTab.RULES));
+    addDrawableChild.accept(rulesTabButton);
+    allWidgets.add(rulesTabButton);
     lockableWidgets.add(rulesTabButton);
+    settingsTabButton =
+        new VanillaTab(
+            innerLeft + tabWidth,
+            cursorY,
+            tabWidth,
+            TAB_HEIGHT,
+            Text.literal("Settings"),
+            () -> activeTab == PanelTab.SETTINGS,
+            () -> setTab(PanelTab.SETTINGS));
+    addDrawableChild.accept(settingsTabButton);
+    allWidgets.add(settingsTabButton);
     lockableWidgets.add(settingsTabButton);
-    cursorY += ROW_HEIGHT + ROW_GAP;
+    cursorY += TAB_HEIGHT;
 
-    // Tab view area: Rules and Settings widget banks both attach here. visibility toggles based on
-    // the active tab.
-    int viewWidth = WIDTH - SIDE_PADDING * 2;
+    // Content well: dark recessed background, host for the active tab.
+    contentY = cursorY;
+    contentHeight = (panelY + HEIGHT - SIDE_PADDING) - cursorY;
+    int contentInsetX = innerLeft + CONTENT_PADDING;
+    int contentInsetY = contentY + CONTENT_PADDING;
+    int contentInsetWidth = innerWidth - CONTENT_PADDING * 2;
     rulesView.attach(
-        panelX + SIDE_PADDING,
-        cursorY,
-        viewWidth,
+        contentInsetX,
+        contentInsetY,
+        contentInsetWidth,
         widget -> {
           addDrawableChild.accept(widget);
           allWidgets.add(widget);
           lockableWidgets.add(widget);
         });
     settingsView.attach(
-        panelX + SIDE_PADDING,
-        cursorY,
-        viewWidth,
+        contentInsetX,
+        contentInsetY,
+        contentInsetWidth,
         widget -> {
           addDrawableChild.accept(widget);
           allWidgets.add(widget);
           lockableWidgets.add(widget);
         });
 
-    // Dropdown widgets: created up front so we can show / hide them in place.
     rebuildDropdownWidgets(
-        addDrawableChild, pillX, panelY + SIDE_PADDING + (ROW_HEIGHT + ROW_GAP) * 5, pillWidth);
+        addDrawableChild,
+        pillX,
+        panelY + SIDE_PADDING + HEADER_HEIGHT + PROFILE_ROW_HEIGHT + 5,
+        pillWidth);
 
     applyVisibility();
     refresh();
   }
 
-  /**
-   * Renders the panel chrome (background, title, summary text). Panel widgets render themselves
-   * through the host screen's normal widget pipeline.
-   */
   public void render(DrawContext context, int mouseX, int mouseY, float delta) {
     if (!open) {
       return;
     }
-    // Background frame: dark outer border, lighter face.
-    context.fill(panelX - 1, panelY - 1, panelX + WIDTH + 1, panelY + HEIGHT + 1, 0xFF1B1B1B);
-    context.fill(panelX, panelY, panelX + WIDTH, panelY + HEIGHT, 0xFFC6C6C6);
-
-    // Title.
     MinecraftClient client = MinecraftClient.getInstance();
-    int titleY = panelY + SIDE_PADDING + 6;
+    Chrome.guiWindow(context, panelX, panelY, WIDTH, HEIGHT);
+
+    // Header: brand icon + title text on the left.
+    int iconSize = 16;
+    int iconX = panelX + SIDE_PADDING + 1;
+    int iconY = headerY + (HEADER_HEIGHT - iconSize) / 2;
+    context.drawTexture(ICON_TEXTURE, iconX, iconY, 0f, 0f, iconSize, iconSize, iconSize, iconSize);
     context.drawText(
         client.textRenderer,
-        Text.literal("Loot Lock").formatted(Formatting.DARK_GRAY),
-        panelX + SIDE_PADDING,
-        titleY,
-        0x3B3B3B,
+        Text.literal("Loot Lock"),
+        iconX + iconSize + 4,
+        headerY + (HEADER_HEIGHT - 8) / 2,
+        Palette.INK,
         false);
 
-    // Summary line: drawn above the tab strip.
+    // Switch labels.
+    int switchY = headerY + (HEADER_HEIGHT - 8) / 2;
+    if (serverSwitch != null) {
+      context.drawText(
+          client.textRenderer,
+          Text.literal("Server"),
+          serverSwitch.getX() - 30,
+          switchY,
+          Palette.INK,
+          false);
+    }
+    if (clientSwitch != null) {
+      context.drawText(
+          client.textRenderer,
+          Text.literal("Client"),
+          clientSwitch.getX() - 30,
+          switchY,
+          Palette.INK,
+          false);
+    }
+
+    // Mode + Action row labels.
+    context.drawText(
+        client.textRenderer,
+        Text.literal("Mode"),
+        panelX + SIDE_PADDING,
+        modeY + (CONTROL_ROW_HEIGHT - 8) / 2,
+        Palette.INK,
+        false);
+    context.drawText(
+        client.textRenderer,
+        Text.literal("Action"),
+        panelX + SIDE_PADDING,
+        actionY + (CONTROL_ROW_HEIGHT - 8) / 2,
+        Palette.INK,
+        false);
+
+    // Summary block: colored left border + dark recessed background + text.
     Optional<LootLockProfile> activeProfile = activeProfile();
-    boolean globallyEnabled =
-        LootLockClient.getState()
-            .getSnapshot()
-            .map(LootLockPlayerData::isGloballyEnabled)
-            .orElse(true);
-    int summaryTop = panelY + SIDE_PADDING + (ROW_HEIGHT + ROW_GAP) * 4 + 4;
+    boolean globallyEnabled = currentGloballyEnabled();
+    int accent;
+    if (!globallyEnabled) {
+      accent = 0xFF7A7A7A;
+    } else {
+      accent =
+          activeProfile
+              .map(p -> p.getMode() == FilterMode.ALLOWLIST ? Palette.ALLOW : Palette.DENY)
+              .orElse(Palette.INFO);
+    }
+    Chrome.summaryBlock(
+        context, panelX + SIDE_PADDING, summaryY, WIDTH - SIDE_PADDING * 2, SUMMARY_HEIGHT, accent);
     context.drawTextWrapped(
         client.textRenderer,
         LootLockSummaryText.build(globallyEnabled, activeProfile.orElse(null)),
-        panelX + SIDE_PADDING,
-        summaryTop,
-        WIDTH - SIDE_PADDING * 2,
-        0x3B3B3B);
+        panelX + SIDE_PADDING + 8,
+        summaryY + 5,
+        WIDTH - SIDE_PADDING * 2 - 12,
+        0xFFF0F0F0);
+
+    // Content well behind the tab content.
+    Chrome.well(context, panelX + SIDE_PADDING, contentY, WIDTH - SIDE_PADDING * 2, contentHeight);
 
     // Per-view rendering for whatever the active tab paints itself.
     if (activeTab == PanelTab.RULES) {
@@ -318,75 +415,56 @@ public final class LootLockInventoryPanel {
     refresh();
   }
 
-  /** Refresh button labels and lock state to match the current snapshot. */
-  public void refresh() {
-    ClientLootLockState state = LootLockClient.getState();
-    Optional<LootLockPlayerData> snapshotOptional = state.getSnapshot();
-    boolean serverSupported = state.isServerSupportsLootLock();
-    boolean globallyEnabled =
-        snapshotOptional.map(LootLockPlayerData::isGloballyEnabled).orElse(true);
-
-    if (clientToggle != null) {
-      clientToggle.setMessage(
-          Text.literal("Client: " + (globallyEnabled ? "ON" : "OFF"))
-              .formatted(globallyEnabled ? Formatting.GREEN : Formatting.GRAY));
-    }
-    if (serverToggle != null) {
-      serverToggle.setMessage(
-          Text.literal("Server: " + (serverSupported ? "ON" : "OFF"))
-              .formatted(serverSupported ? Formatting.GREEN : Formatting.RED));
-    }
-
-    Optional<LootLockProfile> activeProfile = activeProfile();
-    if (profilePillButton != null) {
-      profilePillButton.setMessage(
-          Text.literal(activeProfile.map(LootLockProfile::getName).orElse("Profile..."))
-              .formatted(Formatting.YELLOW));
-    }
-
-    LootLockProfile profile = activeProfile.orElse(null);
-    if (modeAllowButton != null && modeDenyButton != null) {
-      boolean isAllow = profile != null && profile.getMode() == FilterMode.ALLOWLIST;
-      modeAllowButton.setMessage(
-          Text.literal("Allow").formatted(isAllow ? Formatting.GREEN : Formatting.GRAY));
-      modeDenyButton.setMessage(
-          Text.literal("Deny").formatted(!isAllow ? Formatting.RED : Formatting.GRAY));
-    }
-    boolean canDelete = state.isAllowDeleteRejectedItems();
-    if (actionLeaveButton != null && actionDeleteButton != null) {
-      boolean isDelete =
-          profile != null && profile.getRejectedItemAction() == RejectedItemAction.DELETE;
-      actionLeaveButton.setMessage(
-          Text.literal("Leave").formatted(!isDelete ? Formatting.WHITE : Formatting.GRAY));
-      actionDeleteButton.setMessage(
-          Text.literal("Delete").formatted(isDelete ? Formatting.RED : Formatting.GRAY));
-      actionDeleteButton.active = open && globallyEnabled && canDelete;
-    }
-
-    applyLock(globallyEnabled);
-
-    if (rulesTabButton != null && settingsTabButton != null) {
-      rulesTabButton.setMessage(
-          Text.literal("Rules")
-              .formatted(activeTab == PanelTab.RULES ? Formatting.YELLOW : Formatting.GRAY));
-      settingsTabButton.setMessage(
-          Text.literal("Settings")
-              .formatted(activeTab == PanelTab.SETTINGS ? Formatting.YELLOW : Formatting.GRAY));
-    }
-
-    rulesView.refresh();
-  }
-
   public PanelTab getActiveTab() {
     return activeTab;
   }
 
-  /** Returns true and sets the toggle when the snapshot is synced and editable. */
+  public void refresh() {
+    boolean globallyEnabled = currentGloballyEnabled();
+    boolean canDelete = LootLockClient.getState().isAllowDeleteRejectedItems();
+    if (actionDeleteButton != null) {
+      actionDeleteButton.active = open && globallyEnabled && canDelete;
+    }
+    applyLock(globallyEnabled);
+    rulesView.refresh();
+  }
+
   public void handleClientToggle() {
     GlobalEnableController.toggle(MinecraftClient.getInstance());
   }
 
-  // Internal helpers ---------------------------------------------------------
+  void onClientSwitchPressed() {
+    handleClientToggle();
+  }
+
+  /** Stable per-profile color derived from the profile's UUID hash. */
+  static int colorForProfile(LootLockProfile profile) {
+    int[] palette = {
+      Palette.ALLOW,
+      Palette.INFO,
+      Palette.DENY,
+      Palette.GOLD,
+      Palette.PURPLE,
+      0xFFD77A2A,
+      0xFF3AA6A0,
+      0xFF8A8A90
+    };
+    int hash = profile.getId() == null ? 0 : Math.abs(profile.getId().hashCode());
+    return palette[hash % palette.length];
+  }
+
+  static String ruleCountLabel(LootLockProfile profile) {
+    int n = profile.getRules() == null ? 0 : profile.getRules().size();
+    String mode = profile.getMode() == FilterMode.DENYLIST ? "deny" : "allow";
+    return mode + " . " + n + (n == 1 ? " item" : " items");
+  }
+
+  boolean currentGloballyEnabled() {
+    return LootLockClient.getState()
+        .getSnapshot()
+        .map(LootLockPlayerData::isGloballyEnabled)
+        .orElse(true);
+  }
 
   private void applyVisibility() {
     for (ClickableWidget widget : allWidgets) {
@@ -395,7 +473,6 @@ public final class LootLockInventoryPanel {
     for (ClickableWidget widget : dropdownWidgets) {
       widget.visible = open && dropdownOpen;
     }
-    // Tab views override their widgets' visibility based on the active tab.
     rulesView.setVisible(open && activeTab == PanelTab.RULES);
     settingsView.setVisible(open && activeTab == PanelTab.SETTINGS);
   }
@@ -404,22 +481,6 @@ public final class LootLockInventoryPanel {
     for (ClickableWidget widget : lockableWidgets) {
       widget.active = open && enabled;
     }
-    // The delete button has additional gating handled in refresh().
-  }
-
-  private ButtonWidget addButton(
-      Consumer<ClickableWidget> addDrawableChild,
-      int x,
-      int y,
-      int width,
-      int height,
-      Text label,
-      ButtonWidget.PressAction onPress) {
-    ButtonWidget button =
-        ButtonWidget.builder(label, onPress).dimensions(x, y, width, height).build();
-    addDrawableChild.accept(button);
-    allWidgets.add(button);
-    return button;
   }
 
   private void rebuildDropdownWidgets(
@@ -431,27 +492,27 @@ public final class LootLockInventoryPanel {
     }
     List<LootLockProfile> profiles = snapshotOptional.get().getProfiles();
     for (LootLockProfile profile : profiles) {
-      // Each row: profile name (switch) + rename + duplicate + delete (mini-buttons).
       int rowY = y;
-      int miniWidth = 20;
+      int miniWidth = 18;
       int rowNameWidth = width - miniWidth * 3 - 6;
       ButtonWidget switchButton =
           ButtonWidget.builder(
                   Text.literal(profile.getName()).formatted(Formatting.YELLOW),
                   b -> activateProfile(profile.getId()))
-              .dimensions(x, rowY, rowNameWidth, ROW_HEIGHT)
+              .dimensions(x, rowY, rowNameWidth, PROFILE_ROW_HEIGHT)
               .build();
       ButtonWidget renameButton =
           ButtonWidget.builder(Text.literal("R"), b -> renameProfile(profile))
-              .dimensions(x + rowNameWidth + 2, rowY, miniWidth, ROW_HEIGHT)
+              .dimensions(x + rowNameWidth + 2, rowY, miniWidth, PROFILE_ROW_HEIGHT)
               .build();
       ButtonWidget duplicateButton =
           ButtonWidget.builder(Text.literal("D"), b -> duplicateProfile(profile))
-              .dimensions(x + rowNameWidth + 2 + miniWidth + 2, rowY, miniWidth, ROW_HEIGHT)
+              .dimensions(x + rowNameWidth + 2 + miniWidth + 2, rowY, miniWidth, PROFILE_ROW_HEIGHT)
               .build();
       ButtonWidget deleteButton =
           ButtonWidget.builder(Text.literal("X"), b -> deleteProfile(profile))
-              .dimensions(x + rowNameWidth + 2 + miniWidth * 2 + 4, rowY, miniWidth, ROW_HEIGHT)
+              .dimensions(
+                  x + rowNameWidth + 2 + miniWidth * 2 + 4, rowY, miniWidth, PROFILE_ROW_HEIGHT)
               .build();
       deleteButton.active = ProfileUiController.canDelete(profiles);
 
@@ -467,11 +528,11 @@ public final class LootLockInventoryPanel {
       dropdownWidgets.add(renameButton);
       dropdownWidgets.add(duplicateButton);
       dropdownWidgets.add(deleteButton);
-      y += ROW_HEIGHT + 2;
+      y += PROFILE_ROW_HEIGHT + 2;
     }
     newProfileButton =
         ButtonWidget.builder(Text.literal("+ New profile"), b -> createProfile())
-            .dimensions(x, y, width, ROW_HEIGHT)
+            .dimensions(x, y, width, PROFILE_ROW_HEIGHT)
             .build();
     addDrawableChild.accept(newProfileButton);
     allWidgets.add(newProfileButton);
@@ -553,8 +614,6 @@ public final class LootLockInventoryPanel {
   }
 
   private void renameProfile(LootLockProfile profile) {
-    // Vanilla doesn't ship an inline rename popup; the rename action is left to the host screen
-    // to handle (story 4 surface) so we just no-op gracefully when called outside that context.
     closeDropdown();
   }
 
@@ -602,15 +661,5 @@ public final class LootLockInventoryPanel {
     for (ClickableWidget widget : dropdownWidgets) {
       widget.visible = false;
     }
-  }
-
-  /** Test-visible accessor for the widgets the dropdown manages. */
-  public List<ClickableWidget> dropdownWidgetsForTest() {
-    return List.copyOf(dropdownWidgets);
-  }
-
-  /** Test-visible accessor for the widgets the lockable region manages. */
-  public List<ClickableWidget> lockableWidgetsForTest() {
-    return List.copyOf(lockableWidgets);
   }
 }
