@@ -60,6 +60,7 @@ public final class RulesTabView {
   private boolean visible;
   private long lastClickTime;
   private String lastClickedItemId;
+  private int scrollOffset;
 
   public void attach(
       int viewX, int viewY, int viewWidth, Consumer<ClickableWidget> addDrawableChild) {
@@ -100,11 +101,11 @@ public final class RulesTabView {
               "",
               false,
               () -> {
-                int idx = rowIndex;
+                int idx = rowIndex + scrollOffset;
                 return idx < visibleResults.size()
                     && selection.contains(visibleResults.get(idx).itemId());
               },
-              () -> onRowPressed(rowIndex));
+              () -> onRowPressed(rowIndex + scrollOffset));
       addDrawableChild.accept(row);
       rowButtons.add(row);
       widgets.add(row);
@@ -165,13 +166,23 @@ public final class RulesTabView {
       visibleResults = ItemSearchController.filter(RulesItemCatalog.all(), query);
     }
 
+    // Clamp scroll to the windowed range so resizing or trimming results doesn't strand the user.
+    int maxOffset = Math.max(0, visibleResults.size() - VISIBLE_ROWS);
+    if (scrollOffset > maxOffset) {
+      scrollOffset = maxOffset;
+    }
+    if (scrollOffset < 0) {
+      scrollOffset = 0;
+    }
+
     for (int i = 0; i < rowButtons.size(); i++) {
       RuleRowButton row = rowButtons.get(i);
-      if (i >= visibleResults.size()) {
+      int candidateIndex = i + scrollOffset;
+      if (candidateIndex >= visibleResults.size()) {
         row.visible = false;
         continue;
       }
-      ItemCandidate candidate = visibleResults.get(i);
+      ItemCandidate candidate = visibleResults.get(candidateIndex);
       row.visible = true;
       boolean inList = showingSearch && ownedItemIds.contains(candidate.itemId());
       row.update(candidate.item(), candidate.displayName(), candidate.itemId(), inList);
@@ -198,7 +209,36 @@ public final class RulesTabView {
 
   void onSearchChanged(String value) {
     selection.clear();
+    scrollOffset = 0;
     refresh();
+  }
+
+  /** Called by the inventory mixin when the user wheels over the rules content area. */
+  public boolean mouseScrolledInRows(double mouseX, double mouseY, double amount) {
+    if (!visible
+        || rowButtons.isEmpty()
+        || mouseY < rowsTopY
+        || mouseY > rowsBottomY
+        || mouseX < viewX
+        || mouseX > viewX + viewWidth) {
+      return false;
+    }
+    int maxOffset = Math.max(0, visibleResults.size() - VISIBLE_ROWS);
+    if (maxOffset == 0) {
+      return false;
+    }
+    int newOffset = scrollOffset - (int) Math.signum(amount);
+    if (newOffset < 0) {
+      newOffset = 0;
+    }
+    if (newOffset > maxOffset) {
+      newOffset = maxOffset;
+    }
+    if (newOffset != scrollOffset) {
+      scrollOffset = newOffset;
+      refresh();
+    }
+    return true;
   }
 
   void onRowPressed(int index) {

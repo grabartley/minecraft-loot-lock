@@ -34,14 +34,32 @@ import net.minecraft.util.Identifier;
  */
 public final class LootLockInventoryPanel {
   public static final int WIDTH = 270;
-  public static final int HEIGHT = 300;
-  private static final int SIDE_PADDING = 6;
-  private static final int HEADER_HEIGHT = 24;
+  public static final int HEIGHT = 320;
+
+  /**
+   * Sticky panel-open state survives inventory close + ConfirmScreen detours, so the user does not
+   * have to re-open the docked panel after every safety prompt. Lives on the class so the next
+   * {@link InventoryScreen} that re-attaches a panel can restore it.
+   */
+  private static boolean STICKY_OPEN_STATE = false;
+
+  private static PanelTab STICKY_ACTIVE_TAB = PanelTab.RULES;
+
+  public static boolean getStickyOpenState() {
+    return STICKY_OPEN_STATE;
+  }
+
+  public static PanelTab getStickyActiveTab() {
+    return STICKY_ACTIVE_TAB;
+  }
+
+  private static final int SIDE_PADDING = 8;
+  private static final int HEADER_HEIGHT = 26;
   private static final int PROFILE_ROW_HEIGHT = 20;
   private static final int CONTROL_ROW_HEIGHT = 18;
-  private static final int SUMMARY_HEIGHT = 36;
+  private static final int SUMMARY_HEIGHT = 38;
   private static final int TAB_HEIGHT = 20;
-  private static final int CONTENT_PADDING = 4;
+  private static final int CONTENT_PADDING = 6;
   private static final int SWITCH_WIDTH = 42;
   private static final int SWITCH_HEIGHT = 16;
   private static final int CTL_LABEL_WIDTH = 48;
@@ -97,8 +115,26 @@ public final class LootLockInventoryPanel {
     return open && activeTab == PanelTab.RULES && rulesView.isSearchFieldFocused();
   }
 
+  /** Forward a mouse-wheel event to the Rules tab so the user can scroll through results. */
+  public boolean handleMouseScroll(double mouseX, double mouseY, double amount) {
+    if (!open || activeTab != PanelTab.RULES) {
+      return false;
+    }
+    return rulesView.mouseScrolledInRows(mouseX, mouseY, amount);
+  }
+
+  /** True when the given screen-space point falls inside the panel's rectangle. */
+  public boolean containsPoint(double mouseX, double mouseY) {
+    return open
+        && mouseX >= panelX
+        && mouseX < panelX + WIDTH
+        && mouseY >= panelY
+        && mouseY < panelY + HEIGHT;
+  }
+
   public void setOpen(boolean open) {
     this.open = open;
+    STICKY_OPEN_STATE = open;
     if (!open) {
       dropdownOpen = false;
     }
@@ -154,7 +190,7 @@ public final class LootLockInventoryPanel {
             false);
     addDrawableChild.accept(clientSwitch);
     allWidgets.add(clientSwitch);
-    cursorY += HEADER_HEIGHT + 2;
+    cursorY += HEADER_HEIGHT + 6;
 
     // Profile bar lives inside a dark recessed well per CSS (.profile-bar.well). Pad 4px around
     // the row so the chrome reads as the prototype's recessed pill carrier.
@@ -191,7 +227,7 @@ public final class LootLockInventoryPanel {
     addDrawableChild.accept(nextProfileButton);
     allWidgets.add(nextProfileButton);
     lockableWidgets.add(nextProfileButton);
-    cursorY = profileWellY + profileWellH + 4;
+    cursorY = profileWellY + profileWellH + 6;
 
     // Controls section: dark well containing the Mode + Action rows. Labels render in light text
     // (#d2d2d8) inside the well, per CSS .ctl-label color.
@@ -266,11 +302,11 @@ public final class LootLockInventoryPanel {
     addDrawableChild.accept(actionDeleteButton);
     allWidgets.add(actionDeleteButton);
     lockableWidgets.add(actionDeleteButton);
-    cursorY = controlsWellY + controlsWellH + 4;
+    cursorY = controlsWellY + controlsWellH + 6;
 
     // Summary block (painted in render()).
     summaryY = cursorY;
-    cursorY += SUMMARY_HEIGHT + 3;
+    cursorY += SUMMARY_HEIGHT + 6;
 
     // Tab strip.
     tabsY = cursorY;
@@ -398,7 +434,8 @@ public final class LootLockInventoryPanel {
         context, panelX + SIDE_PADDING, summaryY, WIDTH - SIDE_PADDING * 2, SUMMARY_HEIGHT, accent);
     Chrome.well(context, panelX + SIDE_PADDING, contentY, WIDTH - SIDE_PADDING * 2, contentHeight);
 
-    // Profile dropdown chrome — paint a dark well behind the dropdown widget cluster when open.
+    // Profile dropdown chrome — paint a dark recessed popup behind the dropdown widget cluster
+    // when open so it reads as a layered overlay rather than naked buttons floating on the panel.
     if (dropdownOpen && !dropdownWidgets.isEmpty()) {
       int dropX = Integer.MAX_VALUE;
       int dropY = Integer.MAX_VALUE;
@@ -414,13 +451,22 @@ public final class LootLockInventoryPanel {
         dropBottom = Math.max(dropBottom, widget.getY() + widget.getHeight());
       }
       if (dropX != Integer.MAX_VALUE) {
-        int pad = 3;
-        Chrome.well(
-            context,
-            dropX - pad,
-            dropY - pad,
-            dropRight - dropX + pad * 2,
-            dropBottom - dropY + pad * 2);
+        int pad = 5;
+        // Outer dark edge + dark well face so the dropdown reads as a recessed list popup.
+        int frameX = dropX - pad;
+        int frameY = dropY - pad;
+        int frameW = dropRight - dropX + pad * 2;
+        int frameH = dropBottom - dropY + pad * 2;
+        // Drop shadow for visual lift.
+        context.fill(frameX + 3, frameY + 3, frameX + frameW + 3, frameY + frameH + 3, 0x80000000);
+        Chrome.well(context, frameX, frameY, frameW, frameH);
+        // Inner divider strip under the "Switch profile" zone for visual rhythm.
+        context.fill(
+            frameX + 2,
+            dropY + ProfileDropdownRow.ROW_HEIGHT,
+            frameX + frameW - 2,
+            dropY + ProfileDropdownRow.ROW_HEIGHT + 1,
+            0xFF1E1E22);
       }
     }
   }
@@ -508,6 +554,7 @@ public final class LootLockInventoryPanel {
       return;
     }
     activeTab = tab;
+    STICKY_ACTIVE_TAB = tab;
     applyVisibility();
     refresh();
   }
@@ -612,48 +659,60 @@ public final class LootLockInventoryPanel {
       return;
     }
     List<LootLockProfile> profiles = snapshotOptional.get().getProfiles();
+    java.util.UUID activeId = snapshotOptional.get().getActiveProfileId();
+    int rowHeight = ProfileDropdownRow.ROW_HEIGHT;
+    int actionsWidth = ProfileDropdownRow.ACTIONS_WIDTH;
+    int rowMainWidth = width - actionsWidth;
     for (LootLockProfile profile : profiles) {
-      int rowY = y;
-      int miniWidth = 18;
-      int rowNameWidth = width - miniWidth * 3 - 6;
-      ButtonWidget switchButton =
-          ButtonWidget.builder(
-                  Text.literal(profile.getName()).formatted(Formatting.YELLOW),
-                  b -> activateProfile(profile.getId()))
-              .dimensions(x, rowY, rowNameWidth, PROFILE_ROW_HEIGHT)
-              .build();
-      ButtonWidget renameButton =
-          ButtonWidget.builder(Text.literal("R"), b -> renameProfile(profile))
-              .dimensions(x + rowNameWidth + 2, rowY, miniWidth, PROFILE_ROW_HEIGHT)
-              .build();
-      ButtonWidget duplicateButton =
-          ButtonWidget.builder(Text.literal("D"), b -> duplicateProfile(profile))
-              .dimensions(x + rowNameWidth + 2 + miniWidth + 2, rowY, miniWidth, PROFILE_ROW_HEIGHT)
-              .build();
-      ButtonWidget deleteButton =
-          ButtonWidget.builder(Text.literal("X"), b -> deleteProfile(profile))
-              .dimensions(
-                  x + rowNameWidth + 2 + miniWidth * 2 + 4, rowY, miniWidth, PROFILE_ROW_HEIGHT)
-              .build();
+      boolean isActive = profile.getId().equals(activeId);
+      ProfileDropdownRow rowMain =
+          new ProfileDropdownRow(
+              x,
+              y,
+              rowMainWidth,
+              colorForProfile(profile),
+              profile.getName(),
+              ruleCountLabel(profile),
+              isActive,
+              () -> activateProfile(profile.getId()));
+      int actionsX = x + rowMainWidth + 2;
+      int gap = (actionsWidth - MiniActionButton.SIZE * 3) / 4;
+      MiniActionButton renameButton =
+          new MiniActionButton(actionsX + gap, y + 2, "R", false, () -> renameProfile(profile));
+      MiniActionButton duplicateButton =
+          new MiniActionButton(
+              actionsX + gap * 2 + MiniActionButton.SIZE,
+              y + 2,
+              "D",
+              false,
+              () -> duplicateProfile(profile));
+      MiniActionButton deleteButton =
+          new MiniActionButton(
+              actionsX + gap * 3 + MiniActionButton.SIZE * 2,
+              y + 2,
+              "X",
+              true,
+              () -> deleteProfile(profile));
       deleteButton.active = ProfileUiController.canDelete(profiles);
 
-      addDrawableChild.accept(switchButton);
+      addDrawableChild.accept(rowMain);
       addDrawableChild.accept(renameButton);
       addDrawableChild.accept(duplicateButton);
       addDrawableChild.accept(deleteButton);
-      allWidgets.add(switchButton);
+      allWidgets.add(rowMain);
       allWidgets.add(renameButton);
       allWidgets.add(duplicateButton);
       allWidgets.add(deleteButton);
-      dropdownWidgets.add(switchButton);
+      dropdownWidgets.add(rowMain);
       dropdownWidgets.add(renameButton);
       dropdownWidgets.add(duplicateButton);
       dropdownWidgets.add(deleteButton);
-      y += PROFILE_ROW_HEIGHT + 2;
+      y += rowHeight + 1;
     }
     newProfileButton =
-        ButtonWidget.builder(Text.literal("+ New profile"), b -> createProfile())
-            .dimensions(x, y, width, PROFILE_ROW_HEIGHT)
+        ButtonWidget.builder(
+                Text.literal("+ New profile").formatted(Formatting.GREEN), b -> createProfile())
+            .dimensions(x, y + 3, width, 16)
             .build();
     addDrawableChild.accept(newProfileButton);
     allWidgets.add(newProfileButton);
