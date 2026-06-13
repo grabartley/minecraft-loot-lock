@@ -24,9 +24,14 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * is pressed. The inventory itself remains fully interactive.
  */
 @Mixin(InventoryScreen.class)
-public abstract class InventoryScreenMixin {
+public abstract class InventoryScreenMixin implements LootLockPanelHolder {
   @Unique private LootLockInventoryPanel lootlock$panel;
   @Unique private ButtonWidget lootlock$entryButton;
+
+  @Override
+  public LootLockInventoryPanel lootlock$getPanel() {
+    return lootlock$panel;
+  }
 
   @Inject(method = "init", at = @At("TAIL"))
   private void lootlock$attachPanel(CallbackInfo info) {
@@ -81,28 +86,6 @@ public abstract class InventoryScreenMixin {
       DrawContext context, int mouseX, int mouseY, float delta, CallbackInfo info) {
     if (lootlock$panel != null) {
       lootlock$panel.paintForeground(context, mouseX, mouseY, delta);
-    }
-  }
-
-  /**
-   * When the Rules tab search field is focused, swallow the inventory keybind so the user can
-   * actually type the letter (e.g. 'e') without the vanilla inventory close-on-key handler firing.
-   * The {@code charTyped} path still runs, so the char shows up in the field.
-   */
-  @Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true)
-  private void lootlock$keepSearchFieldFocusOnInventoryKey(
-      int keyCode,
-      int scanCode,
-      int modifiers,
-      org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable<Boolean> info) {
-    if (lootlock$panel == null || !lootlock$panel.isSearchFieldFocused()) {
-      return;
-    }
-    MinecraftClient client = MinecraftClient.getInstance();
-    if (client != null
-        && client.options != null
-        && client.options.inventoryKey.matchesKey(keyCode, scanCode)) {
-      info.setReturnValue(true);
     }
   }
 
