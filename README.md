@@ -61,8 +61,8 @@ All commands are rooted at `/lootlock`. The in-game UI covers most of these, but
 | --- | --- | --- |
 | `/lootlock` | Prints quick command help. | Works without player context. |
 | `/lootlock status` | Shows active profile, enabled state, mode, action, and rule count. | Player only. |
-| `/lootlock enable` | Enables LootLock for your active profile. | Player only. |
-| `/lootlock disable` | Disables LootLock for your active profile. | Player only. |
+| `/lootlock enable` | Enables LootLock across every profile you own (whole-mod toggle). | Player only. |
+| `/lootlock disable` | Disables LootLock across every profile you own (whole-mod toggle). | Player only. |
 | `/lootlock mode denylist` | Sets active profile filter mode to denylist. | Player only. |
 | `/lootlock mode allowlist` | Sets active profile filter mode to allowlist. | Player only. |
 | `/lootlock action leave` | Sets rejected-item behaviour to leave drops on the ground. | Player only. |
