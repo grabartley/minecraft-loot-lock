@@ -32,7 +32,7 @@ import net.minecraft.util.Formatting;
  * flowing through the host screen's vanilla widget dispatch.
  */
 public final class RulesTabView {
-  static final int VISIBLE_ROWS = 5;
+  static final int VISIBLE_ROWS = 4;
   static final int BULK_BAR_HEIGHT = 12;
   static final int SEARCH_HEIGHT = 16;
   private static final long DOUBLE_CLICK_MS = 300L;

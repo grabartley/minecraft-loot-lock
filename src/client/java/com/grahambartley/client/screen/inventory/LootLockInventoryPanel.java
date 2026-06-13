@@ -33,8 +33,8 @@ import net.minecraft.util.Identifier;
  * header dims and stops accepting input when the global Client toggle is off.
  */
 public final class LootLockInventoryPanel {
-  public static final int WIDTH = 240;
-  public static final int HEIGHT = 280;
+  public static final int WIDTH = 270;
+  public static final int HEIGHT = 300;
   private static final int SIDE_PADDING = 6;
   private static final int HEADER_HEIGHT = 24;
   private static final int PROFILE_ROW_HEIGHT = 20;
@@ -364,22 +364,47 @@ public final class LootLockInventoryPanel {
     contentY += dy;
   }
 
-  public void render(DrawContext context, int mouseX, int mouseY, float delta) {
+  /**
+   * Paints the chrome (panel frame, dark wells, summary block backing, content well). Must run
+   * BEFORE the host screen renders its widget children so the wells sit behind everything.
+   */
+  public void paintChrome(DrawContext context) {
+    if (!open) {
+      return;
+    }
+    Chrome.guiWindow(context, panelX, panelY, WIDTH, HEIGHT);
+    Chrome.well(
+        context, panelX + SIDE_PADDING, profileWellY, WIDTH - SIDE_PADDING * 2, profileWellH);
+    Chrome.well(
+        context, panelX + SIDE_PADDING, controlsWellY, WIDTH - SIDE_PADDING * 2, controlsWellH);
+
+    Optional<LootLockProfile> activeProfile = activeProfile();
+    boolean globallyEnabled = currentGloballyEnabled();
+    int accent;
+    if (!globallyEnabled) {
+      accent = 0xFF7A7A7A;
+    } else {
+      accent =
+          activeProfile
+              .map(p -> p.getMode() == FilterMode.ALLOWLIST ? Palette.ALLOW : Palette.DENY)
+              .orElse(Palette.INFO);
+    }
+    Chrome.summaryBlock(
+        context, panelX + SIDE_PADDING, summaryY, WIDTH - SIDE_PADDING * 2, SUMMARY_HEIGHT, accent);
+    Chrome.well(context, panelX + SIDE_PADDING, contentY, WIDTH - SIDE_PADDING * 2, contentHeight);
+  }
+
+  /**
+   * Paints labels, text, and the brand icon on TOP of the widgets so they read clearly. Must run
+   * AFTER the host screen renders its widget children.
+   */
+  public void paintForeground(DrawContext context, int mouseX, int mouseY, float delta) {
     if (!open) {
       return;
     }
     MinecraftClient client = MinecraftClient.getInstance();
-    Chrome.guiWindow(context, panelX, panelY, WIDTH, HEIGHT);
 
-    // Profile bar dark well backing.
-    Chrome.well(
-        context, panelX + SIDE_PADDING, profileWellY, WIDTH - SIDE_PADDING * 2, profileWellH);
-
-    // Controls dark well backing.
-    Chrome.well(
-        context, panelX + SIDE_PADDING, controlsWellY, WIDTH - SIDE_PADDING * 2, controlsWellH);
-
-    // Header: brand icon + title text on the left. Bumped icon to 22px to match CSS .ll-brand 26.
+    // Header: brand icon + title text on the left.
     int iconSize = 22;
     int iconX = panelX + SIDE_PADDING + 1;
     int iconY = headerY + (HEADER_HEIGHT - iconSize) / 2;
@@ -392,7 +417,6 @@ public final class LootLockInventoryPanel {
         0xFF2F2F2F,
         false);
 
-    // Switch labels rendered in dark ink on the light-gray header face.
     int switchY = headerY + (HEADER_HEIGHT - 8) / 2;
     if (serverSwitch != null) {
       context.drawText(
@@ -413,7 +437,7 @@ public final class LootLockInventoryPanel {
           false);
     }
 
-    // Mode + Action row labels rendered in light text on the dark controls well.
+    // Mode + Action labels in light text on the dark controls well.
     context.drawText(
         client.textRenderer,
         Text.literal("Mode"),
@@ -429,20 +453,9 @@ public final class LootLockInventoryPanel {
         0xFFD2D2D8,
         false);
 
-    // Summary block: colored left border + dark recessed background + text.
+    // Summary text on top of its colored block.
     Optional<LootLockProfile> activeProfile = activeProfile();
     boolean globallyEnabled = currentGloballyEnabled();
-    int accent;
-    if (!globallyEnabled) {
-      accent = 0xFF7A7A7A;
-    } else {
-      accent =
-          activeProfile
-              .map(p -> p.getMode() == FilterMode.ALLOWLIST ? Palette.ALLOW : Palette.DENY)
-              .orElse(Palette.INFO);
-    }
-    Chrome.summaryBlock(
-        context, panelX + SIDE_PADDING, summaryY, WIDTH - SIDE_PADDING * 2, SUMMARY_HEIGHT, accent);
     context.drawTextWrapped(
         client.textRenderer,
         LootLockSummaryText.build(globallyEnabled, activeProfile.orElse(null)),
@@ -451,10 +464,6 @@ public final class LootLockInventoryPanel {
         WIDTH - SIDE_PADDING * 2 - 12,
         0xFFF0F0F0);
 
-    // Content well behind the tab content.
-    Chrome.well(context, panelX + SIDE_PADDING, contentY, WIDTH - SIDE_PADDING * 2, contentHeight);
-
-    // Per-view rendering for whatever the active tab paints itself.
     if (activeTab == PanelTab.RULES) {
       rulesView.render(context, mouseX, mouseY, delta);
     } else {

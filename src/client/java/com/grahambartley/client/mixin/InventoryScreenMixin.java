@@ -55,9 +55,13 @@ public abstract class InventoryScreenMixin {
     lootlock$panel.setOpen(false);
   }
 
-  @Inject(method = "render", at = @At("TAIL"))
-  private void lootlock$renderPanel(
-      DrawContext context, int mouseX, int mouseY, float delta, CallbackInfo info) {
+  /**
+   * Paint chrome (panel frame + dark wells + content well) BEFORE the host screen renders its
+   * widget children, so the wells sit behind the actual buttons rather than covering them.
+   */
+  @Inject(method = "drawBackground", at = @At("TAIL"))
+  private void lootlock$renderChromeBeforeWidgets(
+      DrawContext context, float delta, int mouseX, int mouseY, CallbackInfo info) {
     InventoryScreen self = (InventoryScreen) (Object) this;
     int invX = ((HandledScreenAccessor) self).lootlock$getInvX();
     int invY = ((HandledScreenAccessor) self).lootlock$getInvY();
@@ -67,7 +71,16 @@ public abstract class InventoryScreenMixin {
     if (lootlock$panel != null) {
       lootlock$panel.relocate(invX + 176 + 4, invY);
       lootlock$panel.refresh();
-      lootlock$panel.render(context, mouseX, mouseY, delta);
+      lootlock$panel.paintChrome(context);
+    }
+  }
+
+  /** Paint foreground (labels, summary text, brand icon) AFTER widgets so labels read clearly. */
+  @Inject(method = "render", at = @At("TAIL"))
+  private void lootlock$renderForeground(
+      DrawContext context, int mouseX, int mouseY, float delta, CallbackInfo info) {
+    if (lootlock$panel != null) {
+      lootlock$panel.paintForeground(context, mouseX, mouseY, delta);
     }
   }
 
