@@ -121,4 +121,23 @@ public final class LootLockPlayerData {
   public void incrementRevision() {
     revision++;
   }
+
+  public void setEnabledForAll(boolean enabled) {
+    for (LootLockProfile profile : profiles) {
+      if (profile != null) {
+        profile.setEnabled(enabled);
+      }
+    }
+  }
+
+  public boolean isGloballyEnabled() {
+    // True when every profile is enabled. Empty profile list reports true, since there is nothing
+    // disabled. The master toggle writes to every profile, so once it is used they all match.
+    for (LootLockProfile profile : profiles) {
+      if (profile != null && !profile.isEnabled()) {
+        return false;
+      }
+    }
+    return true;
+  }
 }

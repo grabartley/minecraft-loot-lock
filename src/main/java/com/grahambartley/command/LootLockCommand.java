@@ -442,21 +442,18 @@ public final class LootLockCommand {
       return 0;
     }
 
-    state.profile.setEnabled(enabled);
+    applyGlobalEnable(state.data, enabled);
     state.dataManager.markDirty(state.player);
     context
         .getSource()
         .sendFeedback(
-            () ->
-                Text.literal(
-                    "LootLock "
-                        + (enabled ? "enabled" : "disabled")
-                        + " for profile '"
-                        + state.profile.getName()
-                        + "'."),
-            false);
+            () -> Text.literal("LootLock " + (enabled ? "enabled" : "disabled") + "."), false);
     sendStatus(context.getSource(), state.profile);
     return 1;
+  }
+
+  static void applyGlobalEnable(LootLockPlayerData data, boolean enabled) {
+    data.setEnabledForAll(enabled);
   }
 
   private static int setMode(CommandContext<ServerCommandSource> context, FilterMode mode) {

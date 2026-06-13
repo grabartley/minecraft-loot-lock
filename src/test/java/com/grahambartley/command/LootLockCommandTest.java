@@ -70,4 +70,49 @@ class LootLockCommandTest {
         RejectedItemAction.LEAVE_ON_GROUND,
         LootLockCommand.normalizeRejectedItemAction(null, true));
   }
+
+  @Test
+  void applyGlobalEnableFlipsEveryProfileFromMixedState() {
+    LootLockPlayerData data = LootLockPlayerData.createDefault(UUID.randomUUID());
+    List<LootLockProfile> profiles = new ArrayList<>();
+    profiles.add(
+        new LootLockProfile(
+            UUID.randomUUID(),
+            "Farming",
+            FilterMode.DENYLIST,
+            RejectedItemAction.LEAVE_ON_GROUND,
+            true,
+            List.of()));
+    profiles.add(
+        new LootLockProfile(
+            UUID.randomUUID(),
+            "Mining",
+            FilterMode.ALLOWLIST,
+            RejectedItemAction.LEAVE_ON_GROUND,
+            false,
+            List.of()));
+    profiles.add(
+        new LootLockProfile(
+            UUID.randomUUID(),
+            "Nether",
+            FilterMode.DENYLIST,
+            RejectedItemAction.LEAVE_ON_GROUND,
+            true,
+            List.of()));
+    data.setProfiles(profiles);
+
+    LootLockCommand.applyGlobalEnable(data, false);
+
+    for (LootLockProfile profile : data.getProfiles()) {
+      assertFalse(profile.isEnabled());
+    }
+    assertFalse(data.isGloballyEnabled());
+
+    LootLockCommand.applyGlobalEnable(data, true);
+
+    for (LootLockProfile profile : data.getProfiles()) {
+      assertTrue(profile.isEnabled());
+    }
+    assertTrue(data.isGloballyEnabled());
+  }
 }
