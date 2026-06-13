@@ -18,6 +18,7 @@ description: Build or implement a feature for the LootLock mod, optionally from 
 9. After PR creation and `QA testing` transition, always provide a detailed manual QA checklist to the developer.
 10. If PR code changes after the PR is opened, check whether the PR description still matches the current branch state, and update it if needed so it reflects the final state only.
 11. Stop at QA testing, human performs final verification and moves to Done.
+12. Every code change must also update any docs it invalidates. Audit `README.md`, in-repo docs under `docs/`, and the linked issue body before committing; ship doc edits in the same PR as the code change.
 
 ## Workflow
 
