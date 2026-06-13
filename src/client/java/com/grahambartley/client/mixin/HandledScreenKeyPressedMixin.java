@@ -1,6 +1,7 @@
 package com.grahambartley.client.mixin;
 
 import com.grahambartley.client.screen.inventory.LootLockInventoryPanel;
+import com.grahambartley.client.screen.inventory.LootLockPanelHolder;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.ingame.HandledScreen;
 import net.minecraft.client.gui.screen.ingame.InventoryScreen;

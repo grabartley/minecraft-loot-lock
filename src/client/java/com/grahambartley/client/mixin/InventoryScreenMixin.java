@@ -3,6 +3,7 @@ package com.grahambartley.client.mixin;
 import com.grahambartley.client.screen.inventory.DragToAddRouter;
 import com.grahambartley.client.screen.inventory.LootLockIconButton;
 import com.grahambartley.client.screen.inventory.LootLockInventoryPanel;
+import com.grahambartley.client.screen.inventory.LootLockPanelHolder;
 import com.grahambartley.client.screen.inventory.PanelTab;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
