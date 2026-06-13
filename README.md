@@ -41,17 +41,17 @@ Stop letting your inventory turn into a graveyard of rotten flesh and wheat seed
 ## Quick Start
 
 1. Install LootLock and Fabric API into your `mods` folder.
-2. Launch the game, join your world, and open the LootLock UI (set the keybind under `Controls > LootLock` first).
+2. Launch the game, join your world, open your inventory, and click the small Loot Lock button beside the recipe-book button. The docked panel opens alongside the inventory.
 3. Create a profile, pick a mode, add the items you care about. Test it by walking over a few drops.
 
 That is the whole setup. No config file editing required.
 
 ## Controls
 
-LootLock ships with two keybinds, both unbound by default. Set them in `Controls > LootLock`:
+LootLock ships with two keybinds, both unbound by default. Set them in `Controls > Loot Lock`:
 
-- **Open UI** opens the main LootLock screen.
-- **Cycle Profile** swaps to your next saved profile in one keypress.
+- **Toggle Loot Lock** flips the whole-mod enable state, identical to clicking the Client switch on the docked panel.
+- **Cycle Loot Profile** swaps to your next saved profile in one keypress.
 
 ## Commands
 

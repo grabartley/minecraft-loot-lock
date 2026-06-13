@@ -5,14 +5,14 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-final class ProfileUiController {
+public final class ProfileUiController {
   private ProfileUiController() {}
 
-  static boolean canDelete(List<LootLockProfile> profiles) {
+  public static boolean canDelete(List<LootLockProfile> profiles) {
     return profiles != null && profiles.size() > 1;
   }
 
-  static Optional<LootLockProfile> findById(List<LootLockProfile> profiles, UUID id) {
+  public static Optional<LootLockProfile> findById(List<LootLockProfile> profiles, UUID id) {
     if (profiles == null || id == null) {
       return Optional.empty();
     }
@@ -21,7 +21,7 @@ final class ProfileUiController {
         .findFirst();
   }
 
-  static Optional<UUID> nextProfileId(List<LootLockProfile> profiles, UUID activeProfileId) {
+  public static Optional<UUID> nextProfileId(List<LootLockProfile> profiles, UUID activeProfileId) {
     if (profiles == null || profiles.isEmpty()) {
       return Optional.empty();
     }
@@ -44,7 +44,7 @@ final class ProfileUiController {
     return next == null ? Optional.empty() : Optional.of(next.getId());
   }
 
-  static String nextDuplicateName(List<LootLockProfile> profiles, String sourceName) {
+  public static String nextDuplicateName(List<LootLockProfile> profiles, String sourceName) {
     String baseName = ProfileNameValidator.sanitize(sourceName);
     if (baseName.isBlank()) {
       baseName = "Profile";

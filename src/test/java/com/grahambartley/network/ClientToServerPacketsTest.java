@@ -159,6 +159,81 @@ class ClientToServerPacketsTest {
     assertFalse(payload.allowDeleteRejectedItems());
   }
 
+  @Test
+  void updateGlobalEnablePayloadRoundTrips() {
+    PacketByteBuf buf = ClientToServerPackets.writeUpdateGlobalEnablePayload(12L, false);
+    ClientToServerPackets.UpdateGlobalEnablePayload payload =
+        ClientToServerPackets.readUpdateGlobalEnablePayload(buf);
+
+    assertEquals(12L, payload.baseRevision());
+    assertFalse(payload.enabled());
+  }
+
+  @Test
+  void applyUpdateGlobalEnableFlipsEveryProfile() {
+    LootLockPlayerData data = createDataWithMixedEnabledProfiles();
+    data.setRevision(5L);
+
+    ClientToServerPackets.MutationResult result =
+        ClientToServerPackets.applyUpdateGlobalEnable(
+            data, new ClientToServerPackets.UpdateGlobalEnablePayload(5L, false));
+
+    assertTrue(result.success());
+    for (LootLockProfile profile : data.getProfiles()) {
+      assertFalse(profile.isEnabled());
+    }
+  }
+
+  @Test
+  void applyUpdateGlobalEnableRejectsStaleRevision() {
+    LootLockPlayerData data = createDataWithMixedEnabledProfiles();
+    data.setRevision(5L);
+
+    ClientToServerPackets.MutationResult result =
+        ClientToServerPackets.applyUpdateGlobalEnable(
+            data, new ClientToServerPackets.UpdateGlobalEnablePayload(4L, false));
+
+    assertFalse(result.success());
+    assertEquals(ClientToServerPackets.MutationRejectionReason.STALE, result.reason());
+    assertTrue(data.getProfiles().get(0).isEnabled());
+  }
+
+  @Test
+  void applyUpdateGlobalEnableRejectsWhenClientCannotEdit() {
+    LootLockPlayerData data = createDataWithMixedEnabledProfiles();
+    data.setRevision(5L);
+    data.setClientCanEdit(false);
+
+    ClientToServerPackets.MutationResult result =
+        ClientToServerPackets.applyUpdateGlobalEnable(
+            data, new ClientToServerPackets.UpdateGlobalEnablePayload(5L, false));
+
+    assertFalse(result.success());
+    assertEquals(ClientToServerPackets.MutationRejectionReason.NOT_EDITABLE, result.reason());
+  }
+
+  private static LootLockPlayerData createDataWithMixedEnabledProfiles() {
+    LootLockPlayerData data = LootLockPlayerData.createDefault(UUID.randomUUID());
+    LootLockProfile first =
+        new LootLockProfile(
+            UUID.randomUUID(),
+            "Farming",
+            FilterMode.DENYLIST,
+            RejectedItemAction.LEAVE_ON_GROUND,
+            true,
+            List.of());
+    LootLockProfile second =
+        new LootLockProfile(
+            UUID.randomUUID(),
+            "Mining",
+            FilterMode.ALLOWLIST,
+            RejectedItemAction.LEAVE_ON_GROUND,
+            false,
+            List.of());
+    data.setProfiles(List.of(first, second));
+    return data;
+  }
+
   private static LootLockPlayerData createDataWithOneProfile() {
     UUID playerId = UUID.randomUUID();
     LootLockPlayerData data = LootLockPlayerData.createDefault(playerId);

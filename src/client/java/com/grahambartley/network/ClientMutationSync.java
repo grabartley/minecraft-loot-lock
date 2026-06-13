@@ -67,4 +67,14 @@ public final class ClientMutationSync {
         ClientToServerPackets.writeUpdateServerPolicyPayload(allowDeleteRejectedItems));
     return true;
   }
+
+  public static boolean sendUpdateGlobalEnableRequest(long baseRevision, boolean enabled) {
+    if (!ClientPlayNetworking.canSend(PacketIds.UPDATE_GLOBAL_ENABLE_C2S)) {
+      return false;
+    }
+    ClientPlayNetworking.send(
+        PacketIds.UPDATE_GLOBAL_ENABLE_C2S,
+        ClientToServerPackets.writeUpdateGlobalEnablePayload(baseRevision, enabled));
+    return true;
+  }
 }

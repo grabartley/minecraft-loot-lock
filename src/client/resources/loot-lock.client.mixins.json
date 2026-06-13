@@ -2,7 +2,10 @@
 	"required": true,
 	"package": "com.grahambartley.client.mixin",
 	"compatibilityLevel": "JAVA_17",
-	"client": [],
+	"client": [
+		"InventoryScreenMixin",
+		"ScreenAccessor"
+	],
 	"injectors": {
 		"defaultRequire": 1
 	},
