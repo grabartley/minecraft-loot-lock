@@ -32,6 +32,11 @@ import net.minecraft.util.Formatting;
  * flowing through the host screen's vanilla widget dispatch.
  */
 public final class RulesTabView {
+  /** Exposed so the inventory mixin can swallow the inventory keybind while the user is typing. */
+  public boolean isSearchFieldFocused() {
+    return searchField != null && searchField.isFocused();
+  }
+
   static final int VISIBLE_ROWS = 4;
   static final int BULK_BAR_HEIGHT = 12;
   static final int SEARCH_HEIGHT = 16;
@@ -361,9 +366,32 @@ public final class RulesTabView {
       net.minecraft.util.Identifier id = net.minecraft.util.Identifier.tryParse(itemId);
       net.minecraft.item.Item item =
           id == null ? null : net.minecraft.registry.Registries.ITEM.get(id);
-      candidates.add(new ItemCandidate(itemId, prettyName(itemId), namespaceOf(itemId), item));
+      // Use the registry's translated display name so casing matches "Diamond Sword" not the raw
+      // lowercase "diamond sword" path. Falls back to the path with title-casing if the item is
+      // missing from the registry (modded item that was removed).
+      String displayName =
+          item != null ? item.getName().getString() : titleCase(prettyName(itemId));
+      candidates.add(new ItemCandidate(itemId, displayName, namespaceOf(itemId), item));
     }
     return candidates;
+  }
+
+  private static String titleCase(String raw) {
+    if (raw == null || raw.isEmpty()) {
+      return "";
+    }
+    String[] parts = raw.split(" ");
+    StringBuilder out = new StringBuilder();
+    for (String part : parts) {
+      if (part.isEmpty()) {
+        continue;
+      }
+      if (!out.isEmpty()) {
+        out.append(' ');
+      }
+      out.append(Character.toUpperCase(part.charAt(0))).append(part.substring(1));
+    }
+    return out.toString();
   }
 
   static String prettyName(String itemId) {

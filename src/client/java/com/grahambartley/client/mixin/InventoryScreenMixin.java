@@ -84,6 +84,28 @@ public abstract class InventoryScreenMixin {
     }
   }
 
+  /**
+   * When the Rules tab search field is focused, swallow the inventory keybind so the user can
+   * actually type the letter (e.g. 'e') without the vanilla inventory close-on-key handler firing.
+   * The {@code charTyped} path still runs, so the char shows up in the field.
+   */
+  @Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true)
+  private void lootlock$keepSearchFieldFocusOnInventoryKey(
+      int keyCode,
+      int scanCode,
+      int modifiers,
+      org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable<Boolean> info) {
+    if (lootlock$panel == null || !lootlock$panel.isSearchFieldFocused()) {
+      return;
+    }
+    MinecraftClient client = MinecraftClient.getInstance();
+    if (client != null
+        && client.options != null
+        && client.options.inventoryKey.matchesKey(keyCode, scanCode)) {
+      info.setReturnValue(true);
+    }
+  }
+
   @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true)
   private void lootlock$interceptAltClickForRuleAdd(
       double mouseX,

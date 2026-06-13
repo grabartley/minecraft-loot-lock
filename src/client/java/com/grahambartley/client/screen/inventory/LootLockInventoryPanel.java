@@ -92,6 +92,11 @@ public final class LootLockInventoryPanel {
     return open;
   }
 
+  /** True when the panel is open and the user is typing into the Rules tab search input. */
+  public boolean isSearchFieldFocused() {
+    return open && activeTab == PanelTab.RULES && rulesView.isSearchFieldFocused();
+  }
+
   public void setOpen(boolean open) {
     this.open = open;
     if (!open) {
@@ -392,6 +397,32 @@ public final class LootLockInventoryPanel {
     Chrome.summaryBlock(
         context, panelX + SIDE_PADDING, summaryY, WIDTH - SIDE_PADDING * 2, SUMMARY_HEIGHT, accent);
     Chrome.well(context, panelX + SIDE_PADDING, contentY, WIDTH - SIDE_PADDING * 2, contentHeight);
+
+    // Profile dropdown chrome — paint a dark well behind the dropdown widget cluster when open.
+    if (dropdownOpen && !dropdownWidgets.isEmpty()) {
+      int dropX = Integer.MAX_VALUE;
+      int dropY = Integer.MAX_VALUE;
+      int dropRight = Integer.MIN_VALUE;
+      int dropBottom = Integer.MIN_VALUE;
+      for (ClickableWidget widget : dropdownWidgets) {
+        if (!widget.visible) {
+          continue;
+        }
+        dropX = Math.min(dropX, widget.getX());
+        dropY = Math.min(dropY, widget.getY());
+        dropRight = Math.max(dropRight, widget.getX() + widget.getWidth());
+        dropBottom = Math.max(dropBottom, widget.getY() + widget.getHeight());
+      }
+      if (dropX != Integer.MAX_VALUE) {
+        int pad = 3;
+        Chrome.well(
+            context,
+            dropX - pad,
+            dropY - pad,
+            dropRight - dropX + pad * 2,
+            dropBottom - dropY + pad * 2);
+      }
+    }
   }
 
   /**
@@ -418,11 +449,12 @@ public final class LootLockInventoryPanel {
         false);
 
     int switchY = headerY + (HEADER_HEIGHT - 8) / 2;
-    if (serverSwitch != null) {
+    boolean showServer = serverSwitch != null && serverSwitch.visible;
+    if (showServer) {
       context.drawText(
           client.textRenderer,
           Text.literal("Server"),
-          serverSwitch.getX() - 32,
+          serverSwitch.getX() - 36,
           switchY,
           0xFF2F2F2F,
           false);
@@ -431,7 +463,7 @@ public final class LootLockInventoryPanel {
       context.drawText(
           client.textRenderer,
           Text.literal("Client"),
-          clientSwitch.getX() - 32,
+          clientSwitch.getX() - 36,
           switchY,
           0xFF2F2F2F,
           false);
@@ -495,8 +527,27 @@ public final class LootLockInventoryPanel {
           activeProfile().map(p -> p.getRules() == null ? 0 : p.getRules().size()).orElse(0);
       rulesTabButton.setMessage(Text.literal("Rules (" + ruleCount + ")"));
     }
+    // Hide the Server toggle when on an integrated single-player server — there's no real peer to
+    // mirror, and the toggle just adds visual noise. When hidden, slide the Client switch right so
+    // the header doesn't have a vacant gap.
+    boolean integrated = isIntegratedSingleplayer();
+    if (serverSwitch != null) {
+      serverSwitch.visible = open && !integrated;
+    }
+    if (clientSwitch != null) {
+      int rightAnchor = panelX + WIDTH - SIDE_PADDING - SWITCH_WIDTH;
+      int target = integrated ? rightAnchor : rightAnchor - SWITCH_WIDTH - 40;
+      if (clientSwitch.getX() != target) {
+        clientSwitch.setX(target);
+      }
+    }
     applyLock(globallyEnabled);
     rulesView.refresh();
+  }
+
+  static boolean isIntegratedSingleplayer() {
+    MinecraftClient client = MinecraftClient.getInstance();
+    return client != null && client.isIntegratedServerRunning();
   }
 
   public void handleClientToggle() {
@@ -663,7 +714,37 @@ public final class LootLockInventoryPanel {
         && !LootLockClient.getState().isAllowDeleteRejectedItems()) {
       return;
     }
+    if (action == RejectedItemAction.DELETE && shouldConfirmEnableDelete()) {
+      MinecraftClient client = MinecraftClient.getInstance();
+      net.minecraft.client.gui.screen.Screen current = client.currentScreen;
+      client.setScreen(
+          new net.minecraft.client.gui.screen.ConfirmScreen(
+              confirmed -> {
+                client.setScreen(current);
+                if (confirmed) {
+                  mutateActive(draft -> draft.setRejectedItemAction(RejectedItemAction.DELETE));
+                }
+              },
+              Text.literal("Enable delete mode?"),
+              Text.literal(
+                  "Rejected dropped items are permanently deleted and cannot be recovered.")));
+      return;
+    }
     mutateActive(draft -> draft.setRejectedItemAction(action));
+  }
+
+  private boolean shouldConfirmEnableDelete() {
+    Optional<LootLockProfile> active = activeProfile();
+    if (active.isEmpty()) {
+      return false;
+    }
+    if (active.get().getRejectedItemAction() == RejectedItemAction.DELETE) {
+      return false;
+    }
+    return LootLockClient.getClientSettingsManager() != null
+        && LootLockClient.getClientSettingsManager()
+            .getSettingsCopy()
+            .isConfirmBeforeEnablingDelete();
   }
 
   private void mutateActive(Consumer<ClientDraftProfile> mutator) {
