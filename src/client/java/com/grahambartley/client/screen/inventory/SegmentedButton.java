@@ -43,8 +43,6 @@ public final class SegmentedButton extends PressableWidget {
     boolean on = onSupplier.getAsBoolean();
     if (on) {
       Chrome.coloredSegment(context, getX(), getY(), getWidth(), getHeight(), onColor);
-    } else if (!active) {
-      Chrome.guiButton(context, getX(), getY(), getWidth(), getHeight());
     } else {
       Chrome.guiButton(context, getX(), getY(), getWidth(), getHeight());
     }

@@ -77,8 +77,12 @@ public final class LootLockInventoryPanel {
   // Position references for paint code that draws labels.
   private int headerY;
   private int profileY;
+  private int profileWellY;
+  private int profileWellH;
   private int modeY;
   private int actionY;
+  private int controlsWellY;
+  private int controlsWellH;
   private int summaryY;
   private int tabsY;
   private int contentY;
@@ -147,12 +151,16 @@ public final class LootLockInventoryPanel {
     allWidgets.add(clientSwitch);
     cursorY += HEADER_HEIGHT + 2;
 
-    // Profile bar: prev | pill | next.
-    profileY = cursorY;
+    // Profile bar lives inside a dark recessed well per CSS (.profile-bar.well). Pad 4px around
+    // the row so the chrome reads as the prototype's recessed pill carrier.
+    profileWellY = cursorY;
+    profileWellH = PROFILE_ROW_HEIGHT + 8;
+    profileY = cursorY + 4;
     int navWidth = 14;
     int pillX = innerLeft + navWidth + 3;
     int pillWidth = innerWidth - navWidth * 2 - 6;
     int nextX = pillX + pillWidth + 3;
+    cursorY = profileY;
     prevProfileButton =
         new NavArrowButton(
             innerLeft, cursorY, navWidth, PROFILE_ROW_HEIGHT, false, () -> cycleActiveProfile(-1));
@@ -178,7 +186,14 @@ public final class LootLockInventoryPanel {
     addDrawableChild.accept(nextProfileButton);
     allWidgets.add(nextProfileButton);
     lockableWidgets.add(nextProfileButton);
-    cursorY += PROFILE_ROW_HEIGHT + 3;
+    cursorY = profileWellY + profileWellH + 4;
+
+    // Controls section: dark well containing the Mode + Action rows. Labels render in light text
+    // (#d2d2d8) inside the well, per CSS .ctl-label color.
+    int controlsPad = 5;
+    controlsWellY = cursorY;
+    controlsWellH = controlsPad * 2 + CONTROL_ROW_HEIGHT * 2 + 2;
+    cursorY = controlsWellY + controlsPad;
 
     // Mode row.
     modeY = cursorY;
@@ -221,7 +236,7 @@ public final class LootLockInventoryPanel {
             segWidth,
             CONTROL_ROW_HEIGHT,
             Text.literal("Leave"),
-            0xFF6A6F78,
+            Palette.LEAVE,
             () ->
                 activeProfile()
                     .map(p -> p.getRejectedItemAction() == RejectedItemAction.LEAVE_ON_GROUND)
@@ -246,7 +261,7 @@ public final class LootLockInventoryPanel {
     addDrawableChild.accept(actionDeleteButton);
     allWidgets.add(actionDeleteButton);
     lockableWidgets.add(actionDeleteButton);
-    cursorY += CONTROL_ROW_HEIGHT + 4;
+    cursorY = controlsWellY + controlsWellH + 4;
 
     // Summary block (painted in render()).
     summaryY = cursorY;
@@ -340,8 +355,10 @@ public final class LootLockInventoryPanel {
     // Position references used by the chrome painter.
     headerY += dy;
     profileY += dy;
+    profileWellY += dy;
     modeY += dy;
     actionY += dy;
+    controlsWellY += dy;
     summaryY += dy;
     tabsY += dy;
     contentY += dy;
@@ -354,8 +371,16 @@ public final class LootLockInventoryPanel {
     MinecraftClient client = MinecraftClient.getInstance();
     Chrome.guiWindow(context, panelX, panelY, WIDTH, HEIGHT);
 
-    // Header: brand icon + title text on the left.
-    int iconSize = 16;
+    // Profile bar dark well backing.
+    Chrome.well(
+        context, panelX + SIDE_PADDING, profileWellY, WIDTH - SIDE_PADDING * 2, profileWellH);
+
+    // Controls dark well backing.
+    Chrome.well(
+        context, panelX + SIDE_PADDING, controlsWellY, WIDTH - SIDE_PADDING * 2, controlsWellH);
+
+    // Header: brand icon + title text on the left. Bumped icon to 22px to match CSS .ll-brand 26.
+    int iconSize = 22;
     int iconX = panelX + SIDE_PADDING + 1;
     int iconY = headerY + (HEADER_HEIGHT - iconSize) / 2;
     context.drawTexture(ICON_TEXTURE, iconX, iconY, 0f, 0f, iconSize, iconSize, iconSize, iconSize);
@@ -364,44 +389,44 @@ public final class LootLockInventoryPanel {
         Text.literal("Loot Lock"),
         iconX + iconSize + 4,
         headerY + (HEADER_HEIGHT - 8) / 2,
-        Palette.INK,
+        0xFF2F2F2F,
         false);
 
-    // Switch labels.
+    // Switch labels rendered in dark ink on the light-gray header face.
     int switchY = headerY + (HEADER_HEIGHT - 8) / 2;
     if (serverSwitch != null) {
       context.drawText(
           client.textRenderer,
           Text.literal("Server"),
-          serverSwitch.getX() - 30,
+          serverSwitch.getX() - 32,
           switchY,
-          Palette.INK,
+          0xFF2F2F2F,
           false);
     }
     if (clientSwitch != null) {
       context.drawText(
           client.textRenderer,
           Text.literal("Client"),
-          clientSwitch.getX() - 30,
+          clientSwitch.getX() - 32,
           switchY,
-          Palette.INK,
+          0xFF2F2F2F,
           false);
     }
 
-    // Mode + Action row labels.
+    // Mode + Action row labels rendered in light text on the dark controls well.
     context.drawText(
         client.textRenderer,
         Text.literal("Mode"),
-        panelX + SIDE_PADDING,
+        panelX + SIDE_PADDING + 4,
         modeY + (CONTROL_ROW_HEIGHT - 8) / 2,
-        Palette.INK,
+        0xFFD2D2D8,
         false);
     context.drawText(
         client.textRenderer,
         Text.literal("Action"),
-        panelX + SIDE_PADDING,
+        panelX + SIDE_PADDING + 4,
         actionY + (CONTROL_ROW_HEIGHT - 8) / 2,
-        Palette.INK,
+        0xFFD2D2D8,
         false);
 
     // Summary block: colored left border + dark recessed background + text.
@@ -455,6 +480,11 @@ public final class LootLockInventoryPanel {
     boolean canDelete = LootLockClient.getState().isAllowDeleteRejectedItems();
     if (actionDeleteButton != null) {
       actionDeleteButton.active = open && globallyEnabled && canDelete;
+    }
+    if (rulesTabButton != null) {
+      int ruleCount =
+          activeProfile().map(p -> p.getRules() == null ? 0 : p.getRules().size()).orElse(0);
+      rulesTabButton.setMessage(Text.literal("Rules (" + ruleCount + ")"));
     }
     applyLock(globallyEnabled);
     rulesView.refresh();
@@ -645,6 +675,8 @@ public final class LootLockInventoryPanel {
   }
 
   private void renameProfile(LootLockProfile profile) {
+    // Vanilla doesn't ship an inline rename popup; the rename UX is deferred to story 4 (#111) so
+    // the dropdown closes here and the user falls back to /lootlock command flow in the meantime.
     closeDropdown();
   }
 

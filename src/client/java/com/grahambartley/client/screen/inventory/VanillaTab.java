@@ -34,16 +34,20 @@ public final class VanillaTab extends PressableWidget {
   @Override
   protected void renderButton(DrawContext context, int mouseX, int mouseY, float delta) {
     boolean on = activeSupplier.getAsBoolean();
+    // Inactive tabs sit 2px proud of the content well per CSS .tab { top: 2px }.
+    int paintY = on ? getY() : getY() - 2;
     if (on) {
-      Chrome.activeTab(context, getX(), getY(), getWidth(), getHeight());
+      Chrome.activeTab(context, getX(), paintY, getWidth(), getHeight());
     } else {
-      Chrome.inactiveTab(context, getX(), getY(), getWidth(), getHeight());
+      Chrome.inactiveTab(context, getX(), paintY, getWidth(), getHeight());
     }
 
     int textColor = on ? 0xFFFFFFFF : 0xFF4A4A4A;
     MinecraftClient client = MinecraftClient.getInstance();
     int textX = getX() + (getWidth() - client.textRenderer.getWidth(getMessage())) / 2;
-    int textY = getY() + (getHeight() - 8) / 2 + 1;
+    // Active tab paints a 4px gold bar across the top; offset its label down so the visual
+    // baseline matches the inactive tab labels.
+    int textY = paintY + (getHeight() - 8) / 2 + (on ? 2 : 0);
     context.drawText(client.textRenderer, getMessage(), textX, textY, textColor, false);
   }
 

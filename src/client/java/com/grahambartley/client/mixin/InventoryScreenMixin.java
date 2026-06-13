@@ -62,7 +62,7 @@ public abstract class InventoryScreenMixin {
     int invX = ((HandledScreenAccessor) self).lootlock$getInvX();
     int invY = ((HandledScreenAccessor) self).lootlock$getInvY();
     if (lootlock$entryButton != null) {
-      lootlock$entryButton.setPosition(invX + 124, invY + 61);
+      lootlock$entryButton.setPosition(invX + 128, invY + 61);
     }
     if (lootlock$panel != null) {
       lootlock$panel.relocate(invX + 176 + 4, invY);

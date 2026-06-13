@@ -34,5 +34,8 @@ public final class Palette {
   public static final int INFO = 0xFF5A8FD6;
   public static final int PURPLE = 0xFF7A52C9;
 
+  /** Neutral grey used as the on-state background for the "Leave" action segment. */
+  public static final int LEAVE = 0xFF6A6F78;
+
   public static final int SHADOW = 0x8C000000;
 }

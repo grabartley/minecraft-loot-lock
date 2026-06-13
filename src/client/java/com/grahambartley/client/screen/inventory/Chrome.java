@@ -104,7 +104,10 @@ public final class Chrome {
     context.fill(x + 1, y + 1, x2 - 1, y + 4, Palette.GOLD);
   }
 
-  /** Raised tab (inactive). */
+  /**
+   * Raised tab (inactive). The CSS prototype offsets inactive tabs 2px upward; callers should
+   * subtract 2 from {@code y} when painting an inactive tab so it sits proud of the active one.
+   */
   public static void inactiveTab(DrawContext context, int x, int y, int width, int height) {
     int x2 = x + width;
     int y2 = y + height;

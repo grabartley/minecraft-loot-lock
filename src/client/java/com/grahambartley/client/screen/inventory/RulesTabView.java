@@ -12,7 +12,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.UUID;
 import java.util.function.Consumer;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
@@ -66,8 +65,9 @@ public final class RulesTabView {
             searchY,
             viewWidth,
             16,
-            Text.literal("Search items to add..."));
+            Text.literal("Loot Lock search"));
     searchField.setMaxLength(64);
+    searchField.setPlaceholder(Text.literal("Search items to add..."));
     searchField.setChangedListener(this::onSearchChanged);
     addDrawableChild.accept(searchField);
     widgets.add(searchField);
@@ -177,7 +177,8 @@ public final class RulesTabView {
         refresh();
         return;
       }
-      selection.onClick(visibleResults, index, Screen.hasShiftDown(), Screen.hasControlDown());
+      selection.onClick(
+          visibleResults, index, Screen.hasShiftDown(), ModifierKeys.isAdditiveSelectionDown());
       refresh();
       return;
     }
@@ -310,9 +311,5 @@ public final class RulesTabView {
 
   boolean isShowingSearchForTest() {
     return showingSearch;
-  }
-
-  static UUID stableTestId() {
-    return UUID.nameUUIDFromBytes("test".getBytes());
   }
 }

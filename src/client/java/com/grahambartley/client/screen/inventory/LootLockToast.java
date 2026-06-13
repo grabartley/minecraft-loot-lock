@@ -23,17 +23,13 @@ public final class LootLockToast implements Toast {
   private final long durationMs;
 
   public LootLockToast(Text title, Text subtitle) {
-    this(title, subtitle, DEFAULT_DURATION_MS);
-  }
-
-  public LootLockToast(Text title, Text subtitle, long durationMs) {
     this.title = title;
     this.subtitle = subtitle;
-    this.durationMs = durationMs;
+    this.durationMs = DEFAULT_DURATION_MS;
   }
 
   public static void show(MinecraftClient client, Text title, Text subtitle) {
-    if (client == null) {
+    if (client == null || subtitle == null) {
       return;
     }
     client.getToastManager().add(new LootLockToast(title, subtitle));
@@ -61,12 +57,10 @@ public final class LootLockToast implements Toast {
     context.fill(WIDTH - 3, 2, WIDTH - 2, HEIGHT - 2, 0xFF545454);
 
     int textX = ICON_INSET + ICON_SIZE + 6;
-    int textY = subtitle == null ? (HEIGHT - 8) / 2 : 7;
+    int textY = 7;
     context.drawText(manager.getClient().textRenderer, title, textX, textY, 0xFF3B3B3B, false);
-    if (subtitle != null) {
-      context.drawText(
-          manager.getClient().textRenderer, subtitle, textX, textY + 11, 0xFF3B3B3B, false);
-    }
+    context.drawText(
+        manager.getClient().textRenderer, subtitle, textX, textY + 11, 0xFF3B3B3B, false);
 
     context.drawTexture(
         LootLockIconButton.ICON_TEXTURE,
