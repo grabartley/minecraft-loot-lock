@@ -93,54 +93,6 @@ public abstract class InventoryScreenMixin implements LootLockPanelHolder {
     }
   }
 
-  @Inject(method = "mouseScrolled", at = @At("HEAD"), cancellable = true)
-  private void lootlock$forwardScrollToPanel(
-      double mouseX,
-      double mouseY,
-      double amount,
-      org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable<Boolean> info) {
-    if (lootlock$panel == null) {
-      return;
-    }
-    if (lootlock$panel.handleMouseScroll(mouseX, mouseY, amount)) {
-      info.setReturnValue(true);
-    }
-  }
-
-  /**
-   * Catch the user dropping an item from the cursor onto the panel area: instead of letting vanilla
-   * throw the stack into the world, route the item id into the active profile.
-   */
-  @Inject(method = "mouseReleased", at = @At("HEAD"), cancellable = true)
-  private void lootlock$catchDragReleaseOverPanel(
-      double mouseX,
-      double mouseY,
-      int button,
-      org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable<Boolean> info) {
-    if (button != 0 || lootlock$panel == null || !lootlock$panel.isOpen()) {
-      return;
-    }
-    if (!lootlock$panel.containsPoint(mouseX, mouseY)) {
-      return;
-    }
-    InventoryScreen self = (InventoryScreen) (Object) this;
-    if (self.getScreenHandler() == null) {
-      return;
-    }
-    ItemStack cursorStack = self.getScreenHandler().getCursorStack();
-    if (cursorStack == null || cursorStack.isEmpty()) {
-      return;
-    }
-    String itemId = DragToAddRouter.route(cursorStack);
-    if (itemId == null) {
-      return;
-    }
-    // Keep the stack on the cursor so the player can put it back into a slot themselves; vanilla
-    // would otherwise drop the whole stack into the world from here.
-    lootlock$panel.setTab(PanelTab.RULES);
-    info.setReturnValue(true);
-  }
-
   @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true)
   private void lootlock$interceptAltClickForRuleAdd(
       double mouseX,
