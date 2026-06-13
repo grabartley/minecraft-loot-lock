@@ -7,7 +7,6 @@ import com.grahambartley.data.LootLockPlayerData;
 import com.grahambartley.network.ClientMutationSync;
 import java.util.Optional;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.toast.SystemToast;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 
@@ -47,9 +46,8 @@ public final class GlobalEnableController {
     if (!shouldShowToast(settings)) {
       return;
     }
-    SystemToast.show(
-        client.getToastManager(),
-        SystemToast.Type.PERIODIC_NOTIFICATION,
+    LootLockToast.show(
+        client,
         Text.literal("Loot Lock"),
         Text.literal(nextEnabled ? "Enabled" : "Disabled")
             .formatted(nextEnabled ? Formatting.GREEN : Formatting.RED));

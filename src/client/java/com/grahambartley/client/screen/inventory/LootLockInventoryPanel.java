@@ -35,8 +35,8 @@ import net.minecraft.util.Formatting;
  * dispatch.
  */
 public final class LootLockInventoryPanel {
-  public static final int WIDTH = 200;
-  public static final int HEIGHT = 200;
+  public static final int WIDTH = 220;
+  public static final int HEIGHT = 320;
   private static final int SIDE_PADDING = 8;
   private static final int ROW_HEIGHT = 20;
   private static final int ROW_GAP = 4;
@@ -44,6 +44,13 @@ public final class LootLockInventoryPanel {
   private final List<ClickableWidget> allWidgets = new ArrayList<>();
   private final List<ClickableWidget> lockableWidgets = new ArrayList<>();
   private final List<ClickableWidget> dropdownWidgets = new ArrayList<>();
+
+  private final RulesTabView rulesView = new RulesTabView();
+  private final SettingsTabView settingsView = new SettingsTabView();
+  private PanelTab activeTab = PanelTab.RULES;
+
+  private ButtonWidget rulesTabButton;
+  private ButtonWidget settingsTabButton;
 
   private InventoryScreen host;
   private int panelX;
@@ -200,8 +207,56 @@ public final class LootLockInventoryPanel {
     lockableWidgets.add(actionDeleteButton);
     cursorY += ROW_HEIGHT + ROW_GAP;
 
+    // Tab strip below the master controls.
+    int tabsY = cursorY;
+    int tabWidth = (WIDTH - SIDE_PADDING * 2) / 2;
+    rulesTabButton =
+        addButton(
+            addDrawableChild,
+            panelX + SIDE_PADDING,
+            tabsY,
+            tabWidth,
+            ROW_HEIGHT,
+            Text.literal("Rules"),
+            button -> setTab(PanelTab.RULES));
+    settingsTabButton =
+        addButton(
+            addDrawableChild,
+            panelX + SIDE_PADDING + tabWidth,
+            tabsY,
+            tabWidth,
+            ROW_HEIGHT,
+            Text.literal("Settings"),
+            button -> setTab(PanelTab.SETTINGS));
+    lockableWidgets.add(rulesTabButton);
+    lockableWidgets.add(settingsTabButton);
+    cursorY += ROW_HEIGHT + ROW_GAP;
+
+    // Tab view area: Rules and Settings widget banks both attach here. visibility toggles based on
+    // the active tab.
+    int viewWidth = WIDTH - SIDE_PADDING * 2;
+    rulesView.attach(
+        panelX + SIDE_PADDING,
+        cursorY,
+        viewWidth,
+        widget -> {
+          addDrawableChild.accept(widget);
+          allWidgets.add(widget);
+          lockableWidgets.add(widget);
+        });
+    settingsView.attach(
+        panelX + SIDE_PADDING,
+        cursorY,
+        viewWidth,
+        widget -> {
+          addDrawableChild.accept(widget);
+          allWidgets.add(widget);
+          lockableWidgets.add(widget);
+        });
+
     // Dropdown widgets: created up front so we can show / hide them in place.
-    rebuildDropdownWidgets(addDrawableChild, pillX, cursorY, pillWidth);
+    rebuildDropdownWidgets(
+        addDrawableChild, pillX, panelY + SIDE_PADDING + (ROW_HEIGHT + ROW_GAP) * 5, pillWidth);
 
     applyVisibility();
     refresh();
@@ -230,27 +285,37 @@ public final class LootLockInventoryPanel {
         0x3B3B3B,
         false);
 
-    // Summary line: drawn at the bottom of the panel.
+    // Summary line: drawn above the tab strip.
     Optional<LootLockProfile> activeProfile = activeProfile();
     boolean globallyEnabled =
         LootLockClient.getState()
             .getSnapshot()
             .map(LootLockPlayerData::isGloballyEnabled)
             .orElse(true);
-    int summaryTop = panelY + HEIGHT - 40;
-    context.fill(
-        panelX + SIDE_PADDING - 2,
-        summaryTop - 2,
-        panelX + WIDTH - SIDE_PADDING + 2,
-        panelY + HEIGHT - SIDE_PADDING + 2,
-        0xFF2B2B31);
+    int summaryTop = panelY + SIDE_PADDING + (ROW_HEIGHT + ROW_GAP) * 4 + 4;
     context.drawTextWrapped(
         client.textRenderer,
         LootLockSummaryText.build(globallyEnabled, activeProfile.orElse(null)),
         panelX + SIDE_PADDING,
         summaryTop,
         WIDTH - SIDE_PADDING * 2,
-        0xF0F0F0);
+        0x3B3B3B);
+
+    // Per-view rendering for whatever the active tab paints itself.
+    if (activeTab == PanelTab.RULES) {
+      rulesView.render(context, mouseX, mouseY, delta);
+    } else {
+      settingsView.render(context, mouseX, mouseY, delta);
+    }
+  }
+
+  public void setTab(PanelTab tab) {
+    if (tab == null || tab == activeTab) {
+      return;
+    }
+    activeTab = tab;
+    applyVisibility();
+    refresh();
   }
 
   /** Refresh button labels and lock state to match the current snapshot. */
@@ -299,6 +364,21 @@ public final class LootLockInventoryPanel {
     }
 
     applyLock(globallyEnabled);
+
+    if (rulesTabButton != null && settingsTabButton != null) {
+      rulesTabButton.setMessage(
+          Text.literal("Rules")
+              .formatted(activeTab == PanelTab.RULES ? Formatting.YELLOW : Formatting.GRAY));
+      settingsTabButton.setMessage(
+          Text.literal("Settings")
+              .formatted(activeTab == PanelTab.SETTINGS ? Formatting.YELLOW : Formatting.GRAY));
+    }
+
+    rulesView.refresh();
+  }
+
+  public PanelTab getActiveTab() {
+    return activeTab;
   }
 
   /** Returns true and sets the toggle when the snapshot is synced and editable. */
@@ -315,6 +395,9 @@ public final class LootLockInventoryPanel {
     for (ClickableWidget widget : dropdownWidgets) {
       widget.visible = open && dropdownOpen;
     }
+    // Tab views override their widgets' visibility based on the active tab.
+    rulesView.setVisible(open && activeTab == PanelTab.RULES);
+    settingsView.setVisible(open && activeTab == PanelTab.SETTINGS);
   }
 
   private void applyLock(boolean enabled) {

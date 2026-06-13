@@ -1,12 +1,17 @@
 package com.grahambartley.client.mixin;
 
+import com.grahambartley.client.screen.inventory.DragToAddRouter;
+import com.grahambartley.client.screen.inventory.LootLockIconButton;
 import com.grahambartley.client.screen.inventory.LootLockInventoryPanel;
+import com.grahambartley.client.screen.inventory.PanelTab;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.ingame.InventoryScreen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.text.Text;
+import net.minecraft.item.ItemStack;
+import net.minecraft.screen.slot.Slot;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -39,9 +44,7 @@ public abstract class InventoryScreenMixin {
     ScreenAccessor accessor = (ScreenAccessor) self;
     lootlock$entryButton =
         accessor.lootlock$invokeAddDrawableChild(
-            ButtonWidget.builder(Text.literal("LL"), button -> lootlock$onEntryClicked())
-                .dimensions(entryX, entryY, 20, 20)
-                .build());
+            new LootLockIconButton(entryX, entryY, 20, 20, button -> lootlock$onEntryClicked()));
 
     lootlock$panel = new LootLockInventoryPanel();
     lootlock$panel.attach(self, panelX, panelY, accessor::lootlock$invokeAddDrawableChild);
@@ -55,6 +58,52 @@ public abstract class InventoryScreenMixin {
       lootlock$panel.refresh();
       lootlock$panel.render(context, mouseX, mouseY, delta);
     }
+  }
+
+  @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true)
+  private void lootlock$interceptAltClickForRuleAdd(
+      double mouseX,
+      double mouseY,
+      int button,
+      org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable<Boolean> info) {
+    if (button != 0 || !Screen.hasAltDown()) {
+      return;
+    }
+    InventoryScreen self = (InventoryScreen) (Object) this;
+    Slot slot = lootlock$slotAt(self, mouseX, mouseY);
+    if (slot == null) {
+      return;
+    }
+    ItemStack stack = slot.getStack();
+    String added = DragToAddRouter.route(stack);
+    if (added == null) {
+      return;
+    }
+    if (lootlock$panel != null) {
+      lootlock$panel.setOpen(true);
+      lootlock$panel.setTab(PanelTab.RULES);
+    }
+    info.setReturnValue(true);
+  }
+
+  @Unique
+  private static Slot lootlock$slotAt(InventoryScreen screen, double mouseX, double mouseY) {
+    if (screen.getScreenHandler() == null) {
+      return null;
+    }
+    int originX = (screen.width - 176) / 2;
+    int originY = (screen.height - 166) / 2;
+    for (Slot slot : screen.getScreenHandler().slots) {
+      if (slot == null) {
+        continue;
+      }
+      int slotX = originX + slot.x;
+      int slotY = originY + slot.y;
+      if (mouseX >= slotX && mouseX < slotX + 16 && mouseY >= slotY && mouseY < slotY + 16) {
+        return slot;
+      }
+    }
+    return null;
   }
 
   @Unique
