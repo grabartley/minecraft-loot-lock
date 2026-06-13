@@ -36,12 +36,12 @@ public abstract class InventoryScreenMixin {
       return;
     }
 
-    // Anchor everything to the vanilla inventory's actual top-left so the button sits beside the
-    // recipe-book button and the panel docks flush against the inventory's right edge.
-    int invX = (self.width - 176) / 2;
-    int invY = (self.height - 166) / 2;
+    // Anchor everything to the vanilla inventory's actual top-left. Read via the HandledScreen
+    // getX()/getY() accessors so the position tracks the recipe-book layout shift on every render.
+    int invX = ((HandledScreenAccessor) self).lootlock$getInvX();
+    int invY = ((HandledScreenAccessor) self).lootlock$getInvY();
     int entryX = invX + 124;
-    int entryY = self.height / 2 - 22;
+    int entryY = invY + 61;
     int panelX = invX + 176 + 4;
     int panelY = invY;
 
@@ -58,7 +58,14 @@ public abstract class InventoryScreenMixin {
   @Inject(method = "render", at = @At("TAIL"))
   private void lootlock$renderPanel(
       DrawContext context, int mouseX, int mouseY, float delta, CallbackInfo info) {
+    InventoryScreen self = (InventoryScreen) (Object) this;
+    int invX = ((HandledScreenAccessor) self).lootlock$getInvX();
+    int invY = ((HandledScreenAccessor) self).lootlock$getInvY();
+    if (lootlock$entryButton != null) {
+      lootlock$entryButton.setPosition(invX + 124, invY + 61);
+    }
     if (lootlock$panel != null) {
+      lootlock$panel.relocate(invX + 176 + 4, invY);
       lootlock$panel.refresh();
       lootlock$panel.render(context, mouseX, mouseY, delta);
     }
@@ -95,8 +102,8 @@ public abstract class InventoryScreenMixin {
     if (screen.getScreenHandler() == null) {
       return null;
     }
-    int originX = (screen.width - 176) / 2;
-    int originY = (screen.height - 166) / 2;
+    int originX = ((HandledScreenAccessor) screen).lootlock$getInvX();
+    int originY = ((HandledScreenAccessor) screen).lootlock$getInvY();
     for (Slot slot : screen.getScreenHandler().slots) {
       if (slot == null) {
         continue;

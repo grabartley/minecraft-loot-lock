@@ -316,6 +316,37 @@ public final class LootLockInventoryPanel {
     refresh();
   }
 
+  public int getPanelX() {
+    return panelX;
+  }
+
+  public int getPanelY() {
+    return panelY;
+  }
+
+  /** Shifts every panel widget so the panel anchor moves to ({@code newX}, {@code newY}). */
+  public void relocate(int newX, int newY) {
+    int dx = newX - panelX;
+    int dy = newY - panelY;
+    if (dx == 0 && dy == 0) {
+      return;
+    }
+    panelX = newX;
+    panelY = newY;
+    for (ClickableWidget widget : allWidgets) {
+      widget.setX(widget.getX() + dx);
+      widget.setY(widget.getY() + dy);
+    }
+    // Position references used by the chrome painter.
+    headerY += dy;
+    profileY += dy;
+    modeY += dy;
+    actionY += dy;
+    summaryY += dy;
+    tabsY += dy;
+    contentY += dy;
+  }
+
   public void render(DrawContext context, int mouseX, int mouseY, float delta) {
     if (!open) {
       return;
