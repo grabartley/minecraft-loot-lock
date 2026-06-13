@@ -76,6 +76,13 @@ public final class ClientToServerPackets {
           UpdateServerPolicyPayload payload = readUpdateServerPolicyPayload(buf);
           server.execute(() -> handleUpdateServerPolicy(player, payload));
         });
+
+    ServerPlayNetworking.registerGlobalReceiver(
+        PacketIds.UPDATE_GLOBAL_ENABLE_C2S,
+        (server, player, handler, buf, responseSender) -> {
+          UpdateGlobalEnablePayload payload = readUpdateGlobalEnablePayload(buf);
+          server.execute(() -> handleUpdateGlobalEnable(player, payload));
+        });
   }
 
   public static PacketByteBuf writeHelloPayload(String clientVersion, int schemaVersion) {
@@ -152,6 +159,30 @@ public final class ClientToServerPackets {
 
   static UpdateServerPolicyPayload readUpdateServerPolicyPayload(PacketByteBuf buf) {
     return new UpdateServerPolicyPayload(buf.readBoolean());
+  }
+
+  public static PacketByteBuf writeUpdateGlobalEnablePayload(long baseRevision, boolean enabled) {
+    PacketByteBuf buf = PacketByteBufs.create();
+    buf.writeVarLong(baseRevision);
+    buf.writeBoolean(enabled);
+    return buf;
+  }
+
+  static UpdateGlobalEnablePayload readUpdateGlobalEnablePayload(PacketByteBuf buf) {
+    return new UpdateGlobalEnablePayload(buf.readVarLong(), buf.readBoolean());
+  }
+
+  static MutationResult applyUpdateGlobalEnable(
+      LootLockPlayerData data, UpdateGlobalEnablePayload payload) {
+    if (!isEditable(data)) {
+      return MutationResult.rejected(MutationRejectionReason.NOT_EDITABLE);
+    }
+    if (isStale(data, payload.baseRevision())) {
+      return MutationResult.rejected(MutationRejectionReason.STALE);
+    }
+
+    data.setEnabledForAll(payload.enabled());
+    return MutationResult.applied();
   }
 
   static MutationResult applyUpdateProfile(LootLockPlayerData data, UpdateProfilePayload payload) {
@@ -322,6 +353,19 @@ public final class ClientToServerPackets {
     applyAndSync(player, applyDeleteProfile(LootLock.PLAYER_DATA_MANAGER.get(player), payload));
   }
 
+  private static void handleUpdateGlobalEnable(
+      ServerPlayerEntity player, UpdateGlobalEnablePayload payload) {
+    if (!isOperator(player)) {
+      ServerToClientPackets.sendAuthoritativeSync(player);
+      return;
+    }
+    if (LootLock.PLAYER_DATA_MANAGER == null) {
+      return;
+    }
+    applyAndSync(
+        player, applyUpdateGlobalEnable(LootLock.PLAYER_DATA_MANAGER.get(player), payload));
+  }
+
   private static void handleUpdateServerPolicy(
       ServerPlayerEntity player, UpdateServerPolicyPayload payload) {
     if (!isOperator(player)) {
@@ -488,6 +532,8 @@ public final class ClientToServerPackets {
   record DeleteProfilePayload(long baseRevision, UUID profileId) {}
 
   record UpdateServerPolicyPayload(boolean allowDeleteRejectedItems) {}
+
+  record UpdateGlobalEnablePayload(long baseRevision, boolean enabled) {}
 
   record MutationResult(boolean success, MutationRejectionReason reason) {
     static MutationResult applied() {

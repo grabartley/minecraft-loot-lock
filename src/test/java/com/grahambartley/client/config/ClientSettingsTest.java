@@ -14,6 +14,20 @@ class ClientSettingsTest {
 
     assertFalse(settings.isShowBlockedHudNotification());
     assertFalse(settings.isEnableProfileCycleToast());
+    assertFalse(settings.isEnableToggleToast());
+  }
+
+  @Test
+  void enableToggleToastRoundTripsThroughCopy() {
+    ClientSettings settings = ClientSettings.defaults();
+    settings.setEnableToggleToast(true);
+
+    ClientSettings copy = settings.copy();
+
+    assertTrue(copy.isEnableToggleToast());
+    copy.setEnableToggleToast(false);
+    assertTrue(settings.isEnableToggleToast());
+    assertFalse(copy.isEnableToggleToast());
   }
 
   @Test

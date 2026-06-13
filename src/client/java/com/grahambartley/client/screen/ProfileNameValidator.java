@@ -1,11 +1,11 @@
 package com.grahambartley.client.screen;
 
-final class ProfileNameValidator {
-  static final int MAX_UI_PROFILE_NAME_LENGTH = 32;
+public final class ProfileNameValidator {
+  public static final int MAX_UI_PROFILE_NAME_LENGTH = 32;
 
   private ProfileNameValidator() {}
 
-  static String sanitize(String name) {
+  public static String sanitize(String name) {
     if (name == null) {
       return "";
     }
@@ -16,7 +16,7 @@ final class ProfileNameValidator {
     return trimmed.substring(0, MAX_UI_PROFILE_NAME_LENGTH);
   }
 
-  static boolean isValid(String name) {
+  public static boolean isValid(String name) {
     String sanitized = sanitize(name);
     return !sanitized.isBlank() && sanitized.length() <= MAX_UI_PROFILE_NAME_LENGTH;
   }

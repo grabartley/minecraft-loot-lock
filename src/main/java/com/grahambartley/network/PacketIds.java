@@ -13,6 +13,7 @@ public final class PacketIds {
   public static final Identifier CREATE_PROFILE_C2S = id("create_profile_c2s");
   public static final Identifier DELETE_PROFILE_C2S = id("delete_profile_c2s");
   public static final Identifier UPDATE_SERVER_POLICY_C2S = id("update_server_policy_c2s");
+  public static final Identifier UPDATE_GLOBAL_ENABLE_C2S = id("update_global_enable_c2s");
   public static final Identifier BLOCKED_NOTICE_S2C = id("blocked_notice_s2c");
 
   private PacketIds() {}

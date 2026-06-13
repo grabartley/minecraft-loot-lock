@@ -4,6 +4,7 @@ public final class ClientSettings {
   private boolean showBlockedHudNotification = false;
   private boolean confirmBeforeEnablingDelete = true;
   private boolean enableProfileCycleToast = false;
+  private boolean enableToggleToast = false;
   private int uiScalePercent = 100;
 
   public static ClientSettings defaults() {
@@ -15,6 +16,7 @@ public final class ClientSettings {
     copy.showBlockedHudNotification = showBlockedHudNotification;
     copy.confirmBeforeEnablingDelete = confirmBeforeEnablingDelete;
     copy.enableProfileCycleToast = enableProfileCycleToast;
+    copy.enableToggleToast = enableToggleToast;
     copy.uiScalePercent = uiScalePercent;
     return copy;
   }
@@ -41,6 +43,14 @@ public final class ClientSettings {
 
   public void setEnableProfileCycleToast(boolean enableProfileCycleToast) {
     this.enableProfileCycleToast = enableProfileCycleToast;
+  }
+
+  public boolean isEnableToggleToast() {
+    return enableToggleToast;
+  }
+
+  public void setEnableToggleToast(boolean enableToggleToast) {
+    this.enableToggleToast = enableToggleToast;
   }
 
   public int getUiScalePercent() {

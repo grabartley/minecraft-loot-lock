@@ -2,7 +2,7 @@ package com.grahambartley.client.keybind;
 
 import com.grahambartley.client.LootLockClient;
 import com.grahambartley.client.config.ClientSettings;
-import com.grahambartley.client.screen.LootLockMainScreen;
+import com.grahambartley.client.screen.inventory.GlobalEnableController;
 import com.grahambartley.client.state.ClientLootLockState;
 import com.grahambartley.data.LootLockPlayerData;
 import com.grahambartley.data.LootLockProfile;
@@ -20,9 +20,9 @@ import org.lwjgl.glfw.GLFW;
 
 public final class LootLockKeybinds {
   private static final String CATEGORY = "key.categories.loot-lock";
-  private static final KeyBinding OPEN_UI =
+  private static final KeyBinding TOGGLE_ENABLED =
       KeyBindingHelper.registerKeyBinding(
-          new KeyBinding("key.loot-lock.open_ui", GLFW.GLFW_KEY_UNKNOWN, CATEGORY));
+          new KeyBinding("key.loot-lock.toggle_enabled", GLFW.GLFW_KEY_UNKNOWN, CATEGORY));
   private static final KeyBinding CYCLE_PROFILE =
       KeyBindingHelper.registerKeyBinding(
           new KeyBinding("key.loot-lock.cycle_profile", GLFW.GLFW_KEY_UNKNOWN, CATEGORY));
@@ -34,12 +34,12 @@ public final class LootLockKeybinds {
   }
 
   private static void onEndClientTick(MinecraftClient client) {
-    while (OPEN_UI.wasPressed()) {
+    while (TOGGLE_ENABLED.wasPressed()) {
       if (client.player == null || client.world == null) {
-        // Drain queued presses while world is unavailable to prevent delayed opens.
+        // Drain queued presses while world is unavailable to prevent delayed toggles.
         continue;
       }
-      client.setScreen(new LootLockMainScreen(client.currentScreen));
+      GlobalEnableController.toggle(client);
     }
 
     while (CYCLE_PROFILE.wasPressed()) {

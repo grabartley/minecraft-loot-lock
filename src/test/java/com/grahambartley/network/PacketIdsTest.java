@@ -19,6 +19,8 @@ class PacketIdsTest {
     assertEquals("loot-lock:delete_profile_c2s", PacketIds.DELETE_PROFILE_C2S.toString());
     assertEquals(
         "loot-lock:update_server_policy_c2s", PacketIds.UPDATE_SERVER_POLICY_C2S.toString());
+    assertEquals(
+        "loot-lock:update_global_enable_c2s", PacketIds.UPDATE_GLOBAL_ENABLE_C2S.toString());
     assertEquals("loot-lock:blocked_notice_s2c", PacketIds.BLOCKED_NOTICE_S2C.toString());
   }
 
@@ -35,6 +37,7 @@ class PacketIdsTest {
                 PacketIds.CREATE_PROFILE_C2S,
                 PacketIds.DELETE_PROFILE_C2S,
                 PacketIds.UPDATE_SERVER_POLICY_C2S,
+                PacketIds.UPDATE_GLOBAL_ENABLE_C2S,
                 PacketIds.BLOCKED_NOTICE_S2C)
             .allMatch(id -> "loot-lock".equals(id.getNamespace())));
   }
