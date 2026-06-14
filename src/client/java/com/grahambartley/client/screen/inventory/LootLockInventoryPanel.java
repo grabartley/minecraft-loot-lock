@@ -119,6 +119,14 @@ public final class LootLockInventoryPanel {
   private boolean dropArmed;
   private long flashStartMillis = -1L;
 
+  /**
+   * When true, the panel renders a stripped-down chrome with just the header and content well,
+   * locks to the SETTINGS tab, and hides per-world widgets (profile bar, mode/action buttons,
+   * switches, tab row). Used by the Mod Menu config screen, where no world is loaded and per-world
+   * editing would have no target. Must be set before {@link #attach}.
+   */
+  private boolean clientPrefsMode;
+
   private VanillaTab rulesTabButton;
   private VanillaTab settingsTabButton;
   private VanillaSwitch clientSwitch;
@@ -202,12 +210,34 @@ public final class LootLockInventoryPanel {
 
   public void setOpen(boolean open) {
     this.open = open;
-    STICKY_OPEN_STATE = open;
+    if (!clientPrefsMode) {
+      STICKY_OPEN_STATE = open;
+    }
     if (!open) {
       cancelInlineRename();
       dropdownOpen = false;
     }
     applyVisibility();
+  }
+
+  /**
+   * Switches the panel into client-prefs mode, used by the Mod Menu config screen. In this mode the
+   * panel hides the per-world chrome (profile bar, mode/action controls, summary, tab row, header
+   * switches) and locks the active tab to SETTINGS with the SERVER POLICY section hidden. Must be
+   * called before {@link #attach}, since attach is what materializes the chrome decisions into
+   * widgets. Calling after attach throws so the misuse fails loud rather than silently rendering a
+   * half-stripped panel.
+   */
+  public void setClientPrefsMode(boolean clientPrefsMode) {
+    if (!allWidgets.isEmpty()) {
+      throw new IllegalStateException(
+          "setClientPrefsMode must be called before attach; the panel has already materialized its"
+              + " widgets.");
+    }
+    this.clientPrefsMode = clientPrefsMode;
+    if (clientPrefsMode) {
+      activeTab = PanelTab.SETTINGS;
+    }
   }
 
   public void toggleOpen() {
@@ -275,192 +305,204 @@ public final class LootLockInventoryPanel {
 
     // Header: icon + title + Client + Server switches in one row.
     headerY = cursorY;
-    int switchY = cursorY + (HEADER_HEIGHT - SWITCH_HEIGHT) / 2;
-    int serverSwitchX = innerRight - SWITCH_WIDTH;
-    int serverLabelX = serverSwitchX - 32;
-    int clientSwitchX = serverLabelX - SWITCH_WIDTH - 4;
-    int clientLabelX = clientSwitchX - 32;
-    serverSwitch =
-        new VanillaSwitch(
-            serverSwitchX,
-            switchY,
-            SWITCH_WIDTH,
-            SWITCH_HEIGHT,
-            () -> LootLockClient.getState().isServerSupportsLootLock(),
-            null,
-            true,
-            true);
-    addDrawableChild.accept(serverSwitch);
-    allWidgets.add(serverSwitch);
-    clientSwitch =
-        new VanillaSwitch(
-            clientSwitchX,
-            switchY,
-            SWITCH_WIDTH,
-            SWITCH_HEIGHT,
-            () -> currentGloballyEnabled(),
-            this::onClientSwitchPressed,
-            false,
-            false);
-    addDrawableChild.accept(clientSwitch);
-    allWidgets.add(clientSwitch);
+    if (!clientPrefsMode) {
+      int switchY = cursorY + (HEADER_HEIGHT - SWITCH_HEIGHT) / 2;
+      int serverSwitchX = innerRight - SWITCH_WIDTH;
+      int serverLabelX = serverSwitchX - 32;
+      int clientSwitchX = serverLabelX - SWITCH_WIDTH - 4;
+      serverSwitch =
+          new VanillaSwitch(
+              serverSwitchX,
+              switchY,
+              SWITCH_WIDTH,
+              SWITCH_HEIGHT,
+              () -> LootLockClient.getState().isServerSupportsLootLock(),
+              null,
+              true,
+              true);
+      addDrawableChild.accept(serverSwitch);
+      allWidgets.add(serverSwitch);
+      clientSwitch =
+          new VanillaSwitch(
+              clientSwitchX,
+              switchY,
+              SWITCH_WIDTH,
+              SWITCH_HEIGHT,
+              () -> currentGloballyEnabled(),
+              this::onClientSwitchPressed,
+              false,
+              false);
+      addDrawableChild.accept(clientSwitch);
+      allWidgets.add(clientSwitch);
+    }
     cursorY += HEADER_HEIGHT + 6;
 
-    // Profile bar lives inside a dark recessed well per CSS (.profile-bar.well). Pad 4px around
-    // the row so the chrome reads as the prototype's recessed pill carrier.
-    profileWellY = cursorY;
-    profileWellH = PROFILE_ROW_HEIGHT + 8;
-    profileY = cursorY + 4;
-    int navWidth = 14;
-    int pillX = innerLeft + navWidth + 3;
-    int pillWidth = innerWidth - navWidth * 2 - 6;
-    int nextX = pillX + pillWidth + 3;
-    cursorY = profileY;
-    prevProfileButton =
-        new NavArrowButton(
-            innerLeft, cursorY, navWidth, PROFILE_ROW_HEIGHT, false, () -> cycleActiveProfile(-1));
-    addDrawableChild.accept(prevProfileButton);
-    allWidgets.add(prevProfileButton);
-    lockableWidgets.add(prevProfileButton);
-    profilePill =
-        new ProfilePill(
-            pillX,
-            cursorY,
-            pillWidth,
-            PROFILE_ROW_HEIGHT,
-            () -> activeProfile().map(LootLockInventoryPanel::colorForProfile).orElse(Palette.SLOT),
-            () -> activeProfile().map(LootLockProfile::getName).orElse("--"),
-            () -> activeProfile().map(LootLockInventoryPanel::ruleCountLabel).orElse(""),
-            this::toggleDropdown);
-    addDrawableChild.accept(profilePill);
-    allWidgets.add(profilePill);
-    lockableWidgets.add(profilePill);
-    nextProfileButton =
-        new NavArrowButton(
-            nextX, cursorY, navWidth, PROFILE_ROW_HEIGHT, true, () -> cycleActiveProfile(1));
-    addDrawableChild.accept(nextProfileButton);
-    allWidgets.add(nextProfileButton);
-    lockableWidgets.add(nextProfileButton);
-    cursorY = profileWellY + profileWellH + 6;
+    if (!clientPrefsMode) {
+      // Profile bar lives inside a dark recessed well per CSS (.profile-bar.well). Pad 4px around
+      // the row so the chrome reads as the prototype's recessed pill carrier.
+      profileWellY = cursorY;
+      profileWellH = PROFILE_ROW_HEIGHT + 8;
+      profileY = cursorY + 4;
+      int navWidth = 14;
+      int pillX = innerLeft + navWidth + 3;
+      int pillWidth = innerWidth - navWidth * 2 - 6;
+      int nextX = pillX + pillWidth + 3;
+      cursorY = profileY;
+      prevProfileButton =
+          new NavArrowButton(
+              innerLeft,
+              cursorY,
+              navWidth,
+              PROFILE_ROW_HEIGHT,
+              false,
+              () -> cycleActiveProfile(-1));
+      addDrawableChild.accept(prevProfileButton);
+      allWidgets.add(prevProfileButton);
+      lockableWidgets.add(prevProfileButton);
+      profilePill =
+          new ProfilePill(
+              pillX,
+              cursorY,
+              pillWidth,
+              PROFILE_ROW_HEIGHT,
+              () ->
+                  activeProfile().map(LootLockInventoryPanel::colorForProfile).orElse(Palette.SLOT),
+              () -> activeProfile().map(LootLockProfile::getName).orElse("--"),
+              () -> activeProfile().map(LootLockInventoryPanel::ruleCountLabel).orElse(""),
+              this::toggleDropdown);
+      addDrawableChild.accept(profilePill);
+      allWidgets.add(profilePill);
+      lockableWidgets.add(profilePill);
+      nextProfileButton =
+          new NavArrowButton(
+              nextX, cursorY, navWidth, PROFILE_ROW_HEIGHT, true, () -> cycleActiveProfile(1));
+      addDrawableChild.accept(nextProfileButton);
+      allWidgets.add(nextProfileButton);
+      lockableWidgets.add(nextProfileButton);
+      cursorY = profileWellY + profileWellH + 6;
 
-    // Controls section: dark well containing the Mode + Action rows. Labels render in light text
-    // (#d2d2d8) inside the well, per CSS .ctl-label color.
-    int controlsPad = 5;
-    controlsWellY = cursorY;
-    controlsWellH = controlsPad * 2 + CONTROL_ROW_HEIGHT * 2 + 2;
-    cursorY = controlsWellY + controlsPad;
+      // Controls section: dark well containing the Mode + Action rows. Labels render in light text
+      // (#d2d2d8) inside the well, per CSS .ctl-label color.
+      int controlsPad = 5;
+      controlsWellY = cursorY;
+      controlsWellH = controlsPad * 2 + CONTROL_ROW_HEIGHT * 2 + 2;
+      cursorY = controlsWellY + controlsPad;
 
-    // Mode row.
-    modeY = cursorY;
-    int segLeft = innerLeft + CTL_LABEL_WIDTH;
-    int segWidth = (innerRight - segLeft) / 2;
-    modeAllowButton =
-        new SegmentedButton(
-            segLeft,
-            cursorY,
-            segWidth,
-            CONTROL_ROW_HEIGHT,
-            Text.literal("Allowlist"),
-            Palette.ALLOW,
-            () -> activeProfile().map(p -> p.getMode() == FilterMode.ALLOWLIST).orElse(false),
-            () -> setMode(FilterMode.ALLOWLIST));
-    addDrawableChild.accept(modeAllowButton);
-    allWidgets.add(modeAllowButton);
-    lockableWidgets.add(modeAllowButton);
-    modeDenyButton =
-        new SegmentedButton(
-            segLeft + segWidth,
-            cursorY,
-            segWidth,
-            CONTROL_ROW_HEIGHT,
-            Text.literal("Denylist"),
-            Palette.DENY,
-            () -> activeProfile().map(p -> p.getMode() == FilterMode.DENYLIST).orElse(false),
-            () -> setMode(FilterMode.DENYLIST));
-    addDrawableChild.accept(modeDenyButton);
-    allWidgets.add(modeDenyButton);
-    lockableWidgets.add(modeDenyButton);
-    cursorY += CONTROL_ROW_HEIGHT + 2;
+      // Mode row.
+      modeY = cursorY;
+      int segLeft = innerLeft + CTL_LABEL_WIDTH;
+      int segWidth = (innerRight - segLeft) / 2;
+      modeAllowButton =
+          new SegmentedButton(
+              segLeft,
+              cursorY,
+              segWidth,
+              CONTROL_ROW_HEIGHT,
+              Text.literal("Allowlist"),
+              Palette.ALLOW,
+              () -> activeProfile().map(p -> p.getMode() == FilterMode.ALLOWLIST).orElse(false),
+              () -> setMode(FilterMode.ALLOWLIST));
+      addDrawableChild.accept(modeAllowButton);
+      allWidgets.add(modeAllowButton);
+      lockableWidgets.add(modeAllowButton);
+      modeDenyButton =
+          new SegmentedButton(
+              segLeft + segWidth,
+              cursorY,
+              segWidth,
+              CONTROL_ROW_HEIGHT,
+              Text.literal("Denylist"),
+              Palette.DENY,
+              () -> activeProfile().map(p -> p.getMode() == FilterMode.DENYLIST).orElse(false),
+              () -> setMode(FilterMode.DENYLIST));
+      addDrawableChild.accept(modeDenyButton);
+      allWidgets.add(modeDenyButton);
+      lockableWidgets.add(modeDenyButton);
+      cursorY += CONTROL_ROW_HEIGHT + 2;
 
-    // Action row.
-    actionY = cursorY;
-    actionLeaveButton =
-        new SegmentedButton(
-            segLeft,
-            cursorY,
-            segWidth,
-            CONTROL_ROW_HEIGHT,
-            Text.literal("Leave"),
-            Palette.LEAVE,
-            () ->
-                activeProfile()
-                    .map(p -> p.getRejectedItemAction() == RejectedItemAction.LEAVE_ON_GROUND)
-                    .orElse(false),
-            () -> setAction(RejectedItemAction.LEAVE_ON_GROUND));
-    addDrawableChild.accept(actionLeaveButton);
-    allWidgets.add(actionLeaveButton);
-    lockableWidgets.add(actionLeaveButton);
-    actionDeleteButton =
-        new SegmentedButton(
-            segLeft + segWidth,
-            cursorY,
-            segWidth,
-            CONTROL_ROW_HEIGHT,
-            Text.literal("Delete"),
-            Palette.DENY,
-            () ->
-                activeProfile()
-                    .map(p -> p.getRejectedItemAction() == RejectedItemAction.DELETE)
-                    .orElse(false),
-            () -> setAction(RejectedItemAction.DELETE));
-    addDrawableChild.accept(actionDeleteButton);
-    allWidgets.add(actionDeleteButton);
-    lockableWidgets.add(actionDeleteButton);
-    cursorY = controlsWellY + controlsWellH + 6;
+      // Action row.
+      actionY = cursorY;
+      actionLeaveButton =
+          new SegmentedButton(
+              segLeft,
+              cursorY,
+              segWidth,
+              CONTROL_ROW_HEIGHT,
+              Text.literal("Leave"),
+              Palette.LEAVE,
+              () ->
+                  activeProfile()
+                      .map(p -> p.getRejectedItemAction() == RejectedItemAction.LEAVE_ON_GROUND)
+                      .orElse(false),
+              () -> setAction(RejectedItemAction.LEAVE_ON_GROUND));
+      addDrawableChild.accept(actionLeaveButton);
+      allWidgets.add(actionLeaveButton);
+      lockableWidgets.add(actionLeaveButton);
+      actionDeleteButton =
+          new SegmentedButton(
+              segLeft + segWidth,
+              cursorY,
+              segWidth,
+              CONTROL_ROW_HEIGHT,
+              Text.literal("Delete"),
+              Palette.DENY,
+              () ->
+                  activeProfile()
+                      .map(p -> p.getRejectedItemAction() == RejectedItemAction.DELETE)
+                      .orElse(false),
+              () -> setAction(RejectedItemAction.DELETE));
+      addDrawableChild.accept(actionDeleteButton);
+      allWidgets.add(actionDeleteButton);
+      lockableWidgets.add(actionDeleteButton);
+      cursorY = controlsWellY + controlsWellH + 6;
 
-    // Summary block (painted in render()).
-    summaryY = cursorY;
-    cursorY += SUMMARY_HEIGHT + 6;
+      // Summary block (painted in render()).
+      summaryY = cursorY;
+      cursorY += SUMMARY_HEIGHT + 6;
 
-    // Tab strip.
-    tabsY = cursorY;
-    int tabWidth = innerWidth / 2;
-    rulesTabButton =
-        new VanillaTab(
-            innerLeft,
-            cursorY,
-            tabWidth,
-            TAB_HEIGHT,
-            Text.literal("Rules"),
-            () -> activeTab == PanelTab.RULES,
-            () -> setTab(PanelTab.RULES));
-    addDrawableChild.accept(rulesTabButton);
-    allWidgets.add(rulesTabButton);
-    lockableWidgets.add(rulesTabButton);
-    settingsTabButton =
-        new VanillaTab(
-            innerLeft + tabWidth,
-            cursorY,
-            tabWidth,
-            TAB_HEIGHT,
-            Text.literal("Settings"),
-            () -> activeTab == PanelTab.SETTINGS,
-            () -> setTab(PanelTab.SETTINGS));
-    addDrawableChild.accept(settingsTabButton);
-    allWidgets.add(settingsTabButton);
-    lockableWidgets.add(settingsTabButton);
-    cursorY += TAB_HEIGHT;
+      // Tab strip.
+      tabsY = cursorY;
+      int tabWidth = innerWidth / 2;
+      rulesTabButton =
+          new VanillaTab(
+              innerLeft,
+              cursorY,
+              tabWidth,
+              TAB_HEIGHT,
+              Text.literal("Rules"),
+              () -> activeTab == PanelTab.RULES,
+              () -> setTab(PanelTab.RULES));
+      addDrawableChild.accept(rulesTabButton);
+      allWidgets.add(rulesTabButton);
+      lockableWidgets.add(rulesTabButton);
+      settingsTabButton =
+          new VanillaTab(
+              innerLeft + tabWidth,
+              cursorY,
+              tabWidth,
+              TAB_HEIGHT,
+              Text.literal("Settings"),
+              () -> activeTab == PanelTab.SETTINGS,
+              () -> setTab(PanelTab.SETTINGS));
+      addDrawableChild.accept(settingsTabButton);
+      allWidgets.add(settingsTabButton);
+      lockableWidgets.add(settingsTabButton);
+      cursorY += TAB_HEIGHT;
+    }
 
     // Content well: dark recessed background, host for the active tab.
     contentY = cursorY;
     contentHeight = (panelY + HEIGHT - SIDE_PADDING) - cursorY;
-    rulesView.attach(
-        this,
-        widget -> {
-          addDrawableChild.accept(widget);
-          allWidgets.add(widget);
-          lockableWidgets.add(widget);
-        });
+    if (!clientPrefsMode) {
+      rulesView.attach(
+          this,
+          widget -> {
+            addDrawableChild.accept(widget);
+            allWidgets.add(widget);
+            lockableWidgets.add(widget);
+          });
+    }
+    settingsView.setShowServerPolicy(!clientPrefsMode);
     settingsView.attach(
         this,
         widget -> {
@@ -468,30 +510,33 @@ public final class LootLockInventoryPanel {
           allWidgets.add(widget);
           lockableWidgets.add(widget);
         });
-    // Span the popup across the full panel inner width so segmented controls below don't peek
-    // through, and flush the frame top with the profile well's bottom so there's no visible gap.
-    dropdownAnchorX = innerLeft + DROPDOWN_FRAME_PAD;
-    dropdownAnchorY = profileWellY + profileWellH + DROPDOWN_FRAME_PAD;
-    dropdownAnchorWidth = innerWidth - DROPDOWN_FRAME_PAD * 2;
-    dropdownSignature = "";
-    rebuildDropdownIfStale();
 
-    // Mount the rename field as a host child up front (hidden) so vanilla's keyPressed /
-    // charTyped routing reaches it naturally when we mark it focused during inline rename. The
-    // field is repositioned on-demand inside startInlineRename().
-    renameField =
-        new TextFieldWidget(
-            MinecraftClient.getInstance().textRenderer,
-            panelX,
-            panelY,
-            16,
-            12,
-            Text.literal("rename"));
-    renameField.setMaxLength(32);
-    renameField.setDrawsBackground(true);
-    renameField.visible = false;
-    addDrawableChild.accept(renameField);
-    allWidgets.add(renameField);
+    if (!clientPrefsMode) {
+      // Span the popup across the full panel inner width so segmented controls below don't peek
+      // through, and flush the frame top with the profile well's bottom so there's no visible gap.
+      dropdownAnchorX = innerLeft + DROPDOWN_FRAME_PAD;
+      dropdownAnchorY = profileWellY + profileWellH + DROPDOWN_FRAME_PAD;
+      dropdownAnchorWidth = innerWidth - DROPDOWN_FRAME_PAD * 2;
+      dropdownSignature = "";
+      rebuildDropdownIfStale();
+
+      // Mount the rename field as a host child up front (hidden) so vanilla's keyPressed /
+      // charTyped routing reaches it naturally when we mark it focused during inline rename. The
+      // field is repositioned on-demand inside startInlineRename().
+      renameField =
+          new TextFieldWidget(
+              MinecraftClient.getInstance().textRenderer,
+              panelX,
+              panelY,
+              16,
+              12,
+              Text.literal("rename"));
+      renameField.setMaxLength(32);
+      renameField.setDrawsBackground(true);
+      renameField.visible = false;
+      addDrawableChild.accept(renameField);
+      allWidgets.add(renameField);
+    }
 
     applyVisibility();
     refresh();
@@ -573,72 +618,76 @@ public final class LootLockInventoryPanel {
 
     // Header.
     headerY = cursorY;
-    int switchY = cursorY + (HEADER_HEIGHT - SWITCH_HEIGHT) / 2;
-    int serverSwitchX = innerRight - SWITCH_WIDTH;
-    int clientSwitchX = serverSwitchX - SWITCH_WIDTH - 40 - 4;
-    if (serverSwitch != null) {
-      serverSwitch.setPosition(serverSwitchX, switchY);
-    }
-    if (clientSwitch != null) {
-      clientSwitch.setPosition(clientSwitchX, switchY);
+    if (!clientPrefsMode) {
+      int switchY = cursorY + (HEADER_HEIGHT - SWITCH_HEIGHT) / 2;
+      int serverSwitchX = innerRight - SWITCH_WIDTH;
+      int clientSwitchX = serverSwitchX - SWITCH_WIDTH - 40 - 4;
+      if (serverSwitch != null) {
+        serverSwitch.setPosition(serverSwitchX, switchY);
+      }
+      if (clientSwitch != null) {
+        clientSwitch.setPosition(clientSwitchX, switchY);
+      }
     }
     cursorY += HEADER_HEIGHT + 6;
 
-    // Profile well + arrows + pill.
-    profileWellY = cursorY;
-    profileWellH = PROFILE_ROW_HEIGHT + 8;
-    profileY = cursorY + 4;
-    int navWidth = 14;
-    int pillX = innerLeft + navWidth + 3;
-    int pillWidth = innerWidth - navWidth * 2 - 6;
-    int nextX = pillX + pillWidth + 3;
-    if (prevProfileButton != null) {
-      prevProfileButton.setPosition(innerLeft, profileY);
-    }
-    if (profilePill != null) {
-      profilePill.setPosition(pillX, profileY);
-    }
-    if (nextProfileButton != null) {
-      nextProfileButton.setPosition(nextX, profileY);
-    }
-    cursorY = profileWellY + profileWellH + 6;
+    if (!clientPrefsMode) {
+      // Profile well + arrows + pill.
+      profileWellY = cursorY;
+      profileWellH = PROFILE_ROW_HEIGHT + 8;
+      profileY = cursorY + 4;
+      int navWidth = 14;
+      int pillX = innerLeft + navWidth + 3;
+      int pillWidth = innerWidth - navWidth * 2 - 6;
+      int nextX = pillX + pillWidth + 3;
+      if (prevProfileButton != null) {
+        prevProfileButton.setPosition(innerLeft, profileY);
+      }
+      if (profilePill != null) {
+        profilePill.setPosition(pillX, profileY);
+      }
+      if (nextProfileButton != null) {
+        nextProfileButton.setPosition(nextX, profileY);
+      }
+      cursorY = profileWellY + profileWellH + 6;
 
-    // Controls well.
-    int controlsPad = 5;
-    controlsWellY = cursorY;
-    controlsWellH = controlsPad * 2 + CONTROL_ROW_HEIGHT * 2 + 2;
-    cursorY = controlsWellY + controlsPad;
-    modeY = cursorY;
-    int segLeft = innerLeft + CTL_LABEL_WIDTH;
-    int segWidth = (innerRight - segLeft) / 2;
-    if (modeAllowButton != null) {
-      modeAllowButton.setPosition(segLeft, cursorY);
-    }
-    if (modeDenyButton != null) {
-      modeDenyButton.setPosition(segLeft + segWidth, cursorY);
-    }
-    cursorY += CONTROL_ROW_HEIGHT + 2;
-    actionY = cursorY;
-    if (actionLeaveButton != null) {
-      actionLeaveButton.setPosition(segLeft, cursorY);
-    }
-    if (actionDeleteButton != null) {
-      actionDeleteButton.setPosition(segLeft + segWidth, cursorY);
-    }
-    cursorY = controlsWellY + controlsWellH + 6;
+      // Controls well.
+      int controlsPad = 5;
+      controlsWellY = cursorY;
+      controlsWellH = controlsPad * 2 + CONTROL_ROW_HEIGHT * 2 + 2;
+      cursorY = controlsWellY + controlsPad;
+      modeY = cursorY;
+      int segLeft = innerLeft + CTL_LABEL_WIDTH;
+      int segWidth = (innerRight - segLeft) / 2;
+      if (modeAllowButton != null) {
+        modeAllowButton.setPosition(segLeft, cursorY);
+      }
+      if (modeDenyButton != null) {
+        modeDenyButton.setPosition(segLeft + segWidth, cursorY);
+      }
+      cursorY += CONTROL_ROW_HEIGHT + 2;
+      actionY = cursorY;
+      if (actionLeaveButton != null) {
+        actionLeaveButton.setPosition(segLeft, cursorY);
+      }
+      if (actionDeleteButton != null) {
+        actionDeleteButton.setPosition(segLeft + segWidth, cursorY);
+      }
+      cursorY = controlsWellY + controlsWellH + 6;
 
-    // Summary, tabs.
-    summaryY = cursorY;
-    cursorY += SUMMARY_HEIGHT + 6;
-    tabsY = cursorY;
-    int tabWidth = innerWidth / 2;
-    if (rulesTabButton != null) {
-      rulesTabButton.setPosition(innerLeft, cursorY);
+      // Summary, tabs.
+      summaryY = cursorY;
+      cursorY += SUMMARY_HEIGHT + 6;
+      tabsY = cursorY;
+      int tabWidth = innerWidth / 2;
+      if (rulesTabButton != null) {
+        rulesTabButton.setPosition(innerLeft, cursorY);
+      }
+      if (settingsTabButton != null) {
+        settingsTabButton.setPosition(innerLeft + tabWidth, cursorY);
+      }
+      cursorY += TAB_HEIGHT;
     }
-    if (settingsTabButton != null) {
-      settingsTabButton.setPosition(innerLeft + tabWidth, cursorY);
-    }
-    cursorY += TAB_HEIGHT;
 
     // Content well — takes the remaining space so a shorter panel just shows fewer rows.
     contentY = cursorY;
@@ -648,15 +697,17 @@ public final class LootLockInventoryPanel {
       contentHeight = CONTENT_PADDING * 2 + 20;
     }
 
-    // Re-anchor dropdown to span the full panel inner width with the frame flush against the
-    // profile well's bottom edge — see attach() for the layout reasoning.
-    dropdownAnchorX = innerLeft + DROPDOWN_FRAME_PAD;
-    dropdownAnchorY = profileWellY + profileWellH + DROPDOWN_FRAME_PAD;
-    dropdownAnchorWidth = innerWidth - DROPDOWN_FRAME_PAD * 2;
-    dropdownSignature = "";
-    rebuildDropdownIfStale();
+    if (!clientPrefsMode) {
+      // Re-anchor dropdown to span the full panel inner width with the frame flush against the
+      // profile well's bottom edge — see attach() for the layout reasoning.
+      dropdownAnchorX = innerLeft + DROPDOWN_FRAME_PAD;
+      dropdownAnchorY = profileWellY + profileWellH + DROPDOWN_FRAME_PAD;
+      dropdownAnchorWidth = innerWidth - DROPDOWN_FRAME_PAD * 2;
+      dropdownSignature = "";
+      rebuildDropdownIfStale();
 
-    rulesView.relayout();
+      rulesView.relayout();
+    }
     settingsView.relayout();
   }
 
@@ -669,6 +720,11 @@ public final class LootLockInventoryPanel {
       return;
     }
     Chrome.guiWindow(context, panelX, panelY, WIDTH, currentHeight);
+    if (clientPrefsMode) {
+      Chrome.well(
+          context, panelX + SIDE_PADDING, contentY, WIDTH - SIDE_PADDING * 2, contentHeight);
+      return;
+    }
     Chrome.well(
         context, panelX + SIDE_PADDING, profileWellY, WIDTH - SIDE_PADDING * 2, profileWellH);
     Chrome.well(
@@ -761,6 +817,11 @@ public final class LootLockInventoryPanel {
         headerY + (HEADER_HEIGHT - 8) / 2,
         0xFF2F2F2F,
         false);
+
+    if (clientPrefsMode) {
+      settingsView.render(context, mouseX, mouseY, delta);
+      return;
+    }
 
     int switchY = headerY + (HEADER_HEIGHT - 8) / 2;
     boolean showServer = serverSwitch != null && serverSwitch.visible;
@@ -954,7 +1015,7 @@ public final class LootLockInventoryPanel {
   }
 
   public void setTab(PanelTab tab) {
-    if (tab == null || tab == activeTab) {
+    if (tab == null || tab == activeTab || clientPrefsMode) {
       return;
     }
     activeTab = tab;
@@ -968,6 +1029,9 @@ public final class LootLockInventoryPanel {
   }
 
   public void refresh() {
+    if (clientPrefsMode) {
+      return;
+    }
     boolean globallyEnabled = currentGloballyEnabled();
     boolean canDelete = LootLockClient.getState().isAllowDeleteRejectedItems();
     if (actionDeleteButton != null) {
@@ -1091,7 +1155,7 @@ public final class LootLockInventoryPanel {
     for (ClickableWidget widget : dropdownWidgets) {
       widget.visible = open && dropdownOpen;
     }
-    rulesView.setVisible(open && activeTab == PanelTab.RULES);
+    rulesView.setVisible(!clientPrefsMode && open && activeTab == PanelTab.RULES);
     settingsView.setVisible(open && activeTab == PanelTab.SETTINGS);
   }
 

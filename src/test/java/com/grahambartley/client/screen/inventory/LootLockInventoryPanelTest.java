@@ -2,12 +2,16 @@ package com.grahambartley.client.screen.inventory;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.LongSupplier;
 import net.minecraft.Bootstrap;
 import net.minecraft.SharedConstants;
+import net.minecraft.client.gui.widget.ClickableWidget;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -123,5 +127,44 @@ class LootLockInventoryPanelTest {
     assertTrue(panel.isOpen());
     assertEquals(PanelTab.RULES, panel.getActiveTab());
     assertTrue(panel.isFlashActive());
+  }
+
+  @Test
+  void clientPrefsModeAttachOmitsPerWorldWidgets() {
+    panel.setClientPrefsMode(true);
+    List<ClickableWidget> collected = new ArrayList<>();
+
+    panel.attach(null, 0, 0, collected::add);
+
+    assertFalse(
+        collected.stream().anyMatch(w -> w instanceof ProfilePill),
+        "ProfilePill should not be created in client-prefs mode");
+    assertFalse(
+        collected.stream().anyMatch(w -> w instanceof NavArrowButton),
+        "NavArrowButton should not be created in client-prefs mode");
+    assertFalse(
+        collected.stream().anyMatch(w -> w instanceof SegmentedButton),
+        "SegmentedButton (mode/action) should not be created in client-prefs mode");
+    assertFalse(
+        collected.stream().anyMatch(w -> w instanceof VanillaTab),
+        "VanillaTab (tab row) should not be created in client-prefs mode");
+    for (ClickableWidget widget : collected) {
+      assertTrue(
+          widget instanceof VanillaSwitch,
+          "Only notification + safety switches should remain, got "
+              + widget.getClass().getSimpleName());
+    }
+    assertEquals(
+        4,
+        collected.size(),
+        "Expected 3 notification switches + 1 safety switch in client-prefs mode");
+  }
+
+  @Test
+  void setClientPrefsModeAfterAttachThrows() {
+    panel.setClientPrefsMode(true);
+    panel.attach(null, 0, 0, w -> {});
+
+    assertThrows(IllegalStateException.class, () -> panel.setClientPrefsMode(false));
   }
 }

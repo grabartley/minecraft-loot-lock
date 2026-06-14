@@ -168,7 +168,7 @@ Profile data is server-authoritative and saved per player UUID alongside other w
 | --- | --- | --- | --- |
 | Fabric Loader | `>=0.19.2` | Yes | Mod loader |
 | Fabric API | `>=0.92.9+1.20.1` | Yes | Fabric hooks and APIs |
-| Mod Menu | `>=7.2.2` | No | Opens the Loot Lock panel from the mod list |
+| Mod Menu | `>=7.2.2` | No | Opens Loot Lock client preferences from the mod list. Profiles, rules, and server policy are edited in-game by opening the Loot Lock panel from your inventory |
 
 ## Permissions
 
