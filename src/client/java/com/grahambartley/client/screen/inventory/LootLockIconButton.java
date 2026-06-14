@@ -10,7 +10,7 @@ public final class LootLockIconButton extends ButtonWidget {
   public static final Identifier ICON_TEXTURE =
       new Identifier("loot-lock", "textures/gui/icon.png");
   private static final Identifier FACE_TEXTURE =
-      new Identifier("textures/gui/recipe_button.png");
+      new Identifier("loot-lock", "textures/gui/button_face.png");
 
   private final BooleanSupplier highlightedSupplier;
 
