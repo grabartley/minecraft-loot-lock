@@ -24,7 +24,8 @@ import net.minecraft.text.Text;
  * <ul>
  *   <li>NOTIFICATIONS: three toggles backed by {@link ClientSettings}.
  *   <li>SAFETY: confirm-before-delete toggle.
- *   <li>SERVER POLICY OPERATOR: allow-delete-rejected-items switch, hidden for non-operators.
+ *   <li>SERVER POLICY: allow-delete-rejected-items switch, read-only for non-operators on dedicated
+ *       servers.
  *   <li>CONTROLS: read-only Toggle Loot Lock and Cycle Loot Profile keybind summary.
  *   <li>ABOUT: per-player storage + operator command blurb.
  * </ul>
@@ -208,7 +209,6 @@ public final class SettingsTabView {
     int viewWidth = panel.getContentInsetWidth();
 
     int cursorY = viewY - scrollOffset;
-    boolean isOperator = isOperator(MinecraftClient.getInstance());
 
     cursorY = addSectionHeader(cursorY, "NOTIFICATIONS");
     cursorY =
@@ -249,21 +249,17 @@ public final class SettingsTabView {
                 + " accident.",
             confirmBeforeDeleteSwitch);
 
-    if (isOperator) {
-      cursorY = addSectionHeader(cursorY, "SERVER POLICY · OPERATOR");
-      cursorY =
-          addToggleRow(
-              cursorY,
-              viewX,
-              viewWidth,
-              "Allow delete mode",
-              "Set for everyone with /lootlock policy allowDeleteRejectedItems. When off, Delete is"
-                  + " blocked and every profile leaves rejected items on the ground.",
-              policySwitch);
-    } else {
-      policySwitch.setPosition(-9999, -9999);
-      policySwitch.visible = false;
-    }
+    policySwitch.setReadOnly(isPolicySwitchReadOnly(MinecraftClient.getInstance()));
+    cursorY = addSectionHeader(cursorY, "SERVER POLICY");
+    cursorY =
+        addToggleRow(
+            cursorY,
+            viewX,
+            viewWidth,
+            "Allow delete mode",
+            "Set for everyone with /lootlock policy allowDeleteRejectedItems. When off, Delete is"
+                + " blocked and every profile leaves rejected items on the ground.",
+            policySwitch);
 
     cursorY = addSectionHeader(cursorY, "CONTROLS");
     cursorY =
@@ -423,12 +419,32 @@ public final class SettingsTabView {
     return binding.getBoundKeyLocalizedText().getString();
   }
 
-  /** Visible only to operators (permission level >= 2). */
+  /** True when the local player has permission level >= 2. */
   public static boolean isOperator(MinecraftClient client) {
     if (client == null || client.player == null) {
       return false;
     }
     return client.player.hasPermissionLevel(OPERATOR_PERMISSION_LEVEL);
+  }
+
+  /**
+   * The SERVER POLICY switch is read-only when the client is connected to a dedicated server and
+   * the local player is not an operator. On integrated singleplayer or as an operator on a
+   * dedicated server, the switch is interactive.
+   */
+  public static boolean isPolicySwitchReadOnly(MinecraftClient client) {
+    if (client == null) {
+      return true;
+    }
+    return isPolicySwitchReadOnly(client.isIntegratedServerRunning(), isOperator(client));
+  }
+
+  /** Pure decision used by {@link #isPolicySwitchReadOnly(MinecraftClient)} and unit tests. */
+  static boolean isPolicySwitchReadOnly(boolean integratedServer, boolean operator) {
+    if (integratedServer) {
+      return false;
+    }
+    return !operator;
   }
 
   private static ClientSettings settingsCopy() {

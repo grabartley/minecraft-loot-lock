@@ -104,7 +104,6 @@ public final class LootLockInventoryPanel {
 
   private final RulesTabView rulesView = new RulesTabView();
   private final SettingsTabView settingsView = new SettingsTabView();
-  private final DeleteConfirmStrip deleteConfirmStrip = new DeleteConfirmStrip();
   private PanelTab activeTab = PanelTab.RULES;
 
   private Screen host;
@@ -207,9 +206,6 @@ public final class LootLockInventoryPanel {
     if (!open) {
       cancelInlineRename();
       dropdownOpen = false;
-      if (deleteConfirmStrip.isActive()) {
-        deleteConfirmStrip.setActive(false);
-      }
     }
     applyVisibility();
   }
@@ -472,14 +468,6 @@ public final class LootLockInventoryPanel {
           allWidgets.add(widget);
           lockableWidgets.add(widget);
         });
-    deleteConfirmStrip.attach(
-        widget -> {
-          addDrawableChild.accept(widget);
-          allWidgets.add(widget);
-        },
-        this::confirmEnableDelete,
-        this::cancelEnableDelete);
-
     // Span the popup across the full panel inner width so segmented controls below don't peek
     // through, and flush the frame top with the profile well's bottom so there's no visible gap.
     dropdownAnchorX = innerLeft + DROPDOWN_FRAME_PAD;
@@ -638,13 +626,6 @@ public final class LootLockInventoryPanel {
       actionDeleteButton.setPosition(segLeft + segWidth, cursorY);
     }
     cursorY = controlsWellY + controlsWellH + 6;
-
-    // Inline delete-confirm strip mounts between the controls well and the summary. Sized exactly
-    // when active; otherwise the next region collapses up to fill the space the strip would take.
-    if (deleteConfirmStrip.isActive()) {
-      deleteConfirmStrip.setPosition(panelX + SIDE_PADDING, cursorY, WIDTH - SIDE_PADDING * 2);
-      cursorY += DeleteConfirmStrip.HEIGHT + 6;
-    }
 
     // Summary, tabs.
     summaryY = cursorY;
@@ -834,8 +815,6 @@ public final class LootLockInventoryPanel {
     } else {
       settingsView.render(context, mouseX, mouseY, delta);
     }
-
-    deleteConfirmStrip.paint(context, mouseX, mouseY, delta);
 
     paintEffectsStrip(context, mouseX, mouseY);
 
@@ -1334,35 +1313,30 @@ public final class LootLockInventoryPanel {
       return;
     }
     if (action == RejectedItemAction.DELETE && shouldConfirmEnableDelete()) {
-      mountDeleteConfirmStrip();
+      openDeleteConfirmScreen();
       return;
     }
     mutateActive(draft -> draft.setRejectedItemAction(action));
   }
 
-  private void mountDeleteConfirmStrip() {
-    if (deleteConfirmStrip.isActive()) {
+  private void openDeleteConfirmScreen() {
+    MinecraftClient client = MinecraftClient.getInstance();
+    Screen current = client == null ? null : client.currentScreen;
+    if (client == null || current == null) {
       return;
     }
-    deleteConfirmStrip.setActive(true);
-    applyLayout();
-  }
-
-  private void unmountDeleteConfirmStrip() {
-    if (!deleteConfirmStrip.isActive()) {
-      return;
-    }
-    deleteConfirmStrip.setActive(false);
-    applyLayout();
-  }
-
-  private void confirmEnableDelete() {
-    unmountDeleteConfirmStrip();
-    mutateActive(draft -> draft.setRejectedItemAction(RejectedItemAction.DELETE));
-  }
-
-  private void cancelEnableDelete() {
-    unmountDeleteConfirmStrip();
+    client.setScreen(
+        new net.minecraft.client.gui.screen.ConfirmScreen(
+            confirmed -> {
+              if (confirmed) {
+                mutateActive(draft -> draft.setRejectedItemAction(RejectedItemAction.DELETE));
+              }
+              client.setScreen(current);
+            },
+            Text.literal("Enable Delete mode?"),
+            Text.literal(
+                "Rejected items will be permanently destroyed and won't drop on the ground."
+                    + " This can't be undone.")));
   }
 
   private boolean shouldConfirmEnableDelete() {
