@@ -11,14 +11,16 @@ import net.minecraft.text.Text;
  * mini action buttons (rename / duplicate / delete). Visually aligned with the prototype's {@code
  * .pf-opt} CSS row.
  *
- * <p>Click areas are split: the left "main" area (chip + name + meta) selects the profile, while
- * the right-side mini buttons are siblings registered separately. This widget only renders the
+ * <p>Click areas are split three ways: the colour chip on the left runs {@code onChipPressAction}
+ * so the player can cycle the profile colour; the rest of the row's main area selects the profile;
+ * and the right-side mini buttons are siblings registered separately. This widget only renders the
  * background, chip, and text — the per-row action buttons live on the panel itself.
  */
 public final class ProfileDropdownRow extends PressableWidget {
   public static final int ROW_HEIGHT = 22;
   public static final int ACTIONS_WIDTH = 60;
-  private static final int CHIP_SIZE = 12;
+  static final int CHIP_SIZE = 12;
+  static final int CHIP_INSET_X = 6;
 
   private final UUID profileId;
   private final int profileColor;
@@ -26,7 +28,9 @@ public final class ProfileDropdownRow extends PressableWidget {
   private final String metaText;
   private final boolean active;
   private final Runnable onPressAction;
+  private final Runnable onChipPressAction;
   private boolean suppressNameRender;
+  private boolean chipPressed;
 
   public ProfileDropdownRow(
       int x,
@@ -37,7 +41,8 @@ public final class ProfileDropdownRow extends PressableWidget {
       String profileName,
       String metaText,
       boolean active,
-      Runnable onPressAction) {
+      Runnable onPressAction,
+      Runnable onChipPressAction) {
     super(x, y, width, ROW_HEIGHT, Text.literal(profileName));
     this.profileId = profileId;
     this.profileColor = profileColor;
@@ -45,6 +50,7 @@ public final class ProfileDropdownRow extends PressableWidget {
     this.metaText = metaText == null ? "" : metaText;
     this.active = active;
     this.onPressAction = onPressAction;
+    this.onChipPressAction = onChipPressAction;
   }
 
   public UUID getProfileId() {
@@ -56,8 +62,39 @@ public final class ProfileDropdownRow extends PressableWidget {
     this.suppressNameRender = suppressNameRender;
   }
 
+  /** True when the supplied coordinate falls inside the chip rectangle. */
+  public boolean isMouseOverChip(double mouseX, double mouseY) {
+    int chipX = chipX();
+    int chipY = chipY();
+    return mouseX >= chipX
+        && mouseX < chipX + CHIP_SIZE
+        && mouseY >= chipY
+        && mouseY < chipY + CHIP_SIZE;
+  }
+
+  private int chipX() {
+    return getX() + CHIP_INSET_X;
+  }
+
+  private int chipY() {
+    return getY() + (getHeight() - CHIP_SIZE) / 2;
+  }
+
+  @Override
+  public void onClick(double mouseX, double mouseY) {
+    chipPressed = isMouseOverChip(mouseX, mouseY);
+    super.onClick(mouseX, mouseY);
+  }
+
   @Override
   public void onPress() {
+    if (chipPressed) {
+      chipPressed = false;
+      if (onChipPressAction != null) {
+        onChipPressAction.run();
+      }
+      return;
+    }
     if (onPressAction != null) {
       onPressAction.run();
     }
@@ -74,8 +111,8 @@ public final class ProfileDropdownRow extends PressableWidget {
       context.fill(getX(), getY(), getX() + 3, getY() + getHeight(), Palette.GOLD);
     }
 
-    int chipX = getX() + 6;
-    int chipY = getY() + (getHeight() - CHIP_SIZE) / 2;
+    int chipX = chipX();
+    int chipY = chipY();
     Chrome.colorChip(context, chipX, chipY, CHIP_SIZE, CHIP_SIZE, profileColor);
 
     MinecraftClient client = MinecraftClient.getInstance();
@@ -94,7 +131,7 @@ public final class ProfileDropdownRow extends PressableWidget {
 
   /** Computes the screen X where the editable name should render, in line with profileName. */
   public int nameRenderX() {
-    return getX() + 6 + CHIP_SIZE + 5;
+    return chipX() + CHIP_SIZE + 5;
   }
 
   /** Computes the screen Y where the editable name baseline sits. */

@@ -15,6 +15,7 @@ public final class LootLockProfile {
   private FilterMode mode;
   private RejectedItemAction rejectedItemAction;
   private boolean enabled;
+  private int color;
   private List<RuleEntry> rules;
 
   private transient RuleSet compiledRuleSet;
@@ -36,12 +37,24 @@ public final class LootLockProfile {
       RejectedItemAction rejectedItemAction,
       boolean enabled,
       List<RuleEntry> rules) {
+    this(id, name, mode, rejectedItemAction, enabled, 0, rules);
+  }
+
+  public LootLockProfile(
+      UUID id,
+      String name,
+      FilterMode mode,
+      RejectedItemAction rejectedItemAction,
+      boolean enabled,
+      int color,
+      List<RuleEntry> rules) {
     this.id = id == null ? UUID.randomUUID() : id;
     this.name = (name == null || name.isBlank()) ? "Default" : name;
     this.mode = mode == null ? FilterMode.DENYLIST : mode;
     this.rejectedItemAction =
         rejectedItemAction == null ? RejectedItemAction.LEAVE_ON_GROUND : rejectedItemAction;
     this.enabled = enabled;
+    this.color = color;
     this.rules = rules == null ? new ArrayList<>() : new ArrayList<>(rules);
     compileRules();
   }
@@ -129,6 +142,15 @@ public final class LootLockProfile {
 
   public void setEnabled(boolean enabled) {
     this.enabled = enabled;
+  }
+
+  /** Persisted ARGB profile colour. {@code 0} means unset; renderers fall back to the default. */
+  public int getColor() {
+    return color;
+  }
+
+  public void setColor(int color) {
+    this.color = color;
   }
 
   public List<RuleEntry> getRules() {

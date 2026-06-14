@@ -203,4 +203,52 @@ class ConfigSerializerTest {
         ConfigDeserializationException.class,
         () -> ConfigSerializer.deserialize("null", UUID.randomUUID()));
   }
+
+  @Test
+  void profileColorRoundtripsThroughJson() throws ConfigDeserializationException {
+    UUID playerUuid = UUID.randomUUID();
+    LootLockPlayerData original = LootLockPlayerData.createDefault(playerUuid);
+
+    UUID profileId = UUID.randomUUID();
+    int color = 0xFF4F9D43;
+    LootLockProfile profile =
+        new LootLockProfile(
+            profileId,
+            "Tinted",
+            FilterMode.DENYLIST,
+            RejectedItemAction.LEAVE_ON_GROUND,
+            true,
+            color,
+            List.of());
+    original.setProfiles(List.of(profile));
+
+    String json = ConfigSerializer.serialize(original);
+    LootLockPlayerData restored = ConfigSerializer.deserialize(json, playerUuid);
+
+    assertEquals(color, restored.getProfiles().get(0).getColor());
+  }
+
+  @Test
+  void legacyProfileWithoutColorDeserializesAsZero() throws ConfigDeserializationException {
+    UUID playerUuid = UUID.randomUUID();
+    LootLockPlayerData original = LootLockPlayerData.createDefault(playerUuid);
+    UUID profileId = UUID.randomUUID();
+    LootLockProfile profile =
+        new LootLockProfile(
+            profileId,
+            "Legacy",
+            FilterMode.DENYLIST,
+            RejectedItemAction.LEAVE_ON_GROUND,
+            true,
+            List.of());
+    original.setProfiles(List.of(profile));
+
+    // Strip the colour field from the serialized JSON to simulate config written before this
+    // feature shipped.
+    String json =
+        ConfigSerializer.serialize(original).replaceAll("\"color\": [\\-]?\\d+,?\\n?\\s*", "");
+    LootLockPlayerData restored = ConfigSerializer.deserialize(json, playerUuid);
+
+    assertEquals(0, restored.getProfiles().get(0).getColor());
+  }
 }
