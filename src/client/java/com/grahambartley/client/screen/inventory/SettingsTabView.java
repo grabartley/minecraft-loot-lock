@@ -10,9 +10,11 @@ import java.util.List;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.widget.ClickableWidget;
 import net.minecraft.client.option.KeyBinding;
+import net.minecraft.text.OrderedText;
 import net.minecraft.text.Text;
 
 /**
@@ -32,11 +34,9 @@ import net.minecraft.text.Text;
  */
 public final class SettingsTabView {
   private static final int SECTION_HEADER_HEIGHT = 12;
-  private static final int SECTION_HEADER_TOP_PADDING = 6;
+  private static final int SECTION_HEADER_TOP_PADDING = 10;
   private static final int SECTION_HEADER_BOTTOM_PADDING = 4;
-  private static final int SETTING_ROW_HEIGHT = 38;
   private static final int KEYBIND_ROW_HEIGHT = 14;
-  private static final int ABOUT_ROW_HEIGHT = 40;
   private static final int ROW_DIVIDER_HEIGHT = 1;
   private static final int SWITCH_WIDTH = 42;
   private static final int SWITCH_HEIGHT = 16;
@@ -44,6 +44,10 @@ public final class SettingsTabView {
   private static final int KBD_PADDING_X = 4;
   private static final int LABEL_GAP = 6;
   private static final int NOTE_PADDING = 2;
+  private static final int LINE_HEIGHT = 9;
+  private static final int TOGGLE_ROW_TOP_PADDING = 4;
+  private static final int TOGGLE_ROW_NAME_GAP = 2;
+  private static final int TOGGLE_ROW_BOTTOM_PADDING = 4;
 
   /** Hard cap so a missing-permission player still gets a stable layout. */
   static final int OPERATOR_PERMISSION_LEVEL = 2;
@@ -298,30 +302,64 @@ public final class SettingsTabView {
 
   private int addToggleRow(
       int cursorY, int viewX, int viewWidth, String name, String desc, VanillaSwitch switchWidget) {
-    int height = SETTING_ROW_HEIGHT;
+    int textWidth = viewWidth - SWITCH_WIDTH - LABEL_GAP;
+    int descLines = wrappedLineCount(desc, textWidth);
+    int height =
+        TOGGLE_ROW_TOP_PADDING
+            + LINE_HEIGHT
+            + TOGGLE_ROW_NAME_GAP
+            + descLines * LINE_HEIGHT
+            + TOGGLE_ROW_BOTTOM_PADDING;
     int rowY = cursorY;
     int switchX = viewX + viewWidth - SWITCH_WIDTH;
     int switchY = cursorY + (height - SWITCH_HEIGHT) / 2;
     switchWidget.setPosition(switchX, switchY);
-    switchWidget.visible = visible;
+    applyWidgetClipping(switchWidget, switchY);
 
-    int textWidth = viewWidth - SWITCH_WIDTH - LABEL_GAP;
     rows.add(
         new Row(
             rowY,
             height,
             (context, client, y, vx, vw) -> {
               context.drawText(
-                  client.textRenderer, Text.literal(name), vx, y + 4, Palette.ON_WELL, false);
+                  client.textRenderer,
+                  Text.literal(name),
+                  vx,
+                  y + TOGGLE_ROW_TOP_PADDING,
+                  Palette.ON_WELL,
+                  false);
               context.drawTextWrapped(
                   client.textRenderer,
                   Text.literal(desc),
                   vx,
-                  y + 4 + 10,
+                  y + TOGGLE_ROW_TOP_PADDING + LINE_HEIGHT + TOGGLE_ROW_NAME_GAP,
                   textWidth,
                   Palette.ON_WELL_DIM);
             }));
     return cursorY + height;
+  }
+
+  /** Hides the widget when it scrolls outside the panel's content well so it stops painting. */
+  private void applyWidgetClipping(ClickableWidget widget, int widgetY) {
+    if (!visible || panel == null) {
+      widget.visible = false;
+      return;
+    }
+    int viewTop = panel.getContentInsetY();
+    int viewBottom = viewTop + panel.getContentInsetHeight();
+    int widgetBottom = widgetY + widget.getHeight();
+    boolean fullyVisible = widgetY >= viewTop && widgetBottom <= viewBottom;
+    widget.visible = fullyVisible;
+  }
+
+  private int wrappedLineCount(String text, int maxWidth) {
+    TextRenderer renderer =
+        MinecraftClient.getInstance() == null ? null : MinecraftClient.getInstance().textRenderer;
+    if (renderer == null || maxWidth <= 0) {
+      return 1;
+    }
+    List<OrderedText> lines = renderer.wrapLines(Text.literal(text), maxWidth);
+    return Math.max(1, lines.size());
   }
 
   private int addKeybindRow(
@@ -354,10 +392,11 @@ public final class SettingsTabView {
   }
 
   private void addAboutRow(int cursorY, int viewX, int viewWidth) {
-    int height = ABOUT_ROW_HEIGHT;
     String body =
         "Rules are stored per player and synced from the server. Operators can manage any"
             + " player's rules with /lootlock commands, even for vanilla clients.";
+    int lines = wrappedLineCount(body, viewWidth);
+    int height = NOTE_PADDING * 2 + lines * LINE_HEIGHT;
     rows.add(
         new Row(
             cursorY,
