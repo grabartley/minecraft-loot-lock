@@ -2,37 +2,31 @@ package com.grahambartley.client.mixin;
 
 import com.grahambartley.client.screen.inventory.LootLockInventoryPanel;
 import com.grahambartley.client.screen.inventory.LootLockPanelHolder;
+import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.ingame.AbstractInventoryScreen;
-import net.minecraft.client.gui.screen.ingame.HandledScreen;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.ModifyVariable;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
- * Vanilla {@code AbstractInventoryScreen.drawStatusEffects} renders the active potion-effect column
- * just to the right of the inventory background, which is exactly where the Loot Lock docked panel
- * lives. Without intervention the icons land directly under the panel and can never be hovered.
- *
- * <p>This mixin reroutes the column to the left of the inventory (matching the EffectsLeft mod's
- * pattern) whenever the panel is open, so the effects stay visible without overlapping the panel.
- * The vanilla layout is left untouched when the panel is closed.
+ * Vanilla {@code drawStatusEffects} renders an active potion-effect column directly to the right of
+ * the inventory background, which is the same screen real estate the Loot Lock docked panel
+ * occupies. We cancel it while the panel is open and paint our own compact icon-only strip inside
+ * the panel header so the user can still see active effects without losing them to the panel.
  */
 @Mixin(AbstractInventoryScreen.class)
 public abstract class AbstractInventoryScreenMixin {
 
-  @ModifyVariable(method = "drawStatusEffects", at = @At("STORE"), ordinal = 0)
-  private int lootlock$flipStatusEffectsToLeftWhilePanelOpen(int originalRightX) {
+  @Inject(method = "drawStatusEffects", at = @At("HEAD"), cancellable = true)
+  private void lootlock$suppressStatusEffectsWhenPanelOpen(
+      DrawContext context, int mouseX, int mouseY, CallbackInfo info) {
     if (!(((Object) this) instanceof LootLockPanelHolder holder)) {
-      return originalRightX;
+      return;
     }
     LootLockInventoryPanel panel = holder.lootlock$getPanel();
-    if (panel == null || !panel.isOpen()) {
-      return originalRightX;
+    if (panel != null && panel.isOpen()) {
+      info.cancel();
     }
-    HandledScreen<?> self = (HandledScreen<?>) (Object) this;
-    // Mirror the vanilla column to the left side of the inventory background. 124 matches the
-    // wide-card width vanilla uses on the right; we reserve the same space on the left and let
-    // vanilla's narrow detection take over if the screen is too small.
-    return self.getX() - 124;
   }
 }

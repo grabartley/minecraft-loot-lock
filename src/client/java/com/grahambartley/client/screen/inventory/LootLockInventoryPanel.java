@@ -11,6 +11,7 @@ import com.grahambartley.data.LootLockProfile;
 import com.grahambartley.data.RejectedItemAction;
 import com.grahambartley.network.ClientMutationSync;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -21,6 +22,10 @@ import net.minecraft.client.gui.screen.ingame.InventoryScreen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.ClickableWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
+import net.minecraft.client.texture.Sprite;
+import net.minecraft.client.texture.StatusEffectSpriteManager;
+import net.minecraft.entity.effect.StatusEffectInstance;
+import net.minecraft.entity.effect.StatusEffectUtil;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
@@ -566,8 +571,75 @@ public final class LootLockInventoryPanel {
       settingsView.render(context, mouseX, mouseY, delta);
     }
 
+    paintEffectsStrip(context, mouseX, mouseY);
+
     if (dropdownOpen) {
       renderDropdown(context, mouseX, mouseY, delta);
+    }
+  }
+
+  /**
+   * Paints a compact horizontal strip of active status-effect icons floating above the panel. We
+   * suppress the vanilla effect column via mixin (it would otherwise overlap the panel), so this
+   * strip is what keeps active effects visible without conflicting with the recipe book on the
+   * inventory's left side. Icon-only, hover shows the same name + remaining-duration tooltip the
+   * vanilla HUD uses.
+   */
+  private void paintEffectsStrip(DrawContext context, int mouseX, int mouseY) {
+    MinecraftClient client = MinecraftClient.getInstance();
+    if (client == null || client.player == null) {
+      return;
+    }
+    Collection<StatusEffectInstance> effects = client.player.getStatusEffects();
+    if (effects.isEmpty()) {
+      return;
+    }
+    int iconSize = 18;
+    int gap = 2;
+    int stripHeight = iconSize + 4;
+    int stripY = panelY - stripHeight - 2;
+    if (stripY < 0) {
+      stripY = panelY + 1;
+    }
+    int totalIconsWidth = effects.size() * iconSize + (effects.size() - 1) * gap;
+    int maxWidth = WIDTH - 4;
+    if (totalIconsWidth > maxWidth) {
+      totalIconsWidth = maxWidth;
+    }
+    int stripX = panelX + (WIDTH - totalIconsWidth) / 2;
+    int padX = 4;
+    int padY = 2;
+    context.fill(
+        stripX - padX,
+        stripY - padY,
+        stripX + totalIconsWidth + padX,
+        stripY + iconSize + padY,
+        0xC0000000);
+    StatusEffectSpriteManager spriteManager = client.getStatusEffectSpriteManager();
+    int cursorX = stripX;
+    StatusEffectInstance hoveredEffect = null;
+    for (StatusEffectInstance effect : effects) {
+      if (cursorX + iconSize > stripX + maxWidth) {
+        break;
+      }
+      Sprite sprite = spriteManager.getSprite(effect.getEffectType());
+      context.drawSprite(cursorX, stripY, 0, iconSize, iconSize, sprite);
+      if (mouseX >= cursorX
+          && mouseX < cursorX + iconSize
+          && mouseY >= stripY
+          && mouseY < stripY + iconSize) {
+        hoveredEffect = effect;
+      }
+      cursorX += iconSize + gap;
+    }
+    if (hoveredEffect != null) {
+      Text name = Text.translatable(hoveredEffect.getTranslationKey());
+      Text duration = StatusEffectUtil.getDurationText(hoveredEffect, 1.0f);
+      context.drawTooltip(
+          client.textRenderer,
+          List.of(name, duration.copy().formatted(Formatting.GRAY)),
+          mouseX,
+          mouseY);
     }
   }
 

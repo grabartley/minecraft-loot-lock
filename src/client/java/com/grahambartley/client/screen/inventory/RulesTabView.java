@@ -68,8 +68,7 @@ public final class RulesTabView {
   private String lastClickedItemId;
   private int scrollOffset;
 
-  public void attach(
-      LootLockInventoryPanel panel, Consumer<ClickableWidget> addDrawableChild) {
+  public void attach(LootLockInventoryPanel panel, Consumer<ClickableWidget> addDrawableChild) {
     this.panel = panel;
     widgets.clear();
     rowButtons.clear();
