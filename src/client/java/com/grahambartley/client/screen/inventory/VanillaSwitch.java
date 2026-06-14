@@ -19,7 +19,7 @@ public final class VanillaSwitch extends PressableWidget {
 
   private final BooleanSupplier stateSupplier;
   private final Runnable onToggle;
-  private final boolean readOnly;
+  private boolean readOnly;
   private final boolean badWhenOff;
 
   public VanillaSwitch(
@@ -40,6 +40,14 @@ public final class VanillaSwitch extends PressableWidget {
 
   public boolean isOn() {
     return stateSupplier.getAsBoolean();
+  }
+
+  public boolean isReadOnly() {
+    return readOnly;
+  }
+
+  public void setReadOnly(boolean readOnly) {
+    this.readOnly = readOnly;
   }
 
   @Override

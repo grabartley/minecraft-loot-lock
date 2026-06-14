@@ -14,6 +14,8 @@ import net.minecraft.client.util.InputUtil;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.lwjgl.glfw.GLFW;
 
 class SettingsTabViewTest {
@@ -53,6 +55,17 @@ class SettingsTabViewTest {
   @Test
   void operatorPermissionLevelIsTwo() {
     assertEquals(2, SettingsTabView.OPERATOR_PERMISSION_LEVEL);
+  }
+
+  @ParameterizedTest(name = "integrated={0}, operator={1} -> readOnly={2}")
+  @CsvSource({
+    "true,  false, false",
+    "true,  true,  false",
+    "false, true,  false",
+    "false, false, true",
+  })
+  void policySwitchReadOnlyMatrix(boolean integrated, boolean operator, boolean expected) {
+    assertEquals(expected, SettingsTabView.isPolicySwitchReadOnly(integrated, operator));
   }
 
   @Test
