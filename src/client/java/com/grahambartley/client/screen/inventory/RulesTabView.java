@@ -468,7 +468,7 @@ public final class RulesTabView {
 
   private static void paintKbd(
       DrawContext context, MinecraftClient client, String text, int x, int y, int width) {
-    context.fill(x, y - 1, x + width, y + 9, 0xFF3A3A42);
+    context.fill(x, y - 1, x + width, y + 9, Palette.KBD_FILL);
     context.drawText(client.textRenderer, Text.literal(text), x + 2, y, 0xFFDCDCE2, false);
   }
 

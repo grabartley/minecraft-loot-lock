@@ -51,9 +51,9 @@ public final class LootLockInventoryPanel {
   private static final int MIN_HEIGHT = 200;
 
   /**
-   * Sticky panel-open state survives inventory close + ConfirmScreen detours, so the user does not
-   * have to re-open the docked panel after every safety prompt. Lives on the class so the next
-   * {@link InventoryScreen} that re-attaches a panel can restore it.
+   * Sticky panel-open state survives inventory close so the user does not have to re-open the
+   * docked panel after every detour. Lives on the class so the next {@link InventoryScreen} that
+   * re-attaches a panel can restore it.
    */
   private static boolean STICKY_OPEN_STATE = false;
 
@@ -85,6 +85,7 @@ public final class LootLockInventoryPanel {
 
   private final RulesTabView rulesView = new RulesTabView();
   private final SettingsTabView settingsView = new SettingsTabView();
+  private final DeleteConfirmStrip deleteConfirmStrip = new DeleteConfirmStrip();
   private PanelTab activeTab = PanelTab.RULES;
 
   private Screen host;
@@ -148,12 +149,15 @@ public final class LootLockInventoryPanel {
     return open && activeTab == PanelTab.RULES && rulesView.isSearchFieldFocused();
   }
 
-  /** Forward a mouse-wheel event to the Rules tab so the user can scroll through results. */
+  /** Forward a mouse-wheel event to the active tab so the user can scroll its content. */
   public boolean handleMouseScroll(double mouseX, double mouseY, double amount) {
-    if (!open || activeTab != PanelTab.RULES) {
+    if (!open) {
       return false;
     }
-    return rulesView.mouseScrolledInRows(mouseX, mouseY, amount);
+    if (activeTab == PanelTab.RULES) {
+      return rulesView.mouseScrolledInRows(mouseX, mouseY, amount);
+    }
+    return settingsView.mouseScrolled(mouseX, mouseY, amount);
   }
 
   /** True when the given screen-space point falls inside the panel's rectangle. */
@@ -182,6 +186,9 @@ public final class LootLockInventoryPanel {
     if (!open) {
       cancelInlineRename();
       dropdownOpen = false;
+      if (deleteConfirmStrip.isActive()) {
+        deleteConfirmStrip.setActive(false);
+      }
     }
     applyVisibility();
   }
@@ -399,6 +406,13 @@ public final class LootLockInventoryPanel {
           allWidgets.add(widget);
           lockableWidgets.add(widget);
         });
+    deleteConfirmStrip.attach(
+        widget -> {
+          addDrawableChild.accept(widget);
+          allWidgets.add(widget);
+        },
+        this::confirmEnableDelete,
+        this::cancelEnableDelete);
 
     dropdownAnchorX = pillX;
     dropdownAnchorY = panelY + SIDE_PADDING + HEADER_HEIGHT + PROFILE_ROW_HEIGHT + 5;
@@ -557,6 +571,13 @@ public final class LootLockInventoryPanel {
     }
     cursorY = controlsWellY + controlsWellH + 6;
 
+    // Inline delete-confirm strip mounts between the controls well and the summary. Sized exactly
+    // when active; otherwise the next region collapses up to fill the space the strip would take.
+    if (deleteConfirmStrip.isActive()) {
+      deleteConfirmStrip.setPosition(panelX + SIDE_PADDING, cursorY, WIDTH - SIDE_PADDING * 2);
+      cursorY += DeleteConfirmStrip.HEIGHT + 6;
+    }
+
     // Summary, tabs.
     summaryY = cursorY;
     cursorY += SUMMARY_HEIGHT + 6;
@@ -695,6 +716,8 @@ public final class LootLockInventoryPanel {
     } else {
       settingsView.render(context, mouseX, mouseY, delta);
     }
+
+    deleteConfirmStrip.paint(context, mouseX, mouseY, delta);
 
     paintEffectsStrip(context, mouseX, mouseY);
 
@@ -1121,22 +1144,35 @@ public final class LootLockInventoryPanel {
       return;
     }
     if (action == RejectedItemAction.DELETE && shouldConfirmEnableDelete()) {
-      MinecraftClient client = MinecraftClient.getInstance();
-      net.minecraft.client.gui.screen.Screen current = client.currentScreen;
-      client.setScreen(
-          new net.minecraft.client.gui.screen.ConfirmScreen(
-              confirmed -> {
-                client.setScreen(current);
-                if (confirmed) {
-                  mutateActive(draft -> draft.setRejectedItemAction(RejectedItemAction.DELETE));
-                }
-              },
-              Text.literal("Enable delete mode?"),
-              Text.literal(
-                  "Rejected dropped items are permanently deleted and cannot be recovered.")));
+      mountDeleteConfirmStrip();
       return;
     }
     mutateActive(draft -> draft.setRejectedItemAction(action));
+  }
+
+  private void mountDeleteConfirmStrip() {
+    if (deleteConfirmStrip.isActive()) {
+      return;
+    }
+    deleteConfirmStrip.setActive(true);
+    applyLayout();
+  }
+
+  private void unmountDeleteConfirmStrip() {
+    if (!deleteConfirmStrip.isActive()) {
+      return;
+    }
+    deleteConfirmStrip.setActive(false);
+    applyLayout();
+  }
+
+  private void confirmEnableDelete() {
+    unmountDeleteConfirmStrip();
+    mutateActive(draft -> draft.setRejectedItemAction(RejectedItemAction.DELETE));
+  }
+
+  private void cancelEnableDelete() {
+    unmountDeleteConfirmStrip();
   }
 
   private boolean shouldConfirmEnableDelete() {

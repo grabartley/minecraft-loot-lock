@@ -37,5 +37,11 @@ public final class Palette {
   /** Neutral grey used as the on-state background for the "Leave" action segment. */
   public static final int LEAVE = 0xFF6A6F78;
 
+  /** Fill behind the keyboard-key pill chip used in settings and bulk-bar hints. */
+  public static final int KBD_FILL = 0xFF3A3A42;
+
+  /** 1px divider between adjacent rows inside the dark content well. */
+  public static final int ROW_DIVIDER = 0xFF1E1E22;
+
   public static final int SHADOW = 0x8C000000;
 }
