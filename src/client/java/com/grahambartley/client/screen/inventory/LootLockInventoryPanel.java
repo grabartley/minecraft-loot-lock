@@ -10,6 +10,7 @@ import com.grahambartley.data.LootLockPlayerData;
 import com.grahambartley.data.LootLockProfile;
 import com.grahambartley.data.RejectedItemAction;
 import com.grahambartley.network.ClientMutationSync;
+import com.grahambartley.network.PacketLimits;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -21,6 +22,7 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.ingame.InventoryScreen;
+import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.ClickableWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
@@ -1156,6 +1158,7 @@ public final class LootLockInventoryPanel {
       widget.visible = open && dropdownOpen;
     }
     rulesView.setVisible(!clientPrefsMode && open && activeTab == PanelTab.RULES);
+    rulesView.setOverlayHidden(open && dropdownOpen);
     settingsView.setVisible(open && activeTab == PanelTab.SETTINGS);
   }
 
@@ -1254,6 +1257,12 @@ public final class LootLockInventoryPanel {
     dropdownWidgets.clear();
     newProfileButton = null;
 
+    boolean canCreate = ProfileUiController.canCreateProfile(profiles);
+    Tooltip atCapacityTooltip =
+        Tooltip.of(
+            Text.literal(
+                "Profile limit reached (" + PacketLimits.MAX_PROFILES + "). Delete one first."));
+
     int headerStripHeight = 14;
     int rowHeight = ProfileDropdownRow.ROW_HEIGHT;
     int actionsWidth = ProfileDropdownRow.ACTIONS_WIDTH;
@@ -1285,6 +1294,10 @@ public final class LootLockInventoryPanel {
               "D",
               false,
               () -> duplicateProfile(profile));
+      duplicateButton.active = canCreate;
+      if (!canCreate) {
+        duplicateButton.setTooltip(atCapacityTooltip);
+      }
       MiniActionButton deleteButton =
           new MiniActionButton(
               actionsX + gap * 3 + MiniActionButton.SIZE * 2,
@@ -1305,6 +1318,10 @@ public final class LootLockInventoryPanel {
                 Text.literal("+ New profile").formatted(Formatting.GREEN), b -> createProfile())
             .dimensions(dropdownAnchorX, y + 3, dropdownAnchorWidth, 16)
             .build();
+    newProfileButton.active = canCreate;
+    if (!canCreate) {
+      newProfileButton.setTooltip(atCapacityTooltip);
+    }
     dropdownWidgets.add(newProfileButton);
 
     int frameTop = dropdownAnchorY - DROPDOWN_FRAME_PAD;
@@ -1327,6 +1344,7 @@ public final class LootLockInventoryPanel {
     for (ClickableWidget widget : dropdownWidgets) {
       widget.visible = open && dropdownOpen;
     }
+    rulesView.setOverlayHidden(open && dropdownOpen);
   }
 
   private Optional<LootLockProfile> activeProfile() {
@@ -1598,5 +1616,6 @@ public final class LootLockInventoryPanel {
     for (ClickableWidget widget : dropdownWidgets) {
       widget.visible = false;
     }
+    rulesView.setOverlayHidden(false);
   }
 }
