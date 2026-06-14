@@ -1139,9 +1139,16 @@ public final class LootLockInventoryPanel {
             && mouseY >= dropdownFrameY
             && mouseY < dropdownFrameY + dropdownFrameH;
     if (!insideFrame) {
-      // Click anywhere off the popup dismisses the dropdown and lets the click bubble to vanilla
-      // so the user can still operate the rest of the inventory in the same gesture. An in-flight
-      // rename commits so the user does not lose pending edits when they click away.
+      if (profilePill != null
+          && mouseX >= profilePill.getX()
+          && mouseX < profilePill.getX() + profilePill.getWidth()
+          && mouseY >= profilePill.getY()
+          && mouseY < profilePill.getY() + profilePill.getHeight()) {
+        if (isInlineRenameActive()) {
+          commitInlineRename();
+        }
+        return false;
+      }
       if (isInlineRenameActive()) {
         commitInlineRename();
       }
