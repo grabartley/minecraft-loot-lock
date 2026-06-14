@@ -56,7 +56,13 @@ public abstract class InventoryScreenMixin implements LootLockPanelHolder {
     ScreenAccessor accessor = (ScreenAccessor) self;
     lootlock$entryButton =
         accessor.lootlock$invokeAddDrawableChild(
-            new LootLockIconButton(entryX, entryY, 20, 18, button -> lootlock$onEntryClicked()));
+            new LootLockIconButton(
+                entryX,
+                entryY,
+                20,
+                18,
+                () -> lootlock$panel != null && lootlock$panel.isOpen(),
+                button -> lootlock$onEntryClicked()));
 
     lootlock$panel = new LootLockInventoryPanel();
     lootlock$panel.attach(self, panelX, panelY, accessor::lootlock$invokeAddDrawableChild);
