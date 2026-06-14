@@ -31,6 +31,11 @@ public final class SettingsTabView {
     }
   }
 
+  /** Placeholder hook so the panel can re-layout this tab when its dimensions change. */
+  public void relayout() {
+    // No widgets yet; the placeholder text reads its origin live from the panel each frame.
+  }
+
   public void render(DrawContext context, int mouseX, int mouseY, float delta) {
     if (!visible || panel == null) {
       return;

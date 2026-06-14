@@ -78,7 +78,10 @@ public abstract class InventoryScreenMixin implements LootLockPanelHolder {
       lootlock$entryButton.setPosition(invX + 128, invY + 61);
     }
     if (lootlock$panel != null) {
-      lootlock$panel.relocate(invX + 176 + 4, invY);
+      MinecraftClient client = MinecraftClient.getInstance();
+      int scaledWidth = client.getWindow().getScaledWidth();
+      int scaledHeight = client.getWindow().getScaledHeight();
+      lootlock$panel.layout(invX + 176 + 4, invY, scaledWidth, scaledHeight);
       lootlock$panel.refresh();
       lootlock$panel.paintChrome(context);
     }

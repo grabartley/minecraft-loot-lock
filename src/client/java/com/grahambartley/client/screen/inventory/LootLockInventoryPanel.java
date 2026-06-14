@@ -40,7 +40,14 @@ import net.minecraft.util.Identifier;
  */
 public final class LootLockInventoryPanel {
   public static final int WIDTH = 270;
+
+  /** Natural / maximum height; the actual rendered height is clamped to fit the screen. */
   public static final int HEIGHT = 360;
+
+  /**
+   * Minimum panel height that still renders a usable layout — below this we just hide the panel.
+   */
+  private static final int MIN_HEIGHT = 200;
 
   /**
    * Sticky panel-open state survives inventory close + ConfirmScreen detours, so the user does not
@@ -82,6 +89,11 @@ public final class LootLockInventoryPanel {
   private InventoryScreen host;
   private int panelX;
   private int panelY;
+  private int currentHeight = HEIGHT;
+
+  /** True when the screen is too small to render the panel even at MIN_HEIGHT — hide it. */
+  private boolean fitsOnScreen = true;
+
   private boolean open;
   private boolean dropdownOpen;
 
@@ -146,10 +158,21 @@ public final class LootLockInventoryPanel {
   /** True when the given screen-space point falls inside the panel's rectangle. */
   public boolean containsPoint(double mouseX, double mouseY) {
     return open
+        && fitsOnScreen
         && mouseX >= panelX
         && mouseX < panelX + WIDTH
         && mouseY >= panelY
-        && mouseY < panelY + HEIGHT;
+        && mouseY < panelY + currentHeight;
+  }
+
+  /** Live current height; differs from {@link #HEIGHT} when clamped to a small screen. */
+  public int getCurrentHeight() {
+    return currentHeight;
+  }
+
+  /** True when the screen had room to actually render the panel. */
+  public boolean fitsOnScreen() {
+    return fitsOnScreen;
   }
 
   public void setOpen(boolean open) {
@@ -431,37 +454,128 @@ public final class LootLockInventoryPanel {
     return contentHeight - CONTENT_PADDING * 2;
   }
 
-  /** Shifts every panel widget so the panel anchor moves to ({@code newX}, {@code newY}). */
-  public void relocate(int newX, int newY) {
-    int dx = newX - panelX;
-    int dy = newY - panelY;
-    if (dx == 0 && dy == 0) {
+  /**
+   * Recomputes the panel anchor and dimensions so it always fits on the screen, then snaps every
+   * widget to the resulting layout. Called once per frame from the inventory mixin so changes to
+   * the recipe-book layout, window size or GUI scale flow through naturally.
+   *
+   * @param desiredX preferred X (typically inventory's right edge + gap)
+   * @param desiredY preferred Y (typically inventory's top)
+   * @param scaledWidth current screen width in GUI units
+   * @param scaledHeight current screen height in GUI units
+   */
+  public void layout(int desiredX, int desiredY, int scaledWidth, int scaledHeight) {
+    int margin = 2;
+    int availableHeight = scaledHeight - margin * 2;
+    int newHeight = Math.min(HEIGHT, Math.max(MIN_HEIGHT, availableHeight));
+    boolean newFits = scaledWidth >= WIDTH + margin * 2 && scaledHeight >= MIN_HEIGHT + margin * 2;
+
+    int newX = Math.max(margin, Math.min(scaledWidth - WIDTH - margin, desiredX));
+    int newY = Math.max(margin, Math.min(scaledHeight - newHeight - margin, desiredY));
+
+    if (newX == panelX && newY == panelY && newHeight == currentHeight && newFits == fitsOnScreen) {
       return;
     }
     panelX = newX;
     panelY = newY;
-    for (ClickableWidget widget : allWidgets) {
-      widget.setX(widget.getX() + dx);
-      widget.setY(widget.getY() + dy);
+    currentHeight = newHeight;
+    fitsOnScreen = newFits;
+    applyLayout();
+  }
+
+  /** Repositions every widget + layout reference based on current panelX, panelY, currentHeight. */
+  private void applyLayout() {
+    int innerLeft = panelX + SIDE_PADDING;
+    int innerRight = panelX + WIDTH - SIDE_PADDING;
+    int innerWidth = innerRight - innerLeft;
+    int cursorY = panelY + SIDE_PADDING;
+
+    // Header.
+    headerY = cursorY;
+    int switchY = cursorY + (HEADER_HEIGHT - SWITCH_HEIGHT) / 2;
+    int serverSwitchX = innerRight - SWITCH_WIDTH;
+    int clientSwitchX = serverSwitchX - SWITCH_WIDTH - 40 - 4;
+    if (serverSwitch != null) {
+      serverSwitch.setPosition(serverSwitchX, switchY);
     }
-    // Position references used by the chrome painter.
-    headerY += dy;
-    profileY += dy;
-    profileWellY += dy;
-    modeY += dy;
-    actionY += dy;
-    controlsWellY += dy;
-    summaryY += dy;
-    tabsY += dy;
-    contentY += dy;
-    dropdownAnchorX += dx;
-    dropdownAnchorY += dy;
-    dropdownFrameX += dx;
-    dropdownFrameY += dy;
-    for (ClickableWidget widget : dropdownWidgets) {
-      widget.setX(widget.getX() + dx);
-      widget.setY(widget.getY() + dy);
+    if (clientSwitch != null) {
+      clientSwitch.setPosition(clientSwitchX, switchY);
     }
+    cursorY += HEADER_HEIGHT + 6;
+
+    // Profile well + arrows + pill.
+    profileWellY = cursorY;
+    profileWellH = PROFILE_ROW_HEIGHT + 8;
+    profileY = cursorY + 4;
+    int navWidth = 14;
+    int pillX = innerLeft + navWidth + 3;
+    int pillWidth = innerWidth - navWidth * 2 - 6;
+    int nextX = pillX + pillWidth + 3;
+    if (prevProfileButton != null) {
+      prevProfileButton.setPosition(innerLeft, profileY);
+    }
+    if (profilePill != null) {
+      profilePill.setPosition(pillX, profileY);
+    }
+    if (nextProfileButton != null) {
+      nextProfileButton.setPosition(nextX, profileY);
+    }
+    cursorY = profileWellY + profileWellH + 6;
+
+    // Controls well.
+    int controlsPad = 5;
+    controlsWellY = cursorY;
+    controlsWellH = controlsPad * 2 + CONTROL_ROW_HEIGHT * 2 + 2;
+    cursorY = controlsWellY + controlsPad;
+    modeY = cursorY;
+    int segLeft = innerLeft + CTL_LABEL_WIDTH;
+    int segWidth = (innerRight - segLeft) / 2;
+    if (modeAllowButton != null) {
+      modeAllowButton.setPosition(segLeft, cursorY);
+    }
+    if (modeDenyButton != null) {
+      modeDenyButton.setPosition(segLeft + segWidth, cursorY);
+    }
+    cursorY += CONTROL_ROW_HEIGHT + 2;
+    actionY = cursorY;
+    if (actionLeaveButton != null) {
+      actionLeaveButton.setPosition(segLeft, cursorY);
+    }
+    if (actionDeleteButton != null) {
+      actionDeleteButton.setPosition(segLeft + segWidth, cursorY);
+    }
+    cursorY = controlsWellY + controlsWellH + 6;
+
+    // Summary, tabs.
+    summaryY = cursorY;
+    cursorY += SUMMARY_HEIGHT + 6;
+    tabsY = cursorY;
+    int tabWidth = innerWidth / 2;
+    if (rulesTabButton != null) {
+      rulesTabButton.setPosition(innerLeft, cursorY);
+    }
+    if (settingsTabButton != null) {
+      settingsTabButton.setPosition(innerLeft + tabWidth, cursorY);
+    }
+    cursorY += TAB_HEIGHT;
+
+    // Content well — takes the remaining space so a shorter panel just shows fewer rows.
+    contentY = cursorY;
+    contentHeight = (panelY + currentHeight - SIDE_PADDING) - cursorY;
+    if (contentHeight < CONTENT_PADDING * 2 + 20) {
+      // Bottom out before going negative; rules view will clamp visibleRows to its floor.
+      contentHeight = CONTENT_PADDING * 2 + 20;
+    }
+
+    // Re-anchor dropdown.
+    dropdownAnchorX = pillX;
+    dropdownAnchorY = panelY + SIDE_PADDING + HEADER_HEIGHT + PROFILE_ROW_HEIGHT + 5;
+    dropdownAnchorWidth = pillWidth;
+    dropdownSignature = "";
+    rebuildDropdownIfStale();
+
+    rulesView.relayout();
+    settingsView.relayout();
   }
 
   /**
@@ -469,10 +583,10 @@ public final class LootLockInventoryPanel {
    * BEFORE the host screen renders its widget children so the wells sit behind everything.
    */
   public void paintChrome(DrawContext context) {
-    if (!open) {
+    if (!open || !fitsOnScreen) {
       return;
     }
-    Chrome.guiWindow(context, panelX, panelY, WIDTH, HEIGHT);
+    Chrome.guiWindow(context, panelX, panelY, WIDTH, currentHeight);
     Chrome.well(
         context, panelX + SIDE_PADDING, profileWellY, WIDTH - SIDE_PADDING * 2, profileWellH);
     Chrome.well(
@@ -499,7 +613,7 @@ public final class LootLockInventoryPanel {
    * AFTER the host screen renders its widget children.
    */
   public void paintForeground(DrawContext context, int mouseX, int mouseY, float delta) {
-    if (!open) {
+    if (!open || !fitsOnScreen) {
       return;
     }
     MinecraftClient client = MinecraftClient.getInstance();

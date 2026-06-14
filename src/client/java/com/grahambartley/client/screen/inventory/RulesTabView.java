@@ -41,6 +41,10 @@ public final class RulesTabView {
   static final int SEARCH_HEIGHT = 16;
   static final int FOOTER_HEIGHT = 16;
   static final int FOOTER_GAP = 4;
+
+  /** Upper bound on simultaneously-visible result rows. Extras are pre-created and hidden. */
+  static final int MAX_ROWS = 8;
+
   private static final long DOUBLE_CLICK_MS = 300L;
 
   private final List<ClickableWidget> widgets = new ArrayList<>();
@@ -74,30 +78,12 @@ public final class RulesTabView {
     rowButtons.clear();
     selection.clear();
 
-    int viewX = panel.getContentInsetX();
-    int viewY = panel.getContentInsetY();
-    int viewWidth = panel.getContentInsetWidth();
-    int viewHeight = panel.getContentInsetHeight();
-
-    // Per-view offsets are computed once from the inset height; the widgets initialised here are
-    // created at their absolute spawn coords and live-shifted by panel.relocate() so they stay
-    // glued to the panel.
-    searchOffsetY = 0;
-    bulkOffsetY = SEARCH_HEIGHT + 2;
-    rowsTopOffsetY = SEARCH_HEIGHT + BULK_BAR_HEIGHT + 2;
-    int footerReserved = FOOTER_GAP + FOOTER_HEIGHT;
-    int rowsAvailable = viewHeight - rowsTopOffsetY - footerReserved;
-    int rowStride = RuleRowButton.ROW_HEIGHT + 1;
-    visibleRows = Math.max(2, Math.min(8, rowsAvailable / rowStride));
-    rowsBottomOffsetY = rowsTopOffsetY + visibleRows * rowStride;
-    footerOffsetY = rowsBottomOffsetY + FOOTER_GAP;
-
     searchField =
         new TextFieldWidget(
             MinecraftClient.getInstance().textRenderer,
-            viewX,
-            viewY + searchOffsetY,
-            viewWidth,
+            0,
+            0,
+            10,
             SEARCH_HEIGHT,
             Text.literal("Loot Lock search"));
     searchField.setMaxLength(64);
@@ -106,14 +92,15 @@ public final class RulesTabView {
     addDrawableChild.accept(searchField);
     widgets.add(searchField);
 
-    for (int i = 0; i < visibleRows; i++) {
-      int rowY = viewY + rowsTopOffsetY + i * rowStride;
+    // Pre-create the upper bound of row widgets so screen / GUI-scale changes can grow the
+    // visible-row count without re-mounting widgets through the host's children list.
+    for (int i = 0; i < MAX_ROWS; i++) {
       int rowIndex = i;
       RuleRowButton row =
           new RuleRowButton(
-              viewX,
-              rowY,
-              viewWidth,
+              0,
+              0,
+              10,
               null,
               "",
               "",
@@ -129,11 +116,9 @@ public final class RulesTabView {
       widgets.add(row);
     }
 
-    int footerY = viewY + footerOffsetY;
-    int halfWidth = (viewWidth - 4) / 2;
     addSelectedButton =
         ButtonWidget.builder(Text.literal("Add selected"), button -> addSelected())
-            .dimensions(viewX, footerY, halfWidth, 16)
+            .dimensions(0, 0, 10, FOOTER_HEIGHT)
             .build();
     addDrawableChild.accept(addSelectedButton);
     widgets.add(addSelectedButton);
@@ -150,13 +135,64 @@ public final class RulesTabView {
                     requestClearAll();
                   }
                 })
-            .dimensions(viewX + halfWidth + 4, footerY, halfWidth, 16)
+            .dimensions(0, 0, 10, FOOTER_HEIGHT)
             .build();
     addDrawableChild.accept(clearAllButton);
     widgets.add(clearAllButton);
 
     setVisible(false);
+    relayout();
     refresh();
+  }
+
+  /**
+   * Recomputes widget positions + dimensions from the panel's live content-inset, including the
+   * visibleRows count derived from current panel height. Called from the panel whenever its anchor
+   * or height changes (window resize, GUI scale change, recipe-book open, etc.).
+   */
+  public void relayout() {
+    if (panel == null || searchField == null) {
+      return;
+    }
+    int viewX = panel.getContentInsetX();
+    int viewY = panel.getContentInsetY();
+    int viewWidth = panel.getContentInsetWidth();
+    int viewHeight = panel.getContentInsetHeight();
+
+    searchOffsetY = 0;
+    bulkOffsetY = SEARCH_HEIGHT + 2;
+    rowsTopOffsetY = SEARCH_HEIGHT + BULK_BAR_HEIGHT + 2;
+    int footerReserved = FOOTER_GAP + FOOTER_HEIGHT;
+    int rowsAvailable = viewHeight - rowsTopOffsetY - footerReserved;
+    int rowStride = RuleRowButton.ROW_HEIGHT + 1;
+    visibleRows = Math.max(1, Math.min(MAX_ROWS, rowsAvailable / rowStride));
+    rowsBottomOffsetY = rowsTopOffsetY + visibleRows * rowStride;
+    footerOffsetY = rowsBottomOffsetY + FOOTER_GAP;
+
+    searchField.setPosition(viewX, viewY + searchOffsetY);
+    searchField.setWidth(viewWidth);
+
+    for (int i = 0; i < rowButtons.size(); i++) {
+      RuleRowButton row = rowButtons.get(i);
+      if (i < visibleRows) {
+        row.setPosition(viewX, viewY + rowsTopOffsetY + i * rowStride);
+        row.setWidth(viewWidth);
+      } else {
+        // Park hidden rows off-screen so a stale hover from a previous layout cannot reach them.
+        row.setPosition(-9999, -9999);
+      }
+    }
+
+    int footerY = viewY + footerOffsetY;
+    int halfWidth = (viewWidth - 4) / 2;
+    if (addSelectedButton != null) {
+      addSelectedButton.setPosition(viewX, footerY);
+      addSelectedButton.setWidth(halfWidth);
+    }
+    if (clearAllButton != null) {
+      clearAllButton.setPosition(viewX + halfWidth + 4, footerY);
+      clearAllButton.setWidth(halfWidth);
+    }
   }
 
   private int viewX() {
@@ -214,6 +250,12 @@ public final class RulesTabView {
 
     for (int i = 0; i < rowButtons.size(); i++) {
       RuleRowButton row = rowButtons.get(i);
+      if (i >= visibleRows) {
+        // Row exists in the widget pool but is hidden because the current panel height can't fit
+        // it. relayout() also parks it off-screen so a stale hover can't fire.
+        row.visible = false;
+        continue;
+      }
       int candidateIndex = i + scrollOffset;
       if (candidateIndex >= visibleResults.size()) {
         row.visible = false;
