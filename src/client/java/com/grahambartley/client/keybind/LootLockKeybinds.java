@@ -3,6 +3,7 @@ package com.grahambartley.client.keybind;
 import com.grahambartley.client.LootLockClient;
 import com.grahambartley.client.config.ClientSettings;
 import com.grahambartley.client.screen.inventory.GlobalEnableController;
+import com.grahambartley.client.screen.inventory.LootLockToast;
 import com.grahambartley.client.state.ClientLootLockState;
 import com.grahambartley.data.LootLockPlayerData;
 import com.grahambartley.data.LootLockProfile;
@@ -13,7 +14,6 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.KeyBinding;
-import net.minecraft.client.toast.SystemToast;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import org.lwjgl.glfw.GLFW;
@@ -26,6 +26,25 @@ public final class LootLockKeybinds {
   private static final KeyBinding CYCLE_PROFILE =
       KeyBindingHelper.registerKeyBinding(
           new KeyBinding("key.loot-lock.cycle_profile", GLFW.GLFW_KEY_UNKNOWN, CATEGORY));
+
+  /**
+   * Returns true if the given key event matches the cycle-profile binding. Used by the inventory
+   * screen mixin so the user can cycle profiles via hotkey while the inventory is open, which would
+   * otherwise be swallowed because vanilla suspends in-game keybinds while a Screen is showing.
+   */
+  public static boolean matchesCycleProfile(int keyCode, int scanCode) {
+    return CYCLE_PROFILE.matchesKey(keyCode, scanCode);
+  }
+
+  /** Returns true if the given key event matches the toggle-enabled binding. */
+  public static boolean matchesToggleEnabled(int keyCode, int scanCode) {
+    return TOGGLE_ENABLED.matchesKey(keyCode, scanCode);
+  }
+
+  /** Fires the cycle-profile action directly. Public so the screen hook can drive it. */
+  public static void cycleProfileNow(MinecraftClient client) {
+    cycleProfile(client);
+  }
 
   private LootLockKeybinds() {}
 
@@ -72,10 +91,9 @@ public final class LootLockKeybinds {
     if (!settings.isEnableProfileCycleToast()) {
       return;
     }
-    SystemToast.show(
-        client.getToastManager(),
-        SystemToast.Type.PERIODIC_NOTIFICATION,
-        Text.literal("LootLock profile switched"),
+    LootLockToast.show(
+        client,
+        Text.literal("Profile switched"),
         Text.literal(nextProfile.getName()).formatted(Formatting.YELLOW));
   }
 

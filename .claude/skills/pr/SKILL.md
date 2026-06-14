@@ -22,9 +22,14 @@ This skill is used directly by humans and also as a handoff step from the build 
 	- Create PR: `gh pr create --repo grabartley/minecraft-loot-lock --base main --head <branch-name> --title "<title>" --body-file .claude/tmp/pr-body.md`
 	- If updating an existing PR body, use: `gh pr edit <pr-number> --repo grabartley/minecraft-loot-lock --body-file .claude/tmp/pr-body.md`
 	- Title: `<type>: <description>` (same style as commit message)
-	- Body: one-liner summary, then "**What's included:**" with bullet points
-	- Wrap class names, commands, and identifiers in backticks inside the markdown file, not inline shell args
-	- Always include a closing reference like `Closes #<issue-number>` so the PR Development section is linked to the issue being worked on
+	- Body: short, concise prose describing the FINAL STATE of the branch as it differs from `main`. Write in present tense as if the change has already landed. Group related behaviour into a few tight paragraphs. Reference specific files inline only when the path is essential context; otherwise leave file enumeration to the diff.
+	- Forbidden phrasing because it describes the journey rather than the destination: "no longer", "now does", "restored", "refreshed", "renamed from", "previously", "fixed", "updated", "moved from X to Y", "added a", "the bug where". If a sentence describes how the branch differs from an earlier point on the same branch instead of describing what the merged code does, rewrite or delete it. Anything you addressed mid-development that has no observable effect vs `main` does not belong in the body.
+	- Never use bulleted or numbered lists of file changes, class names being added, or method renames. Reviewers see that in the Files Changed tab already.
+	- Never include automated-test breakdowns ("X tests pass", "Y new tests added"). CI runs the suite. At most, one sentence on the *kinds* of tests added (unit tests for a controller, mixin smoke test, etc.) when that's actually useful context.
+	- Keep it concise. Do not waffle. If a paragraph can be cut without losing reviewer-relevant signal, cut it.
+	- Attach screenshots whenever the change has a visible surface (UI, screen layout, in-game widget, command output, doc rendering). Capture the relevant state in the dev client or wherever the change is visible, and either drag the file into the GitHub PR description after creation or upload it through the GitHub web UI; reference the resulting `user-attachments` URL in the body next to the paragraph it illustrates. Skip screenshots only when the change is purely server-side or otherwise has no rendered output.
+	- Wrap class names, commands, and identifiers in backticks inside the markdown file, not inline shell args.
+	- Always include a closing reference like `Closes #<issue-number>` so the PR Development section is linked to the issue being worked on.
 8. After merge, clean up: `cd ../loot-lock && git worktree remove ./.claude/worktrees/loot-lock-<branch-name>`
 
 ## Conventions
@@ -35,7 +40,8 @@ This skill is used directly by humans and also as a handoff step from the build 
 - Branch names: kebab-case (e.g. `fix-profile-save`, `add-command-permission-check`)
 - Commit messages: `<type>: <lowercase description>`, no period at end
 - Types: feat, fix, refactor, test, docs, chore
-- PR descriptions: bullet points under "What's included:" header
+- PR descriptions: tight, present-tense prose describing the final state vs `main`. No journey language ("no longer", "now", "restored", "fixed", etc.). No file-change lists. No automated-test pass-counts. Cut anything that doesn't help the reviewer.
+- Attach screenshots for any change with a visible surface, drag-uploaded into the GitHub PR description so the body links the `user-attachments` URL beside the paragraph it illustrates.
 - PR titles and descriptions must be written as public-facing text, since this repo is public and anyone can view them
 - Always link the PR Development section to the active issue via `Closes #<issue-number>` in the PR body
 - Pre-commit must complete successfully: format, test, build

@@ -3,6 +3,9 @@
 	"package": "com.grahambartley.client.mixin",
 	"compatibilityLevel": "JAVA_17",
 	"client": [
+		"AbstractInventoryScreenMixin",
+		"HandledScreenAccessor",
+		"HandledScreenInputMixin",
 		"InventoryScreenMixin",
 		"ScreenAccessor"
 	],
