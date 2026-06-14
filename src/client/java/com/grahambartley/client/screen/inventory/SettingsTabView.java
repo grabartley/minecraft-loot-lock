@@ -53,18 +53,37 @@ public final class SettingsTabView {
   /** Operator permission level required to see and use the SERVER POLICY OPERATOR section. */
   static final int OPERATOR_PERMISSION_LEVEL = 2;
 
+  static final String IN_WORLD_ABOUT_BODY =
+      "Rules are stored per player and synced from the server. Operators can manage any"
+          + " player's rules with /lootlock commands, even for vanilla clients.";
+
+  static final String CLIENT_PREFS_ABOUT_BODY =
+      "These preferences apply across all worlds. Profiles, rules, and server policy live"
+          + " per world, open the Loot Lock panel from your inventory to edit them in-game.";
+
   private final List<ClickableWidget> widgets = new ArrayList<>();
   private final List<Row> rows = new ArrayList<>();
 
   private LootLockInventoryPanel panel;
   private boolean visible;
   private int scrollOffset;
+  private boolean showServerPolicy = true;
 
   private VanillaSwitch blockedHudSwitch;
   private VanillaSwitch profileCycleToastSwitch;
   private VanillaSwitch toggleToastSwitch;
   private VanillaSwitch confirmBeforeDeleteSwitch;
   private VanillaSwitch policySwitch;
+
+  /**
+   * Hides the SERVER POLICY section and skips constructing its switch. Used by the Mod Menu client
+   * prefs screen, where the per-world server policy has no current world to target. Must be set
+   * before {@link #attach(LootLockInventoryPanel, Consumer)} since attach is what builds the
+   * widgets.
+   */
+  public void setShowServerPolicy(boolean showServerPolicy) {
+    this.showServerPolicy = showServerPolicy;
+  }
 
   public void attach(LootLockInventoryPanel panel, Consumer<ClickableWidget> addDrawableChild) {
     this.panel = panel;
@@ -87,27 +106,30 @@ public final class SettingsTabView {
         notificationSwitch(
             () -> settingsCopy().isConfirmBeforeEnablingDelete(),
             () -> toggleConfirmBeforeDelete(LootLockClient.getClientSettingsManager()));
-    policySwitch =
-        new VanillaSwitch(
-            0,
-            0,
-            SWITCH_WIDTH,
-            SWITCH_HEIGHT,
-            () -> LootLockClient.getState().isAllowDeleteRejectedItems(),
-            this::togglePolicy,
-            false,
-            false);
 
     addDrawableChild.accept(blockedHudSwitch);
     addDrawableChild.accept(profileCycleToastSwitch);
     addDrawableChild.accept(toggleToastSwitch);
     addDrawableChild.accept(confirmBeforeDeleteSwitch);
-    addDrawableChild.accept(policySwitch);
     widgets.add(blockedHudSwitch);
     widgets.add(profileCycleToastSwitch);
     widgets.add(toggleToastSwitch);
     widgets.add(confirmBeforeDeleteSwitch);
-    widgets.add(policySwitch);
+
+    if (showServerPolicy) {
+      policySwitch =
+          new VanillaSwitch(
+              0,
+              0,
+              SWITCH_WIDTH,
+              SWITCH_HEIGHT,
+              () -> LootLockClient.getState().isAllowDeleteRejectedItems(),
+              this::togglePolicy,
+              false,
+              false);
+      addDrawableChild.accept(policySwitch);
+      widgets.add(policySwitch);
+    }
 
     setVisible(false);
     rebuildRows();
@@ -249,17 +271,19 @@ public final class SettingsTabView {
                 + " accident.",
             confirmBeforeDeleteSwitch);
 
-    policySwitch.setReadOnly(isPolicySwitchReadOnly(MinecraftClient.getInstance()));
-    cursorY = addSectionHeader(cursorY, "SERVER POLICY");
-    cursorY =
-        addToggleRow(
-            cursorY,
-            viewX,
-            viewWidth,
-            "Allow delete mode",
-            "Set for everyone with /lootlock policy allowDeleteRejectedItems. When off, Delete is"
-                + " blocked and every profile leaves rejected items on the ground.",
-            policySwitch);
+    if (showServerPolicy) {
+      policySwitch.setReadOnly(isPolicySwitchReadOnly(MinecraftClient.getInstance()));
+      cursorY = addSectionHeader(cursorY, "SERVER POLICY");
+      cursorY =
+          addToggleRow(
+              cursorY,
+              viewX,
+              viewWidth,
+              "Allow delete mode",
+              "Set for everyone with /lootlock policy allowDeleteRejectedItems. When off, Delete is"
+                  + " blocked and every profile leaves rejected items on the ground.",
+              policySwitch);
+    }
 
     cursorY = addSectionHeader(cursorY, "CONTROLS");
     cursorY =
@@ -385,9 +409,7 @@ public final class SettingsTabView {
   }
 
   private void addAboutRow(int cursorY, int viewX, int viewWidth) {
-    String body =
-        "Rules are stored per player and synced from the server. Operators can manage any"
-            + " player's rules with /lootlock commands, even for vanilla clients.";
+    String body = aboutBody(showServerPolicy);
     int lines = wrappedLineCount(body, viewWidth);
     int height = NOTE_PADDING * 2 + lines * LINE_HEIGHT;
     rows.add(
@@ -445,6 +467,27 @@ public final class SettingsTabView {
       return false;
     }
     return !operator;
+  }
+
+  /**
+   * Returns the ordered list of section labels that {@link #rebuildRows()} will render given the
+   * current visibility flag. Pure helper used by unit tests so the section presence decision is
+   * verifiable without standing up the full panel.
+   */
+  static List<String> sectionLabels(boolean showServerPolicy) {
+    if (showServerPolicy) {
+      return List.of("NOTIFICATIONS", "SAFETY", "SERVER POLICY", "CONTROLS", "ABOUT");
+    }
+    return List.of("NOTIFICATIONS", "SAFETY", "CONTROLS", "ABOUT");
+  }
+
+  /** Returns the ABOUT section body text appropriate for the current visibility mode. */
+  static String aboutBody(boolean showServerPolicy) {
+    return showServerPolicy ? IN_WORLD_ABOUT_BODY : CLIENT_PREFS_ABOUT_BODY;
+  }
+
+  VanillaSwitch policySwitchForTest() {
+    return policySwitch;
   }
 
   private static ClientSettings settingsCopy() {

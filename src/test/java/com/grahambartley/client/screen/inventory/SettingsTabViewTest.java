@@ -3,15 +3,19 @@ package com.grahambartley.client.screen.inventory;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import com.grahambartley.client.config.ClientSettings;
 import com.grahambartley.client.config.ClientSettingsManager;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 import net.minecraft.Bootstrap;
 import net.minecraft.SharedConstants;
+import net.minecraft.client.gui.widget.ClickableWidget;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import org.junit.jupiter.api.BeforeAll;
@@ -21,6 +25,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.lwjgl.glfw.GLFW;
 
 class SettingsTabViewTest {
@@ -102,6 +107,53 @@ class SettingsTabViewTest {
     SettingsTabView.toggleProfileCycleToast(null);
     SettingsTabView.toggleToggleToast(null);
     SettingsTabView.toggleConfirmBeforeDelete(null);
+  }
+
+  @Test
+  void sectionLabelsIncludeServerPolicyOnlyWhenFlagIsTrue() {
+    assertEquals(
+        List.of("NOTIFICATIONS", "SAFETY", "SERVER POLICY", "CONTROLS", "ABOUT"),
+        SettingsTabView.sectionLabels(true));
+    assertEquals(
+        List.of("NOTIFICATIONS", "SAFETY", "CONTROLS", "ABOUT"),
+        SettingsTabView.sectionLabels(false));
+  }
+
+  @ParameterizedTest(name = "aboutBody(showServerPolicy={0}) returns mode-specific copy")
+  @ValueSource(booleans = {true, false})
+  void aboutBodyVariesByMode(boolean showServerPolicy) {
+    String body = SettingsTabView.aboutBody(showServerPolicy);
+    String expected =
+        showServerPolicy
+            ? SettingsTabView.IN_WORLD_ABOUT_BODY
+            : SettingsTabView.CLIENT_PREFS_ABOUT_BODY;
+    assertEquals(expected, body);
+  }
+
+  @Test
+  void inWorldAndClientPrefsAboutBodiesDiffer() {
+    assertNotEquals(SettingsTabView.IN_WORLD_ABOUT_BODY, SettingsTabView.CLIENT_PREFS_ABOUT_BODY);
+  }
+
+  @Test
+  void attachConstructsPolicySwitchByDefault() {
+    SettingsTabView view = new SettingsTabView();
+    Consumer<ClickableWidget> noopAdd = w -> {};
+
+    view.attach(null, noopAdd);
+
+    assertNotNull(view.policySwitchForTest());
+  }
+
+  @Test
+  void attachSkipsPolicySwitchWhenServerPolicyHidden() {
+    SettingsTabView view = new SettingsTabView();
+    view.setShowServerPolicy(false);
+    Consumer<ClickableWidget> noopAdd = w -> {};
+
+    view.attach(null, noopAdd);
+
+    assertNull(view.policySwitchForTest());
   }
 
   private static KeyBinding newBinding(String name, int key) {
