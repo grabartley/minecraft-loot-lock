@@ -50,7 +50,7 @@ That is the whole setup. No config file editing required.
 
 LootLock ships with two keybinds, both unbound by default. Set them in `Controls > Loot Lock`:
 
-- **Toggle Loot Lock** flips the whole-mod enable state, identical to clicking the Client switch on the docked panel.
+- **Toggle Loot Lock** flips the whole-mod enable state, identical to clicking the Player switch on the docked panel.
 - **Cycle Loot Profile** swaps to your next saved profile in one keypress.
 
 ## Commands

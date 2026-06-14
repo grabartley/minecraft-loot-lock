@@ -1,5 +1,6 @@
 package com.grahambartley.client.screen.inventory;
 
+import com.grahambartley.LootLock;
 import com.grahambartley.client.LootLockClient;
 import com.grahambartley.client.config.ClientSettings;
 import com.grahambartley.client.state.ClientLootLockState;
@@ -22,12 +23,14 @@ public final class GlobalEnableController {
     ClientLootLockState state = LootLockClient.getState();
     Optional<LootLockPlayerData> snapshotOptional = state.getSnapshot();
     if (snapshotOptional.isEmpty()) {
+      LootLock.LOGGER.debug("Loot Lock toggle suppressed: client snapshot not yet synced");
       return false;
     }
 
     LootLockPlayerData snapshot = snapshotOptional.get();
     boolean nextEnabled = !snapshot.isGloballyEnabled();
     if (!ClientMutationSync.sendUpdateGlobalEnableRequest(snapshot.getRevision(), nextEnabled)) {
+      LootLock.LOGGER.debug("Loot Lock toggle suppressed: server packet channel unavailable");
       return false;
     }
 

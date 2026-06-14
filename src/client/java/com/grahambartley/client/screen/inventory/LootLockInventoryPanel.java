@@ -795,7 +795,7 @@ public final class LootLockInventoryPanel {
     if (clientSwitch != null) {
       context.drawText(
           client.textRenderer,
-          Text.literal("Client"),
+          Text.literal("Player"),
           clientSwitch.getX() - 36,
           switchY,
           0xFF2F2F2F,

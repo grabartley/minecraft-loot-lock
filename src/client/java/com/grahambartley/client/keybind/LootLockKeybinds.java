@@ -22,12 +22,8 @@ import org.lwjgl.glfw.GLFW;
 
 public final class LootLockKeybinds {
   private static final String CATEGORY = "key.categories.loot-lock";
-  private static final KeyBinding TOGGLE_ENABLED =
-      KeyBindingHelper.registerKeyBinding(
-          new KeyBinding("key.loot-lock.toggle_enabled", GLFW.GLFW_KEY_UNKNOWN, CATEGORY));
-  private static final KeyBinding CYCLE_PROFILE =
-      KeyBindingHelper.registerKeyBinding(
-          new KeyBinding("key.loot-lock.cycle_profile", GLFW.GLFW_KEY_UNKNOWN, CATEGORY));
+  private static KeyBinding TOGGLE_ENABLED;
+  private static KeyBinding CYCLE_PROFILE;
 
   /**
    * Returns true if the given key event matches the cycle-profile binding. Used by the inventory
@@ -35,12 +31,12 @@ public final class LootLockKeybinds {
    * otherwise be swallowed because vanilla suspends in-game keybinds while a Screen is showing.
    */
   public static boolean matchesCycleProfile(int keyCode, int scanCode) {
-    return CYCLE_PROFILE.matchesKey(keyCode, scanCode);
+    return CYCLE_PROFILE != null && CYCLE_PROFILE.matchesKey(keyCode, scanCode);
   }
 
   /** Returns true if the given key event matches the toggle-enabled binding. */
   public static boolean matchesToggleEnabled(int keyCode, int scanCode) {
-    return TOGGLE_ENABLED.matchesKey(keyCode, scanCode);
+    return TOGGLE_ENABLED != null && TOGGLE_ENABLED.matchesKey(keyCode, scanCode);
   }
 
   /** Exposes the toggle-enabled binding so UI surfaces can read its current key label. */
@@ -58,9 +54,20 @@ public final class LootLockKeybinds {
     cycleProfile(client);
   }
 
+  /** Fires the toggle-enabled action directly. Public so the screen hook can drive it. */
+  public static void toggleEnabledNow(MinecraftClient client) {
+    GlobalEnableController.toggle(client);
+  }
+
   private LootLockKeybinds() {}
 
   public static void register() {
+    TOGGLE_ENABLED =
+        KeyBindingHelper.registerKeyBinding(
+            new KeyBinding("key.loot-lock.toggle_enabled", GLFW.GLFW_KEY_UNKNOWN, CATEGORY));
+    CYCLE_PROFILE =
+        KeyBindingHelper.registerKeyBinding(
+            new KeyBinding("key.loot-lock.cycle_profile", GLFW.GLFW_KEY_UNKNOWN, CATEGORY));
     ClientTickEvents.END_CLIENT_TICK.register(LootLockKeybinds::onEndClientTick);
   }
 
@@ -70,7 +77,7 @@ public final class LootLockKeybinds {
         // Drain queued presses while world is unavailable to prevent delayed toggles.
         continue;
       }
-      GlobalEnableController.toggle(client);
+      toggleEnabledNow(client);
     }
 
     while (CYCLE_PROFILE.wasPressed()) {

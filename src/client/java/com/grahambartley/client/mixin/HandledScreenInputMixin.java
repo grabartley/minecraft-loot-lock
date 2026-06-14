@@ -50,13 +50,18 @@ public abstract class HandledScreenInputMixin {
       return;
     }
     // Vanilla freezes in-game keybinds while a Screen is open; manually fire the Loot Lock cycle
-    // binding when the panel is open and the user is not typing into the search field so the
-    // hotkey is consistent inside and outside the inventory.
+    // and toggle bindings when the panel is open and the user is not typing into the search field
+    // so the hotkeys are consistent inside and outside the inventory.
     if (!panel.isOpen() || client == null) {
       return;
     }
     if (LootLockKeybinds.matchesCycleProfile(keyCode, scanCode)) {
       LootLockKeybinds.cycleProfileNow(client);
+      info.setReturnValue(true);
+      return;
+    }
+    if (LootLockKeybinds.matchesToggleEnabled(keyCode, scanCode)) {
+      LootLockKeybinds.toggleEnabledNow(client);
       info.setReturnValue(true);
     }
   }
