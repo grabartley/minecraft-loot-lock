@@ -2,8 +2,8 @@
 	"schemaVersion": 1,
 	"id": "loot-lock",
 	"version": "${version}",
-	"name": "LootLock",
-	"description": "Configurable item pickup filtering for Minecraft.",
+	"name": "Loot Lock",
+	"description": "Your loot, your rules. Per-player, server-authoritative ground-item filtering so your inventory stops filling up with junk.",
 	"authors": [
 		"Graham Bartley"
 	],

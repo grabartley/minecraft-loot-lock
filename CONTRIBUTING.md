@@ -1,6 +1,6 @@
-# Contributing to LootLock
+# Contributing to Loot Lock
 
-Thanks for helping improve LootLock.
+Thanks for helping improve Loot Lock.
 
 ## Development Environment Setup
 
@@ -19,7 +19,7 @@ This includes formatting checks, tests, and side-safety verification.
 
 ## Side-Safety Rules
 
-LootLock supports dedicated server operation. `src/main` must stay server-safe.
+Loot Lock supports dedicated server operation. `src/main` must stay server-safe.
 
 - `src/main/java` must not reference `net.minecraft.client.*`
 - `src/main/java` must not reference `com.grahambartley.client.*`

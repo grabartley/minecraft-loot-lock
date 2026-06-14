@@ -131,7 +131,7 @@ public final class LootLockCommand {
   }
 
   private static int help(CommandContext<ServerCommandSource> context) {
-    context.getSource().sendFeedback(() -> Text.literal("LootLock commands:"), false);
+    context.getSource().sendFeedback(() -> Text.literal("Loot Lock commands:"), false);
     context.getSource().sendFeedback(() -> Text.literal("- /lootlock status"), false);
     context.getSource().sendFeedback(() -> Text.literal("- /lootlock enable"), false);
     context.getSource().sendFeedback(() -> Text.literal("- /lootlock disable"), false);
@@ -226,7 +226,7 @@ public final class LootLockCommand {
       return 0;
     }
 
-    context.getSource().sendFeedback(() -> Text.literal("LootLock profiles:"), false);
+    context.getSource().sendFeedback(() -> Text.literal("Loot Lock profiles:"), false);
     for (LootLockProfile profile : state.data.getProfiles()) {
       if (profile == null) {
         continue;
@@ -447,7 +447,7 @@ public final class LootLockCommand {
     context
         .getSource()
         .sendFeedback(
-            () -> Text.literal("LootLock " + (enabled ? "enabled" : "disabled") + "."), false);
+            () -> Text.literal("Loot Lock " + (enabled ? "enabled" : "disabled") + "."), false);
     sendStatus(context.getSource(), state.profile);
     return 1;
   }
@@ -469,7 +469,7 @@ public final class LootLockCommand {
         .sendFeedback(
             () ->
                 Text.literal(
-                    "LootLock mode set to "
+                    "Loot Lock mode set to "
                         + modeToken(mode)
                         + " for profile '"
                         + state.profile.getName()
@@ -504,7 +504,7 @@ public final class LootLockCommand {
         .sendFeedback(
             () ->
                 Text.literal(
-                    "LootLock rejected-item action set to "
+                    "Loot Lock rejected-item action set to "
                         + actionToken(normalizedAction)
                         + " for profile '"
                         + state.profile.getName()
@@ -523,7 +523,7 @@ public final class LootLockCommand {
   }
 
   private static void sendStatus(ServerCommandSource source, LootLockProfile profile) {
-    source.sendFeedback(() -> Text.literal("LootLock status:"), false);
+    source.sendFeedback(() -> Text.literal("Loot Lock status:"), false);
     source.sendFeedback(() -> Text.literal("- Active profile: " + profile.getName()), false);
     source.sendFeedback(() -> Text.literal("- Enabled: " + profile.isEnabled()), false);
     source.sendFeedback(() -> Text.literal("- Mode: " + modeToken(profile.getMode())), false);
@@ -543,14 +543,14 @@ public final class LootLockCommand {
 
     ServerPlayerDataManager dataManager = LootLock.PLAYER_DATA_MANAGER;
     if (dataManager == null) {
-      source.sendError(Text.literal("LootLock is not ready yet."));
+      source.sendError(Text.literal("Loot Lock is not ready yet."));
       return null;
     }
 
     LootLockPlayerData playerData = dataManager.get(player);
     LootLockProfile activeProfile = playerData.getActiveProfile().orElse(null);
     if (activeProfile == null) {
-      source.sendError(Text.literal("No active LootLock profile found."));
+      source.sendError(Text.literal("No active Loot Lock profile found."));
       return null;
     }
 
