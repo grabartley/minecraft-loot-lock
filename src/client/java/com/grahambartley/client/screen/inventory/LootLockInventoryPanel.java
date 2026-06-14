@@ -224,9 +224,16 @@ public final class LootLockInventoryPanel {
    * Switches the panel into client-prefs mode, used by the Mod Menu config screen. In this mode the
    * panel hides the per-world chrome (profile bar, mode/action controls, summary, tab row, header
    * switches) and locks the active tab to SETTINGS with the SERVER POLICY section hidden. Must be
-   * called before {@link #attach}.
+   * called before {@link #attach}, since attach is what materializes the chrome decisions into
+   * widgets. Calling after attach throws so the misuse fails loud rather than silently rendering a
+   * half-stripped panel.
    */
   public void setClientPrefsMode(boolean clientPrefsMode) {
+    if (!allWidgets.isEmpty()) {
+      throw new IllegalStateException(
+          "setClientPrefsMode must be called before attach; the panel has already materialized its"
+              + " widgets.");
+    }
     this.clientPrefsMode = clientPrefsMode;
     if (clientPrefsMode) {
       activeTab = PanelTab.SETTINGS;

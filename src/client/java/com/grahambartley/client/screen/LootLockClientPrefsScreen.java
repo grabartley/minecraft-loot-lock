@@ -28,6 +28,7 @@ public final class LootLockClientPrefsScreen extends Screen {
     panel.setClientPrefsMode(true);
     int anchorX = (width - LootLockInventoryPanel.WIDTH) / 2;
     panel.attach(this, anchorX, 0, this::addDrawableChild);
+    panel.layout(anchorX, width, height);
     panel.setOpen(true);
   }
 
@@ -55,6 +56,9 @@ public final class LootLockClientPrefsScreen extends Screen {
 
   @Override
   public void close() {
+    if (panel != null) {
+      panel.setOpen(false);
+    }
     MinecraftClient client = MinecraftClient.getInstance();
     client.setScreen(returnTo);
   }

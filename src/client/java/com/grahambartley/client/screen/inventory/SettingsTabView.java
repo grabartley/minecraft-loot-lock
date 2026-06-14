@@ -472,7 +472,8 @@ public final class SettingsTabView {
   /**
    * Returns the ordered list of section labels that {@link #rebuildRows()} will render given the
    * current visibility flag. Pure helper used by unit tests so the section presence decision is
-   * verifiable without standing up the full panel.
+   * verifiable without standing up the full panel. Keep this in sync with {@link #rebuildRows()}:
+   * the {@code addSectionHeader(...)} calls there are the source of truth for what actually paints.
    */
   static List<String> sectionLabels(boolean showServerPolicy) {
     if (showServerPolicy) {
