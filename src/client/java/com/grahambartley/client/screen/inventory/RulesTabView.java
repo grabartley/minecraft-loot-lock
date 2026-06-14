@@ -37,9 +37,10 @@ public final class RulesTabView {
     return searchField != null && searchField.isFocused();
   }
 
-  static final int VISIBLE_ROWS = 4;
   static final int BULK_BAR_HEIGHT = 12;
   static final int SEARCH_HEIGHT = 16;
+  static final int FOOTER_HEIGHT = 16;
+  static final int FOOTER_GAP = 4;
   private static final long DOUBLE_CLICK_MS = 300L;
 
   private final List<ClickableWidget> widgets = new ArrayList<>();
@@ -48,6 +49,7 @@ public final class RulesTabView {
   private int viewX;
   private int viewY;
   private int viewWidth;
+  private int visibleRows = 4;
   private int rowsTopY;
   private int rowsBottomY;
   private TextFieldWidget searchField;
@@ -63,7 +65,11 @@ public final class RulesTabView {
   private int scrollOffset;
 
   public void attach(
-      int viewX, int viewY, int viewWidth, Consumer<ClickableWidget> addDrawableChild) {
+      int viewX,
+      int viewY,
+      int viewWidth,
+      int viewHeight,
+      Consumer<ClickableWidget> addDrawableChild) {
     this.viewX = viewX;
     this.viewY = viewY;
     this.viewWidth = viewWidth;
@@ -86,10 +92,17 @@ public final class RulesTabView {
     addDrawableChild.accept(searchField);
     widgets.add(searchField);
 
-    // Reserve vertical space for the bulk bar between search and rows.
+    // Reserve vertical space for the bulk bar between search and rows; the row count adapts to the
+    // available content height so the footer never overflows the well. Min 2 rows ensures the empty
+    // state still has somewhere to render.
     rowsTopY = searchY + SEARCH_HEIGHT + BULK_BAR_HEIGHT + 2;
-    for (int i = 0; i < VISIBLE_ROWS; i++) {
-      int rowY = rowsTopY + i * (RuleRowButton.ROW_HEIGHT + 1);
+    int rowsAreaTop = rowsTopY - viewY;
+    int footerReserved = FOOTER_GAP + FOOTER_HEIGHT;
+    int rowsAvailable = viewHeight - rowsAreaTop - footerReserved;
+    int rowStride = RuleRowButton.ROW_HEIGHT + 1;
+    visibleRows = Math.max(2, Math.min(8, rowsAvailable / rowStride));
+    for (int i = 0; i < visibleRows; i++) {
+      int rowY = rowsTopY + i * rowStride;
       int rowIndex = i;
       RuleRowButton row =
           new RuleRowButton(
@@ -110,9 +123,9 @@ public final class RulesTabView {
       rowButtons.add(row);
       widgets.add(row);
     }
-    rowsBottomY = rowsTopY + VISIBLE_ROWS * (RuleRowButton.ROW_HEIGHT + 1);
+    rowsBottomY = rowsTopY + visibleRows * rowStride;
 
-    int footerY = rowsBottomY + 4;
+    int footerY = rowsBottomY + FOOTER_GAP;
     int halfWidth = (viewWidth - 4) / 2;
     addSelectedButton =
         ButtonWidget.builder(Text.literal("Add selected"), button -> addSelected())
@@ -137,6 +150,9 @@ public final class RulesTabView {
             .build();
     addDrawableChild.accept(clearAllButton);
     widgets.add(clearAllButton);
+
+    addSelectedButton.setPosition(viewX, footerY);
+    clearAllButton.setPosition(viewX + halfWidth + 4, footerY);
 
     setVisible(false);
     refresh();
@@ -167,7 +183,7 @@ public final class RulesTabView {
     }
 
     // Clamp scroll to the windowed range so resizing or trimming results doesn't strand the user.
-    int maxOffset = Math.max(0, visibleResults.size() - VISIBLE_ROWS);
+    int maxOffset = Math.max(0, visibleResults.size() - visibleRows);
     if (scrollOffset > maxOffset) {
       scrollOffset = maxOffset;
     }
@@ -223,7 +239,7 @@ public final class RulesTabView {
         || mouseX > viewX + viewWidth) {
       return false;
     }
-    int maxOffset = Math.max(0, visibleResults.size() - VISIBLE_ROWS);
+    int maxOffset = Math.max(0, visibleResults.size() - visibleRows);
     if (maxOffset == 0) {
       return false;
     }

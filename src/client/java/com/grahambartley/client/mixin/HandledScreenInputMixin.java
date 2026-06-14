@@ -1,5 +1,6 @@
 package com.grahambartley.client.mixin;
 
+import com.grahambartley.client.keybind.LootLockKeybinds;
 import com.grahambartley.client.screen.inventory.DragToAddRouter;
 import com.grahambartley.client.screen.inventory.LootLockInventoryPanel;
 import com.grahambartley.client.screen.inventory.LootLockPanelHolder;
@@ -30,13 +31,32 @@ public abstract class HandledScreenInputMixin {
       return;
     }
     LootLockInventoryPanel panel = ((LootLockPanelHolder) self).lootlock$getPanel();
-    if (panel == null || !panel.isSearchFieldFocused()) {
+    if (panel == null) {
+      return;
+    }
+    // Inline-rename field has top priority while active: Enter / Escape / typing belong to it.
+    if (panel.handleInlineRenameKey(keyCode, scanCode, modifiers)) {
+      info.setReturnValue(true);
       return;
     }
     MinecraftClient client = MinecraftClient.getInstance();
-    if (client != null
-        && client.options != null
-        && client.options.inventoryKey.matchesKey(keyCode, scanCode)) {
+    boolean searchFocused = panel.isSearchFieldFocused();
+    if (searchFocused) {
+      if (client != null
+          && client.options != null
+          && client.options.inventoryKey.matchesKey(keyCode, scanCode)) {
+        info.setReturnValue(true);
+      }
+      return;
+    }
+    // Vanilla freezes in-game keybinds while a Screen is open; manually fire the Loot Lock cycle
+    // binding when the panel is open and the user is not typing into the search field so the
+    // hotkey is consistent inside and outside the inventory.
+    if (!panel.isOpen() || client == null) {
+      return;
+    }
+    if (LootLockKeybinds.matchesCycleProfile(keyCode, scanCode)) {
+      LootLockKeybinds.cycleProfileNow(client);
       info.setReturnValue(true);
     }
   }

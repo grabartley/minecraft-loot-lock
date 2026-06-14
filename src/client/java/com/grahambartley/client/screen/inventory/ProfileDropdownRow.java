@@ -1,5 +1,6 @@
 package com.grahambartley.client.screen.inventory;
 
+import java.util.UUID;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.widget.PressableWidget;
@@ -19,27 +20,40 @@ public final class ProfileDropdownRow extends PressableWidget {
   public static final int ACTIONS_WIDTH = 60;
   private static final int CHIP_SIZE = 12;
 
+  private final UUID profileId;
   private final int profileColor;
   private final String profileName;
   private final String metaText;
   private final boolean active;
   private final Runnable onPressAction;
+  private boolean suppressNameRender;
 
   public ProfileDropdownRow(
       int x,
       int y,
       int width,
+      UUID profileId,
       int profileColor,
       String profileName,
       String metaText,
       boolean active,
       Runnable onPressAction) {
     super(x, y, width, ROW_HEIGHT, Text.literal(profileName));
+    this.profileId = profileId;
     this.profileColor = profileColor;
     this.profileName = profileName == null ? "" : profileName;
     this.metaText = metaText == null ? "" : metaText;
     this.active = active;
     this.onPressAction = onPressAction;
+  }
+
+  public UUID getProfileId() {
+    return profileId;
+  }
+
+  /** Lets the panel hide the name during inline rename while leaving the chip and bg intact. */
+  public void setSuppressNameRender(boolean suppressNameRender) {
+    this.suppressNameRender = suppressNameRender;
   }
 
   @Override
@@ -70,10 +84,22 @@ public final class ProfileDropdownRow extends PressableWidget {
     int metaY = nameY + 10;
 
     int nameColor = active ? Palette.GOLD : Palette.ON_WELL;
-    context.drawText(
-        client.textRenderer, Text.literal(profileName), textX, nameY, nameColor, false);
+    if (!suppressNameRender) {
+      context.drawText(
+          client.textRenderer, Text.literal(profileName), textX, nameY, nameColor, false);
+    }
     context.drawText(
         client.textRenderer, Text.literal(metaText), textX, metaY, Palette.ON_WELL_DIM, false);
+  }
+
+  /** Computes the screen X where the editable name should render, in line with profileName. */
+  public int nameRenderX() {
+    return getX() + 6 + CHIP_SIZE + 5;
+  }
+
+  /** Computes the screen Y where the editable name baseline sits. */
+  public int nameRenderY() {
+    return getY() + 3;
   }
 
   @Override

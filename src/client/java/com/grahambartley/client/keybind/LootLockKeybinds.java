@@ -27,6 +27,25 @@ public final class LootLockKeybinds {
       KeyBindingHelper.registerKeyBinding(
           new KeyBinding("key.loot-lock.cycle_profile", GLFW.GLFW_KEY_UNKNOWN, CATEGORY));
 
+  /**
+   * Returns true if the given key event matches the cycle-profile binding. Used by the inventory
+   * screen mixin so the user can cycle profiles via hotkey while the inventory is open, which would
+   * otherwise be swallowed because vanilla suspends in-game keybinds while a Screen is showing.
+   */
+  public static boolean matchesCycleProfile(int keyCode, int scanCode) {
+    return CYCLE_PROFILE.matchesKey(keyCode, scanCode);
+  }
+
+  /** Returns true if the given key event matches the toggle-enabled binding. */
+  public static boolean matchesToggleEnabled(int keyCode, int scanCode) {
+    return TOGGLE_ENABLED.matchesKey(keyCode, scanCode);
+  }
+
+  /** Fires the cycle-profile action directly. Public so the screen hook can drive it. */
+  public static void cycleProfileNow(MinecraftClient client) {
+    cycleProfile(client);
+  }
+
   private LootLockKeybinds() {}
 
   public static void register() {

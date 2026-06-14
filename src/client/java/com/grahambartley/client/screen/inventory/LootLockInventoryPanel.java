@@ -20,6 +20,7 @@ import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.ingame.InventoryScreen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.ClickableWidget;
+import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
@@ -34,7 +35,7 @@ import net.minecraft.util.Identifier;
  */
 public final class LootLockInventoryPanel {
   public static final int WIDTH = 270;
-  public static final int HEIGHT = 320;
+  public static final int HEIGHT = 360;
 
   /**
    * Sticky panel-open state survives inventory close + ConfirmScreen detours, so the user does not
@@ -102,6 +103,10 @@ public final class LootLockInventoryPanel {
   private int dropdownFrameW;
   private int dropdownFrameH;
 
+  // Inline-rename overlay shown in place of a dropdown row's name while editing.
+  private UUID renamingProfileId;
+  private TextFieldWidget renameField;
+
   // Position references for paint code that draws labels.
   private int headerY;
   private int profileY;
@@ -146,6 +151,7 @@ public final class LootLockInventoryPanel {
     this.open = open;
     STICKY_OPEN_STATE = open;
     if (!open) {
+      cancelInlineRename();
       dropdownOpen = false;
     }
     applyVisibility();
@@ -353,10 +359,12 @@ public final class LootLockInventoryPanel {
     int contentInsetX = innerLeft + CONTENT_PADDING;
     int contentInsetY = contentY + CONTENT_PADDING;
     int contentInsetWidth = innerWidth - CONTENT_PADDING * 2;
+    int contentInsetHeight = contentHeight - CONTENT_PADDING * 2;
     rulesView.attach(
         contentInsetX,
         contentInsetY,
         contentInsetWidth,
+        contentInsetHeight,
         widget -> {
           addDrawableChild.accept(widget);
           allWidgets.add(widget);
@@ -377,6 +385,23 @@ public final class LootLockInventoryPanel {
     dropdownAnchorWidth = pillWidth;
     dropdownSignature = "";
     rebuildDropdownIfStale();
+
+    // Mount the rename field as a host child up front (hidden) so vanilla's keyPressed /
+    // charTyped routing reaches it naturally when we mark it focused during inline rename. The
+    // field is repositioned on-demand inside startInlineRename().
+    renameField =
+        new TextFieldWidget(
+            MinecraftClient.getInstance().textRenderer,
+            panelX,
+            panelY,
+            16,
+            12,
+            Text.literal("rename"));
+    renameField.setMaxLength(32);
+    renameField.setDrawsBackground(true);
+    renameField.visible = false;
+    addDrawableChild.accept(renameField);
+    allWidgets.add(renameField);
 
     applyVisibility();
     refresh();
@@ -572,6 +597,9 @@ public final class LootLockInventoryPanel {
         widget.render(context, mouseX, mouseY, delta);
       }
     }
+    if (renameField != null) {
+      renameField.render(context, mouseX, mouseY, delta);
+    }
   }
 
   public void setTab(PanelTab tab) {
@@ -662,7 +690,12 @@ public final class LootLockInventoryPanel {
 
   private void applyVisibility() {
     for (ClickableWidget widget : allWidgets) {
-      widget.visible = open;
+      if (widget == renameField) {
+        // Rename field has its own visibility lifecycle driven by start/cancelInlineRename.
+        widget.visible = open && renamingProfileId != null;
+      } else {
+        widget.visible = open;
+      }
     }
     for (ClickableWidget widget : dropdownWidgets) {
       widget.visible = open && dropdownOpen;
@@ -695,9 +728,21 @@ public final class LootLockInventoryPanel {
             && mouseY < dropdownFrameY + dropdownFrameH;
     if (!insideFrame) {
       // Click anywhere off the popup dismisses the dropdown and lets the click bubble to vanilla
-      // so the user can still operate the rest of the inventory in the same gesture.
+      // so the user can still operate the rest of the inventory in the same gesture. An in-flight
+      // rename commits so the user does not lose pending edits when they click away.
+      if (isInlineRenameActive()) {
+        commitInlineRename();
+      }
       closeDropdown();
       return false;
+    }
+    if (renameField != null
+        && mouseX >= renameField.getX()
+        && mouseX < renameField.getX() + renameField.getWidth()
+        && mouseY >= renameField.getY()
+        && mouseY < renameField.getY() + renameField.getHeight()) {
+      renameField.mouseClicked(mouseX, mouseY, button);
+      return true;
     }
     for (ClickableWidget widget : dropdownWidgets) {
       if (widget.visible && widget.mouseClicked(mouseX, mouseY, button)) {
@@ -709,6 +754,11 @@ public final class LootLockInventoryPanel {
 
   /** Rebuilds dropdown widgets if the profile list signature has changed since the last build. */
   private void rebuildDropdownIfStale() {
+    if (isInlineRenameActive()) {
+      // Skip rebuild while the user is editing — the row layout would otherwise jump under their
+      // cursor. Commit or cancel triggers the next rebuild via refresh().
+      return;
+    }
     Optional<LootLockPlayerData> snapshotOptional = LootLockClient.getState().getSnapshot();
     StringBuilder sigBuilder = new StringBuilder();
     List<LootLockProfile> profiles;
@@ -753,6 +803,7 @@ public final class LootLockInventoryPanel {
               dropdownAnchorX,
               y,
               rowMainWidth,
+              profile.getId(),
               colorForProfile(profile),
               profile.getName(),
               ruleCountLabel(profile),
@@ -912,9 +963,118 @@ public final class LootLockInventoryPanel {
   }
 
   private void renameProfile(LootLockProfile profile) {
-    // Vanilla doesn't ship an inline rename popup; the rename UX is deferred to story 4 (#111) so
-    // the dropdown closes here and the user falls back to /lootlock command flow in the meantime.
-    closeDropdown();
+    startInlineRename(profile);
+  }
+
+  /**
+   * Begins an inline rename for the supplied profile: creates a focused text field positioned over
+   * the row's name baseline, pre-fills the existing name with all characters selected, and hides
+   * the row's static name label so the field reads cleanly.
+   */
+  private void startInlineRename(LootLockProfile profile) {
+    if (renameField == null) {
+      return;
+    }
+    cancelInlineRename();
+    ProfileDropdownRow row = findDropdownRow(profile.getId());
+    if (row == null) {
+      return;
+    }
+    renamingProfileId = profile.getId();
+    int fieldX = row.nameRenderX() - 2;
+    int fieldY = row.nameRenderY() - 2;
+    int fieldWidth = row.getX() + row.getWidth() - fieldX - 2;
+    renameField.setPosition(fieldX, fieldY);
+    renameField.setWidth(fieldWidth);
+    renameField.setText(profile.getName());
+    renameField.visible = true;
+    renameField.setFocused(true);
+    if (host != null) {
+      host.setFocused(renameField);
+    }
+    row.setSuppressNameRender(true);
+  }
+
+  private void commitInlineRename() {
+    if (renamingProfileId == null || renameField == null) {
+      return;
+    }
+    String proposed = renameField.getText().trim();
+    UUID target = renamingProfileId;
+    cancelInlineRename();
+    if (proposed.isEmpty()) {
+      return;
+    }
+    ClientLootLockState state = LootLockClient.getState();
+    state
+        .beginDraft(target)
+        .ifPresent(
+            draft -> {
+              if (proposed.equals(draft.getDraft().getName())) {
+                return;
+              }
+              draft.setName(proposed);
+              state.buildSaveRequest().ifPresent(ClientMutationSync::sendSaveRequest);
+            });
+  }
+
+  private void cancelInlineRename() {
+    if (renamingProfileId == null) {
+      return;
+    }
+    ProfileDropdownRow row = findDropdownRow(renamingProfileId);
+    if (row != null) {
+      row.setSuppressNameRender(false);
+    }
+    renamingProfileId = null;
+    if (renameField != null) {
+      renameField.setFocused(false);
+      renameField.visible = false;
+    }
+    if (host != null) {
+      host.setFocused(null);
+    }
+  }
+
+  private ProfileDropdownRow findDropdownRow(UUID profileId) {
+    if (profileId == null) {
+      return null;
+    }
+    for (ClickableWidget widget : dropdownWidgets) {
+      if (widget instanceof ProfileDropdownRow row && profileId.equals(row.getProfileId())) {
+        return row;
+      }
+    }
+    return null;
+  }
+
+  /** Returns true if an inline rename is currently in progress. */
+  public boolean isInlineRenameActive() {
+    return renamingProfileId != null && renameField != null && renameField.visible;
+  }
+
+  /** Routes a key press to the rename field when active. Enter commits, Escape aborts. */
+  public boolean handleInlineRenameKey(int keyCode, int scanCode, int modifiers) {
+    if (!isInlineRenameActive()) {
+      return false;
+    }
+    if (keyCode == 257 || keyCode == 335) { // GLFW_KEY_ENTER, GLFW_KEY_KP_ENTER
+      commitInlineRename();
+      return true;
+    }
+    if (keyCode == 256) { // GLFW_KEY_ESCAPE
+      cancelInlineRename();
+      return true;
+    }
+    return renameField.keyPressed(keyCode, scanCode, modifiers);
+  }
+
+  /** Routes a char input to the rename field when active. */
+  public boolean handleInlineRenameChar(char chr, int modifiers) {
+    if (!isInlineRenameActive()) {
+      return false;
+    }
+    return renameField.charTyped(chr, modifiers);
   }
 
   private void duplicateProfile(LootLockProfile profile) {
@@ -952,11 +1112,16 @@ public final class LootLockInventoryPanel {
     }
     LootLockPlayerData snapshot = snapshotOptional.get();
     String name = ProfileUiController.nextDuplicateName(snapshot.getProfiles(), "New Profile");
+    // Leave the dropdown open so the newly added row appears in place and the user can immediately
+    // rename / duplicate / delete it without re-opening the popup. The next refresh() picks up the
+    // server-confirmed profile and rebuilds the dropdown rows.
     ClientMutationSync.sendCreateRequest(snapshot.getRevision(), name, null);
-    closeDropdown();
   }
 
   private void closeDropdown() {
+    if (isInlineRenameActive()) {
+      cancelInlineRename();
+    }
     dropdownOpen = false;
     for (ClickableWidget widget : dropdownWidgets) {
       widget.visible = false;
