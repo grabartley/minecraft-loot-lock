@@ -86,6 +86,7 @@ public final class LootLockInventoryPanel {
       ClientMutationSync::sendSaveRequest;
 
   private static final int SIDE_PADDING = 8;
+  private static final int DROPDOWN_FRAME_PAD = 5;
   private static final int HEADER_HEIGHT = 26;
   private static final int PROFILE_ROW_HEIGHT = 20;
   private static final int CONTROL_ROW_HEIGHT = 18;
@@ -479,10 +480,11 @@ public final class LootLockInventoryPanel {
         this::confirmEnableDelete,
         this::cancelEnableDelete);
 
-    dropdownAnchorX = pillX;
-    // Anchor the popup below the profile well so the frame doesn't bite into the pill row.
-    dropdownAnchorY = profileWellY + profileWellH + 8;
-    dropdownAnchorWidth = pillWidth;
+    // Span the popup across the full panel inner width so segmented controls below don't peek
+    // through, and flush the frame top with the profile well's bottom so there's no visible gap.
+    dropdownAnchorX = innerLeft + DROPDOWN_FRAME_PAD;
+    dropdownAnchorY = profileWellY + profileWellH + DROPDOWN_FRAME_PAD;
+    dropdownAnchorWidth = innerWidth - DROPDOWN_FRAME_PAD * 2;
     dropdownSignature = "";
     rebuildDropdownIfStale();
 
@@ -665,11 +667,11 @@ public final class LootLockInventoryPanel {
       contentHeight = CONTENT_PADDING * 2 + 20;
     }
 
-    // Re-anchor dropdown.
-    dropdownAnchorX = pillX;
-    // Anchor the popup below the profile well so the frame doesn't bite into the pill row.
-    dropdownAnchorY = profileWellY + profileWellH + 8;
-    dropdownAnchorWidth = pillWidth;
+    // Re-anchor dropdown to span the full panel inner width with the frame flush against the
+    // profile well's bottom edge — see attach() for the layout reasoning.
+    dropdownAnchorX = innerLeft + DROPDOWN_FRAME_PAD;
+    dropdownAnchorY = profileWellY + profileWellH + DROPDOWN_FRAME_PAD;
+    dropdownAnchorWidth = innerWidth - DROPDOWN_FRAME_PAD * 2;
     dropdownSignature = "";
     rebuildDropdownIfStale();
 
@@ -1255,12 +1257,11 @@ public final class LootLockInventoryPanel {
             .build();
     dropdownWidgets.add(newProfileButton);
 
-    int framePad = 5;
-    int frameTop = dropdownAnchorY - framePad;
-    int frameBottom = y + 3 + 16 + framePad;
-    dropdownFrameX = dropdownAnchorX - framePad;
+    int frameTop = dropdownAnchorY - DROPDOWN_FRAME_PAD;
+    int frameBottom = y + 3 + 16 + DROPDOWN_FRAME_PAD;
+    dropdownFrameX = dropdownAnchorX - DROPDOWN_FRAME_PAD;
     dropdownFrameY = frameTop;
-    dropdownFrameW = dropdownAnchorWidth + framePad * 2;
+    dropdownFrameW = dropdownAnchorWidth + DROPDOWN_FRAME_PAD * 2;
     dropdownFrameH = frameBottom - frameTop;
 
     for (ClickableWidget widget : dropdownWidgets) {
