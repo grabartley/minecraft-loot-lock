@@ -32,10 +32,10 @@ public final class LootLockIconButton extends ButtonWidget {
   @Override
   protected void renderButton(DrawContext context, int mouseX, int mouseY, float delta) {
     super.renderButton(context, mouseX, mouseY, delta);
-    int inset = 3;
-    int size = Math.min(getWidth(), getHeight()) - inset * 2;
-    int iconX = getX() + (getWidth() - size) / 2;
-    int iconY = getY() + (getHeight() - size) / 2;
-    context.drawTexture(ICON_TEXTURE, iconX, iconY, 0f, 0f, size, size, size, size);
+    int width = getWidth() - 2;
+    int height = getHeight() - 2;
+    int iconX = getX() + 1;
+    int iconY = getY() + 1;
+    context.drawTexture(ICON_TEXTURE, iconX, iconY, 0f, 0f, width, height, width, height);
   }
 }
