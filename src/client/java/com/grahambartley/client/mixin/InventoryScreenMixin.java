@@ -94,11 +94,15 @@ public abstract class InventoryScreenMixin implements LootLockPanelHolder {
   }
 
   @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true)
-  private void lootlock$interceptAltClickForRuleAdd(
+  private void lootlock$routeDropdownOrAltClick(
       double mouseX,
       double mouseY,
       int button,
       org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable<Boolean> info) {
+    if (lootlock$panel != null && lootlock$panel.handleDropdownMouseClick(mouseX, mouseY, button)) {
+      info.setReturnValue(true);
+      return;
+    }
     if (button != 0 || !Screen.hasAltDown()) {
       return;
     }

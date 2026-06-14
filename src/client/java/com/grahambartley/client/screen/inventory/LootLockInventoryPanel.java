@@ -92,6 +92,16 @@ public final class LootLockInventoryPanel {
   private SegmentedButton actionDeleteButton;
   private ButtonWidget newProfileButton;
 
+  // Anchor + signature used to rebuild the dropdown widgets when the profile list changes.
+  private int dropdownAnchorX;
+  private int dropdownAnchorY;
+  private int dropdownAnchorWidth;
+  private String dropdownSignature = "";
+  private int dropdownFrameX;
+  private int dropdownFrameY;
+  private int dropdownFrameW;
+  private int dropdownFrameH;
+
   // Position references for paint code that draws labels.
   private int headerY;
   private int profileY;
@@ -362,11 +372,11 @@ public final class LootLockInventoryPanel {
           lockableWidgets.add(widget);
         });
 
-    rebuildDropdownWidgets(
-        addDrawableChild,
-        pillX,
-        panelY + SIDE_PADDING + HEADER_HEIGHT + PROFILE_ROW_HEIGHT + 5,
-        pillWidth);
+    dropdownAnchorX = pillX;
+    dropdownAnchorY = panelY + SIDE_PADDING + HEADER_HEIGHT + PROFILE_ROW_HEIGHT + 5;
+    dropdownAnchorWidth = pillWidth;
+    dropdownSignature = "";
+    rebuildDropdownIfStale();
 
     applyVisibility();
     refresh();
@@ -403,6 +413,14 @@ public final class LootLockInventoryPanel {
     summaryY += dy;
     tabsY += dy;
     contentY += dy;
+    dropdownAnchorX += dx;
+    dropdownAnchorY += dy;
+    dropdownFrameX += dx;
+    dropdownFrameY += dy;
+    for (ClickableWidget widget : dropdownWidgets) {
+      widget.setX(widget.getX() + dx);
+      widget.setY(widget.getY() + dy);
+    }
   }
 
   /**
@@ -433,42 +451,6 @@ public final class LootLockInventoryPanel {
     Chrome.summaryBlock(
         context, panelX + SIDE_PADDING, summaryY, WIDTH - SIDE_PADDING * 2, SUMMARY_HEIGHT, accent);
     Chrome.well(context, panelX + SIDE_PADDING, contentY, WIDTH - SIDE_PADDING * 2, contentHeight);
-
-    // Profile dropdown chrome — paint a dark recessed popup behind the dropdown widget cluster
-    // when open so it reads as a layered overlay rather than naked buttons floating on the panel.
-    if (dropdownOpen && !dropdownWidgets.isEmpty()) {
-      int dropX = Integer.MAX_VALUE;
-      int dropY = Integer.MAX_VALUE;
-      int dropRight = Integer.MIN_VALUE;
-      int dropBottom = Integer.MIN_VALUE;
-      for (ClickableWidget widget : dropdownWidgets) {
-        if (!widget.visible) {
-          continue;
-        }
-        dropX = Math.min(dropX, widget.getX());
-        dropY = Math.min(dropY, widget.getY());
-        dropRight = Math.max(dropRight, widget.getX() + widget.getWidth());
-        dropBottom = Math.max(dropBottom, widget.getY() + widget.getHeight());
-      }
-      if (dropX != Integer.MAX_VALUE) {
-        int pad = 5;
-        // Outer dark edge + dark well face so the dropdown reads as a recessed list popup.
-        int frameX = dropX - pad;
-        int frameY = dropY - pad;
-        int frameW = dropRight - dropX + pad * 2;
-        int frameH = dropBottom - dropY + pad * 2;
-        // Drop shadow for visual lift.
-        context.fill(frameX + 3, frameY + 3, frameX + frameW + 3, frameY + frameH + 3, 0x80000000);
-        Chrome.well(context, frameX, frameY, frameW, frameH);
-        // Inner divider strip under the "Switch profile" zone for visual rhythm.
-        context.fill(
-            frameX + 2,
-            dropY + ProfileDropdownRow.ROW_HEIGHT,
-            frameX + frameW - 2,
-            dropY + ProfileDropdownRow.ROW_HEIGHT + 1,
-            0xFF1E1E22);
-      }
-    }
   }
 
   /**
@@ -547,6 +529,49 @@ public final class LootLockInventoryPanel {
     } else {
       settingsView.render(context, mouseX, mouseY, delta);
     }
+
+    if (dropdownOpen) {
+      renderDropdown(context, mouseX, mouseY, delta);
+    }
+  }
+
+  /**
+   * Paints the dropdown popup chrome and re-renders the dropdown widgets on top of the host's
+   * widget render pass. Without this overlay step the mode/action button widgets, which the host
+   * renders after the chrome pass, would punch through the dropdown popup.
+   */
+  private void renderDropdown(DrawContext context, int mouseX, int mouseY, float delta) {
+    if (dropdownWidgets.isEmpty()) {
+      return;
+    }
+    MinecraftClient client = MinecraftClient.getInstance();
+    // Drop shadow + dark well + small header strip per design 03-after.png.
+    context.fill(
+        dropdownFrameX + 3,
+        dropdownFrameY + 3,
+        dropdownFrameX + dropdownFrameW + 3,
+        dropdownFrameY + dropdownFrameH + 3,
+        0x80000000);
+    Chrome.well(context, dropdownFrameX, dropdownFrameY, dropdownFrameW, dropdownFrameH);
+    int headerY = dropdownFrameY + 4;
+    context.drawText(
+        client.textRenderer,
+        Text.literal("Switch profile"),
+        dropdownFrameX + 8,
+        headerY,
+        Palette.GOLD,
+        false);
+    context.fill(
+        dropdownFrameX + 4,
+        headerY + 10,
+        dropdownFrameX + dropdownFrameW - 4,
+        headerY + 11,
+        0xFF1E1E22);
+    for (ClickableWidget widget : dropdownWidgets) {
+      if (widget.visible) {
+        widget.render(context, mouseX, mouseY, delta);
+      }
+    }
   }
 
   public void setTab(PanelTab tab) {
@@ -590,6 +615,7 @@ public final class LootLockInventoryPanel {
     }
     applyLock(globallyEnabled);
     rulesView.refresh();
+    rebuildDropdownIfStale();
   }
 
   static boolean isIntegratedSingleplayer() {
@@ -651,23 +677,80 @@ public final class LootLockInventoryPanel {
     }
   }
 
-  private void rebuildDropdownWidgets(
-      Consumer<ClickableWidget> addDrawableChild, int x, int startY, int width) {
-    int y = startY;
+  /**
+   * Returns true if the dropdown is currently open and the click was inside its frame. Routes the
+   * click through the dropdown's own widgets so a row click does not leak through to the inventory
+   * slots underneath. When the click is inside the frame but no widget claimed it, the dropdown
+   * stays open. When the click is outside the frame, the dropdown closes and the click bubbles to
+   * vanilla.
+   */
+  public boolean handleDropdownMouseClick(double mouseX, double mouseY, int button) {
+    if (!open || !dropdownOpen) {
+      return false;
+    }
+    boolean insideFrame =
+        mouseX >= dropdownFrameX
+            && mouseX < dropdownFrameX + dropdownFrameW
+            && mouseY >= dropdownFrameY
+            && mouseY < dropdownFrameY + dropdownFrameH;
+    if (!insideFrame) {
+      // Click anywhere off the popup dismisses the dropdown and lets the click bubble to vanilla
+      // so the user can still operate the rest of the inventory in the same gesture.
+      closeDropdown();
+      return false;
+    }
+    for (ClickableWidget widget : dropdownWidgets) {
+      if (widget.visible && widget.mouseClicked(mouseX, mouseY, button)) {
+        return true;
+      }
+    }
+    return true;
+  }
+
+  /** Rebuilds dropdown widgets if the profile list signature has changed since the last build. */
+  private void rebuildDropdownIfStale() {
     Optional<LootLockPlayerData> snapshotOptional = LootLockClient.getState().getSnapshot();
+    StringBuilder sigBuilder = new StringBuilder();
+    List<LootLockProfile> profiles;
+    UUID activeId;
     if (snapshotOptional.isEmpty()) {
+      profiles = List.of();
+      activeId = null;
+      sigBuilder.append("empty");
+    } else {
+      LootLockPlayerData snapshot = snapshotOptional.get();
+      profiles = snapshot.getProfiles();
+      activeId = snapshot.getActiveProfileId();
+      sigBuilder.append(activeId == null ? "-" : activeId.toString());
+      for (LootLockProfile profile : profiles) {
+        sigBuilder
+            .append('|')
+            .append(profile.getId())
+            .append('=')
+            .append(profile.getName())
+            .append(':')
+            .append(ruleCountLabel(profile));
+      }
+    }
+    String newSignature = sigBuilder.toString();
+    if (newSignature.equals(dropdownSignature) && !dropdownWidgets.isEmpty()) {
       return;
     }
-    List<LootLockProfile> profiles = snapshotOptional.get().getProfiles();
-    java.util.UUID activeId = snapshotOptional.get().getActiveProfileId();
+    dropdownSignature = newSignature;
+    dropdownWidgets.clear();
+    newProfileButton = null;
+
+    int headerStripHeight = 14;
     int rowHeight = ProfileDropdownRow.ROW_HEIGHT;
     int actionsWidth = ProfileDropdownRow.ACTIONS_WIDTH;
-    int rowMainWidth = width - actionsWidth;
+    int rowMainWidth = dropdownAnchorWidth - actionsWidth - 4;
+    int rowsTop = dropdownAnchorY + headerStripHeight;
+    int y = rowsTop;
     for (LootLockProfile profile : profiles) {
       boolean isActive = profile.getId().equals(activeId);
       ProfileDropdownRow rowMain =
           new ProfileDropdownRow(
-              x,
+              dropdownAnchorX,
               y,
               rowMainWidth,
               colorForProfile(profile),
@@ -675,7 +758,7 @@ public final class LootLockInventoryPanel {
               ruleCountLabel(profile),
               isActive,
               () -> activateProfile(profile.getId()));
-      int actionsX = x + rowMainWidth + 2;
+      int actionsX = dropdownAnchorX + rowMainWidth + 2;
       int gap = (actionsWidth - MiniActionButton.SIZE * 3) / 4;
       MiniActionButton renameButton =
           new MiniActionButton(actionsX + gap, y + 2, "R", false, () -> renameProfile(profile));
@@ -695,14 +778,6 @@ public final class LootLockInventoryPanel {
               () -> deleteProfile(profile));
       deleteButton.active = ProfileUiController.canDelete(profiles);
 
-      addDrawableChild.accept(rowMain);
-      addDrawableChild.accept(renameButton);
-      addDrawableChild.accept(duplicateButton);
-      addDrawableChild.accept(deleteButton);
-      allWidgets.add(rowMain);
-      allWidgets.add(renameButton);
-      allWidgets.add(duplicateButton);
-      allWidgets.add(deleteButton);
       dropdownWidgets.add(rowMain);
       dropdownWidgets.add(renameButton);
       dropdownWidgets.add(duplicateButton);
@@ -712,15 +787,28 @@ public final class LootLockInventoryPanel {
     newProfileButton =
         ButtonWidget.builder(
                 Text.literal("+ New profile").formatted(Formatting.GREEN), b -> createProfile())
-            .dimensions(x, y + 3, width, 16)
+            .dimensions(dropdownAnchorX, y + 3, dropdownAnchorWidth, 16)
             .build();
-    addDrawableChild.accept(newProfileButton);
-    allWidgets.add(newProfileButton);
     dropdownWidgets.add(newProfileButton);
+
+    int framePad = 5;
+    int frameTop = dropdownAnchorY - framePad;
+    int frameBottom = y + 3 + 16 + framePad;
+    dropdownFrameX = dropdownAnchorX - framePad;
+    dropdownFrameY = frameTop;
+    dropdownFrameW = dropdownAnchorWidth + framePad * 2;
+    dropdownFrameH = frameBottom - frameTop;
+
+    for (ClickableWidget widget : dropdownWidgets) {
+      widget.visible = open && dropdownOpen;
+    }
   }
 
   private void toggleDropdown() {
     dropdownOpen = !dropdownOpen;
+    if (dropdownOpen) {
+      rebuildDropdownIfStale();
+    }
     for (ClickableWidget widget : dropdownWidgets) {
       widget.visible = open && dropdownOpen;
     }
