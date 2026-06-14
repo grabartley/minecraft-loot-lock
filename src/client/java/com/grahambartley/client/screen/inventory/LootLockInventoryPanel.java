@@ -1035,7 +1035,7 @@ public final class LootLockInventoryPanel {
    * Resolves the persisted profile colour, falling back to {@link Palette#PROFILE_COLORS}{@code
    * [0]} when no colour is set (i.e. profiles created before the chip-cycle UI shipped).
    */
-  static int colorForProfile(LootLockProfile profile) {
+  public static int colorForProfile(LootLockProfile profile) {
     int color = profile.getColor();
     return color == 0 ? Palette.PROFILE_COLORS[0] : color;
   }
