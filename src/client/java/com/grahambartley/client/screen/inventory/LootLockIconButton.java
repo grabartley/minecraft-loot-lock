@@ -9,6 +9,8 @@ import net.minecraft.util.Identifier;
 public final class LootLockIconButton extends ButtonWidget {
   public static final Identifier ICON_TEXTURE =
       new Identifier("loot-lock", "textures/gui/icon.png");
+  private static final Identifier FACE_TEXTURE =
+      new Identifier("textures/gui/recipe_button.png");
 
   private final BooleanSupplier highlightedSupplier;
 
@@ -31,7 +33,8 @@ public final class LootLockIconButton extends ButtonWidget {
 
   @Override
   protected void renderButton(DrawContext context, int mouseX, int mouseY, float delta) {
-    super.renderButton(context, mouseX, mouseY, delta);
+    int faceV = (isHovered() || isFocused()) ? 19 : 0;
+    context.drawTexture(FACE_TEXTURE, getX(), getY(), 0, faceV, getWidth(), getHeight());
     int width = getWidth() - 2;
     int height = getHeight() - 2;
     int iconX = getX() + 1;
