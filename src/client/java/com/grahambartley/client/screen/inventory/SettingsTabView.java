@@ -49,7 +49,7 @@ public final class SettingsTabView {
   private static final int TOGGLE_ROW_NAME_GAP = 2;
   private static final int TOGGLE_ROW_BOTTOM_PADDING = 4;
 
-  /** Hard cap so a missing-permission player still gets a stable layout. */
+  /** Operator permission level required to see and use the SERVER POLICY OPERATOR section. */
   static final int OPERATOR_PERMISSION_LEVEL = 2;
 
   private final List<ClickableWidget> widgets = new ArrayList<>();
@@ -73,24 +73,19 @@ public final class SettingsTabView {
     blockedHudSwitch =
         notificationSwitch(
             () -> settingsCopy().isShowBlockedHudNotification(),
-            () ->
-                mutateSettings(
-                    s -> s.setShowBlockedHudNotification(!s.isShowBlockedHudNotification())));
+            () -> toggleBlockedHud(LootLockClient.getClientSettingsManager()));
     profileCycleToastSwitch =
         notificationSwitch(
             () -> settingsCopy().isEnableProfileCycleToast(),
-            () ->
-                mutateSettings(s -> s.setEnableProfileCycleToast(!s.isEnableProfileCycleToast())));
+            () -> toggleProfileCycleToast(LootLockClient.getClientSettingsManager()));
     toggleToastSwitch =
         notificationSwitch(
             () -> settingsCopy().isEnableToggleToast(),
-            () -> mutateSettings(s -> s.setEnableToggleToast(!s.isEnableToggleToast())));
+            () -> toggleToggleToast(LootLockClient.getClientSettingsManager()));
     confirmBeforeDeleteSwitch =
         notificationSwitch(
             () -> settingsCopy().isConfirmBeforeEnablingDelete(),
-            () ->
-                mutateSettings(
-                    s -> s.setConfirmBeforeEnablingDelete(!s.isConfirmBeforeEnablingDelete())));
+            () -> toggleConfirmBeforeDelete(LootLockClient.getClientSettingsManager()));
     policySwitch =
         new VanillaSwitch(
             0,
@@ -156,7 +151,7 @@ public final class SettingsTabView {
       return false;
     }
     int maxScroll = Math.max(0, totalContentHeight() - viewHeight);
-    if (maxScroll == 0) {
+    if (maxScroll == 0 || amount == 0) {
       return false;
     }
     int step = 12;
@@ -167,10 +162,11 @@ public final class SettingsTabView {
     if (newOffset > maxScroll) {
       newOffset = maxScroll;
     }
-    if (newOffset != scrollOffset) {
-      scrollOffset = newOffset;
-      rebuildRows();
+    if (newOffset == scrollOffset) {
+      return false;
     }
+    scrollOffset = newOffset;
+    rebuildRows();
     return true;
   }
 
@@ -387,7 +383,8 @@ public final class SettingsTabView {
         new Row(
             cursorY,
             height,
-            (context, client, y, vx, vw) -> context.fill(vx, y, vx + vw, y + 1, 0xFF1E1E22)));
+            (context, client, y, vx, vw) ->
+                context.fill(vx, y, vx + vw, y + 1, Palette.ROW_DIVIDER)));
     return cursorY + height;
   }
 
@@ -413,7 +410,7 @@ public final class SettingsTabView {
 
   private static void paintKbd(
       DrawContext context, MinecraftClient client, String text, int x, int y, int width) {
-    context.fill(x, y, x + width, y + KBD_HEIGHT, 0xFF3A3A42);
+    context.fill(x, y, x + width, y + KBD_HEIGHT, Palette.KBD_FILL);
     context.drawText(
         client.textRenderer, Text.literal(text), x + KBD_PADDING_X, y + 1, Palette.ON_WELL, false);
   }
@@ -439,14 +436,38 @@ public final class SettingsTabView {
     return manager == null ? ClientSettings.defaults() : manager.getSettingsCopy();
   }
 
-  private static void mutateSettings(Consumer<ClientSettings> mutator) {
-    ClientSettingsManager manager = LootLockClient.getClientSettingsManager();
+  private static void mutateSettings(
+      ClientSettingsManager manager, Consumer<ClientSettings> mutator) {
     if (manager == null) {
       return;
     }
     ClientSettings copy = manager.getSettingsCopy();
     mutator.accept(copy);
     manager.replaceAndSave(copy);
+  }
+
+  /** Flips the blocked-item toast setting and persists. Wired to the NOTIFICATIONS row switch. */
+  static void toggleBlockedHud(ClientSettingsManager manager) {
+    mutateSettings(
+        manager, s -> s.setShowBlockedHudNotification(!s.isShowBlockedHudNotification()));
+  }
+
+  /** Flips the profile-switch toast setting and persists. Wired to the NOTIFICATIONS row switch. */
+  static void toggleProfileCycleToast(ClientSettingsManager manager) {
+    mutateSettings(manager, s -> s.setEnableProfileCycleToast(!s.isEnableProfileCycleToast()));
+  }
+
+  /**
+   * Flips the Loot Lock toggle toast setting and persists. Wired to the NOTIFICATIONS row switch.
+   */
+  static void toggleToggleToast(ClientSettingsManager manager) {
+    mutateSettings(manager, s -> s.setEnableToggleToast(!s.isEnableToggleToast()));
+  }
+
+  /** Flips the confirm-before-delete setting and persists. Wired to the SAFETY row switch. */
+  static void toggleConfirmBeforeDelete(ClientSettingsManager manager) {
+    mutateSettings(
+        manager, s -> s.setConfirmBeforeEnablingDelete(!s.isConfirmBeforeEnablingDelete()));
   }
 
   private void togglePolicy() {

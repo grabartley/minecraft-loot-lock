@@ -114,10 +114,9 @@ public final class DeleteConfirmStrip {
     int textTopY = y + PAD;
     int textWidth = width - ACCENT_WIDTH - PAD * 2;
 
-    // Body line: red-tinted "Delete mode" lead + warning sentence. drawTextWrapped does not
-    // support inline color spans, so the leading word is painted first and the remainder follows
-    // on a new line; the prototype rendered them side-by-side, but vanilla's text wrapping keeps
-    // pixel-faithful to within scaler rounding here.
+    // The red-tinted "Delete mode" lead and the rest of the body's first line render side by side
+    // because drawTextWrapped doesn't support inline color spans; the remaining sentence wraps on
+    // the next line.
     context.drawText(
         client.textRenderer, Text.literal("Delete mode"), textX, textTopY, Palette.DENY_BR, false);
     int afterLeadX = textX + client.textRenderer.getWidth("Delete mode ");

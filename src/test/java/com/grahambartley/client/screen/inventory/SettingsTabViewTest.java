@@ -3,7 +3,6 @@ package com.grahambartley.client.screen.inventory;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.grahambartley.client.config.ClientSettings;
 import com.grahambartley.client.config.ClientSettingsManager;
@@ -57,38 +56,64 @@ class SettingsTabViewTest {
   }
 
   @Test
-  void notificationTogglesRoundTripThroughClientSettingsManager(@TempDir Path tempDir) {
-    Path configPath = tempDir.resolve("loot-lock-client.json");
-    ClientSettingsManager manager = new ClientSettingsManager(configPath);
-    manager.load();
+  void toggleBlockedHudFlipsAndPersists(@TempDir Path tempDir) {
+    ClientSettingsManager manager = freshManager(tempDir);
+    boolean initial = manager.getSettingsCopy().isShowBlockedHudNotification();
 
-    ClientSettings draft = manager.getSettingsCopy();
-    draft.setShowBlockedHudNotification(true);
-    draft.setEnableProfileCycleToast(true);
-    draft.setEnableToggleToast(true);
-    manager.replaceAndSave(draft);
+    SettingsTabView.toggleBlockedHud(manager);
 
-    ClientSettingsManager reloaded = new ClientSettingsManager(configPath);
-    reloaded.load();
-    ClientSettings persisted = reloaded.getSettingsCopy();
-
-    assertTrue(persisted.isShowBlockedHudNotification());
-    assertTrue(persisted.isEnableProfileCycleToast());
-    assertTrue(persisted.isEnableToggleToast());
+    assertEquals(!initial, reload(tempDir).isShowBlockedHudNotification());
   }
 
   @Test
-  void confirmBeforeEnablingDeleteRoundTripsThroughClientSettingsManager(@TempDir Path tempDir) {
-    Path configPath = tempDir.resolve("loot-lock-client.json");
-    ClientSettingsManager manager = new ClientSettingsManager(configPath);
+  void toggleProfileCycleToastFlipsAndPersists(@TempDir Path tempDir) {
+    ClientSettingsManager manager = freshManager(tempDir);
+    boolean initial = manager.getSettingsCopy().isEnableProfileCycleToast();
+
+    SettingsTabView.toggleProfileCycleToast(manager);
+
+    assertEquals(!initial, reload(tempDir).isEnableProfileCycleToast());
+  }
+
+  @Test
+  void toggleToggleToastFlipsAndPersists(@TempDir Path tempDir) {
+    ClientSettingsManager manager = freshManager(tempDir);
+    boolean initial = manager.getSettingsCopy().isEnableToggleToast();
+
+    SettingsTabView.toggleToggleToast(manager);
+
+    assertEquals(!initial, reload(tempDir).isEnableToggleToast());
+  }
+
+  @Test
+  void toggleConfirmBeforeDeleteFlipsAndPersists(@TempDir Path tempDir) {
+    ClientSettingsManager manager = freshManager(tempDir);
+    boolean initial = manager.getSettingsCopy().isConfirmBeforeEnablingDelete();
+
+    SettingsTabView.toggleConfirmBeforeDelete(manager);
+
+    assertEquals(!initial, reload(tempDir).isConfirmBeforeEnablingDelete());
+  }
+
+  @Test
+  void notificationTogglesAreNoOpsWhenManagerIsNull() {
+    SettingsTabView.toggleBlockedHud(null);
+    SettingsTabView.toggleProfileCycleToast(null);
+    SettingsTabView.toggleToggleToast(null);
+    SettingsTabView.toggleConfirmBeforeDelete(null);
+  }
+
+  private static ClientSettingsManager freshManager(Path tempDir) {
+    ClientSettingsManager manager =
+        new ClientSettingsManager(tempDir.resolve("loot-lock-client.json"));
     manager.load();
+    return manager;
+  }
 
-    ClientSettings draft = manager.getSettingsCopy();
-    draft.setConfirmBeforeEnablingDelete(false);
-    manager.replaceAndSave(draft);
-
-    ClientSettingsManager reloaded = new ClientSettingsManager(configPath);
+  private static ClientSettings reload(Path tempDir) {
+    ClientSettingsManager reloaded =
+        new ClientSettingsManager(tempDir.resolve("loot-lock-client.json"));
     reloaded.load();
-    assertFalse(reloaded.getSettingsCopy().isConfirmBeforeEnablingDelete());
+    return reloaded.getSettingsCopy();
   }
 }
