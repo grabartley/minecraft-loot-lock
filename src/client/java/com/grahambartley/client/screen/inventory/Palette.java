@@ -52,6 +52,6 @@ public final class Palette {
    * Chrome#colorChip}.
    */
   public static final int[] PROFILE_COLORS = {
-    0xFF8A8A90, 0xFF4F9D43, 0xFF5A8FD6, 0xFFC0453A, 0xFFE6B33E, 0xFF7A52C9, 0xFFD77A2A, 0xFF3AA6A0,
+    0xFF4D4D54, 0xFF3B7530, 0xFF2C5FA5, 0xFF9B3127, 0xFF7E5A14, 0xFF7A52C9, 0xFF9C5414, 0xFF1F6E69,
   };
 }
