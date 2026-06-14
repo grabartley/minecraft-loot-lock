@@ -18,6 +18,7 @@ import java.util.UUID;
 import java.util.function.Consumer;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.ingame.InventoryScreen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.ClickableWidget;
@@ -86,7 +87,7 @@ public final class LootLockInventoryPanel {
   private final SettingsTabView settingsView = new SettingsTabView();
   private PanelTab activeTab = PanelTab.RULES;
 
-  private InventoryScreen host;
+  private Screen host;
   private int panelX;
   private int panelY;
   private int currentHeight = HEIGHT;
@@ -190,7 +191,7 @@ public final class LootLockInventoryPanel {
   }
 
   public void attach(
-      InventoryScreen host, int panelX, int panelY, Consumer<ClickableWidget> addDrawableChild) {
+      Screen host, int panelX, int panelY, Consumer<ClickableWidget> addDrawableChild) {
     this.host = host;
     this.panelX = panelX;
     this.panelY = panelY;
@@ -455,23 +456,33 @@ public final class LootLockInventoryPanel {
   }
 
   /**
-   * Recomputes the panel anchor and dimensions so it always fits on the screen, then snaps every
-   * widget to the resulting layout. Called once per frame from the inventory mixin so changes to
-   * the recipe-book layout, window size or GUI scale flow through naturally.
+   * Returns true when the supplied right-edge boundary leaves enough room for the panel and the
+   * screen is tall enough to fit at least the minimum panel height. Callers use this to decide
+   * whether to render the docked panel inline or open the dedicated {@link LootLockScreen}.
+   */
+  public static boolean canDock(int anchorX, int scaledWidth, int scaledHeight) {
+    int margin = 2;
+    return anchorX + WIDTH + margin <= scaledWidth && scaledHeight >= MIN_HEIGHT + margin * 2;
+  }
+
+  /**
+   * Recomputes the panel anchor and dimensions, then snaps every widget to the resulting layout.
+   * Called once per frame from the host so changes to the recipe-book layout, window size or GUI
+   * scale flow through naturally. The panel is vertically centered in the available screen height
+   * and horizontally anchored at {@code anchorX}.
    *
-   * @param desiredX preferred X (typically inventory's right edge + gap)
-   * @param desiredY preferred Y (typically inventory's top)
+   * @param anchorX preferred X (docked: inventory's right edge + gap; full-screen: screen center)
    * @param scaledWidth current screen width in GUI units
    * @param scaledHeight current screen height in GUI units
    */
-  public void layout(int desiredX, int desiredY, int scaledWidth, int scaledHeight) {
+  public void layout(int anchorX, int scaledWidth, int scaledHeight) {
     int margin = 2;
     int availableHeight = scaledHeight - margin * 2;
     int newHeight = Math.min(HEIGHT, Math.max(MIN_HEIGHT, availableHeight));
-    boolean newFits = scaledWidth >= WIDTH + margin * 2 && scaledHeight >= MIN_HEIGHT + margin * 2;
+    boolean newFits = canDock(anchorX, scaledWidth, scaledHeight);
 
-    int newX = Math.max(margin, Math.min(scaledWidth - WIDTH - margin, desiredX));
-    int newY = Math.max(margin, Math.min(scaledHeight - newHeight - margin, desiredY));
+    int newX = Math.max(margin, Math.min(scaledWidth - WIDTH - margin, anchorX));
+    int newY = Math.max(margin, (scaledHeight - newHeight) / 2);
 
     if (newX == panelX && newY == panelY && newHeight == currentHeight && newFits == fitsOnScreen) {
       return;

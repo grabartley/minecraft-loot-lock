@@ -1,5 +1,6 @@
 package com.grahambartley.client.mixin;
 
+import com.grahambartley.client.screen.LootLockScreen;
 import com.grahambartley.client.screen.inventory.DragToAddRouter;
 import com.grahambartley.client.screen.inventory.LootLockIconButton;
 import com.grahambartley.client.screen.inventory.LootLockInventoryPanel;
@@ -81,7 +82,17 @@ public abstract class InventoryScreenMixin implements LootLockPanelHolder {
       MinecraftClient client = MinecraftClient.getInstance();
       int scaledWidth = client.getWindow().getScaledWidth();
       int scaledHeight = client.getWindow().getScaledHeight();
-      lootlock$panel.layout(invX + 176 + 4, invY, scaledWidth, scaledHeight);
+      int anchorX = invX + 176 + 4;
+      if (!LootLockInventoryPanel.canDock(anchorX, scaledWidth, scaledHeight)) {
+        // Inline docking can't fit on this screen; collapse the docked panel and let the entry
+        // button open the dedicated screen instead. Suppressing isOpen also keeps the status
+        // effect HUD visible and avoids any phantom chrome.
+        if (lootlock$panel.isOpen()) {
+          lootlock$panel.setOpen(false);
+        }
+        return;
+      }
+      lootlock$panel.layout(anchorX, scaledWidth, scaledHeight);
       lootlock$panel.refresh();
       lootlock$panel.paintChrome(context);
     }
@@ -148,9 +159,21 @@ public abstract class InventoryScreenMixin implements LootLockPanelHolder {
 
   @Unique
   private void lootlock$onEntryClicked() {
-    if (lootlock$panel != null) {
-      lootlock$panel.toggleOpen();
+    InventoryScreen self = (InventoryScreen) (Object) this;
+    MinecraftClient client = MinecraftClient.getInstance();
+    int scaledWidth = client.getWindow().getScaledWidth();
+    int scaledHeight = client.getWindow().getScaledHeight();
+    int invX = ((HandledScreenAccessor) self).lootlock$getInvX();
+    int anchorX = invX + 176 + 4;
+    if (LootLockInventoryPanel.canDock(anchorX, scaledWidth, scaledHeight)) {
+      if (lootlock$panel != null) {
+        lootlock$panel.toggleOpen();
+      }
+      return;
     }
+    // No room to dock; open the dedicated screen which scales to any window. The current inventory
+    // is captured as the return target so closing the screen drops the player back into it.
+    client.setScreen(new LootLockScreen(self));
   }
 
   @Unique
