@@ -71,6 +71,14 @@ public final class ClientDraftProfile {
     }
   }
 
+  public void setColor(int color) {
+    int before = draft.getColor();
+    draft.setColor(color);
+    if (before != draft.getColor()) {
+      dirty = true;
+    }
+  }
+
   public void setRules(List<RuleEntry> rules) {
     List<RuleEntry> before = new ArrayList<>(draft.getRules());
     List<RuleEntry> copiedRules = new ArrayList<>();
@@ -103,6 +111,7 @@ public final class ClientDraftProfile {
         source.getMode(),
         source.getRejectedItemAction(),
         source.isEnabled(),
+        source.getColor(),
         copiedRules);
   }
 }

@@ -106,6 +106,7 @@ public final class ConfigSerializer {
     obj.addProperty("mode", profile.getMode().name());
     obj.addProperty("rejectedItemAction", profile.getRejectedItemAction().name());
     obj.addProperty("enabled", profile.isEnabled());
+    obj.addProperty("color", profile.getColor());
 
     JsonArray rules = new JsonArray();
     for (RuleEntry rule : profile.getRules()) {
@@ -156,6 +157,11 @@ public final class ConfigSerializer {
       enabled = obj.get("enabled").getAsBoolean();
     }
 
+    int color = 0;
+    if (obj.has("color")) {
+      color = obj.get("color").getAsInt();
+    }
+
     List<RuleEntry> rules = new ArrayList<>();
     if (obj.has("rules")) {
       for (JsonElement element : obj.getAsJsonArray("rules")) {
@@ -165,7 +171,7 @@ public final class ConfigSerializer {
       }
     }
 
-    return new LootLockProfile(id, name, mode, action, enabled, rules);
+    return new LootLockProfile(id, name, mode, action, enabled, color, rules);
   }
 
   public static class ConfigDeserializationException extends Exception {

@@ -78,7 +78,15 @@ public final class LootLockInventoryPanel {
   /** Test seam: swap in a deterministic clock to verify flash timing without a real game loop. */
   static LongSupplier clockMillis = System::currentTimeMillis;
 
+  /**
+   * Test seam: swap to capture or stub the save-request dispatch so unit tests can exercise the
+   * draft-save round-trip without a live network handler.
+   */
+  static Consumer<ClientLootLockState.ClientDraftSaveRequest> saveRequestDispatcher =
+      ClientMutationSync::sendSaveRequest;
+
   private static final int SIDE_PADDING = 8;
+  private static final int DROPDOWN_FRAME_PAD = 5;
   private static final int HEADER_HEIGHT = 26;
   private static final int PROFILE_ROW_HEIGHT = 20;
   private static final int CONTROL_ROW_HEIGHT = 18;
@@ -472,9 +480,11 @@ public final class LootLockInventoryPanel {
         this::confirmEnableDelete,
         this::cancelEnableDelete);
 
-    dropdownAnchorX = pillX;
-    dropdownAnchorY = panelY + SIDE_PADDING + HEADER_HEIGHT + PROFILE_ROW_HEIGHT + 5;
-    dropdownAnchorWidth = pillWidth;
+    // Span the popup across the full panel inner width so segmented controls below don't peek
+    // through, and flush the frame top with the profile well's bottom so there's no visible gap.
+    dropdownAnchorX = innerLeft + DROPDOWN_FRAME_PAD;
+    dropdownAnchorY = profileWellY + profileWellH + DROPDOWN_FRAME_PAD;
+    dropdownAnchorWidth = innerWidth - DROPDOWN_FRAME_PAD * 2;
     dropdownSignature = "";
     rebuildDropdownIfStale();
 
@@ -657,10 +667,11 @@ public final class LootLockInventoryPanel {
       contentHeight = CONTENT_PADDING * 2 + 20;
     }
 
-    // Re-anchor dropdown.
-    dropdownAnchorX = pillX;
-    dropdownAnchorY = panelY + SIDE_PADDING + HEADER_HEIGHT + PROFILE_ROW_HEIGHT + 5;
-    dropdownAnchorWidth = pillWidth;
+    // Re-anchor dropdown to span the full panel inner width with the frame flush against the
+    // profile well's bottom edge — see attach() for the layout reasoning.
+    dropdownAnchorX = innerLeft + DROPDOWN_FRAME_PAD;
+    dropdownAnchorY = profileWellY + profileWellH + DROPDOWN_FRAME_PAD;
+    dropdownAnchorWidth = innerWidth - DROPDOWN_FRAME_PAD * 2;
     dropdownSignature = "";
     rebuildDropdownIfStale();
 
@@ -938,6 +949,29 @@ public final class LootLockInventoryPanel {
     if (renameField != null) {
       renameField.render(context, mouseX, mouseY, delta);
     }
+    paintChipHoverTooltip(context, mouseX, mouseY);
+  }
+
+  /**
+   * Renders a "Change colour" tooltip at the cursor for whichever dropdown row's chip is currently
+   * hovered. Skipped during inline rename so the field's caret-area hover doesn't compete with the
+   * tooltip.
+   */
+  private void paintChipHoverTooltip(DrawContext context, int mouseX, int mouseY) {
+    if (isInlineRenameActive()) {
+      return;
+    }
+    MinecraftClient client = MinecraftClient.getInstance();
+    for (ClickableWidget widget : dropdownWidgets) {
+      if (!(widget instanceof ProfileDropdownRow row) || !row.visible) {
+        continue;
+      }
+      if (row.isMouseOverChip(mouseX, mouseY)) {
+        context.drawTooltip(
+            client.textRenderer, List.of(Text.literal("Change colour")), mouseX, mouseY);
+        return;
+      }
+    }
   }
 
   public void setTab(PanelTab tab) {
@@ -997,20 +1031,60 @@ public final class LootLockInventoryPanel {
     handleClientToggle();
   }
 
-  /** Stable per-profile color derived from the profile's UUID hash. */
-  static int colorForProfile(LootLockProfile profile) {
-    int[] palette = {
-      Palette.ALLOW,
-      Palette.INFO,
-      Palette.DENY,
-      Palette.GOLD,
-      Palette.PURPLE,
-      0xFFD77A2A,
-      0xFF3AA6A0,
-      0xFF8A8A90
-    };
-    int hash = profile.getId() == null ? 0 : Math.abs(profile.getId().hashCode());
-    return palette[hash % palette.length];
+  /**
+   * Resolves the persisted profile colour, falling back to {@link Palette#PROFILE_COLORS}{@code
+   * [0]} when no colour is set (i.e. profiles created before the chip-cycle UI shipped).
+   */
+  public static int colorForProfile(LootLockProfile profile) {
+    int color = profile.getColor();
+    return color == 0 ? Palette.PROFILE_COLORS[0] : color;
+  }
+
+  /**
+   * Advances {@code profileId}'s colour to the next entry in {@link Palette#PROFILE_COLORS},
+   * wrapping back to index 0 from the last. Persists through the standard draft-save pipeline so
+   * the change reflects in the dropdown row, the profile pill, and survives a sync round-trip.
+   */
+  public void cycleProfileColor(UUID profileId) {
+    if (profileId == null) {
+      return;
+    }
+    ClientLootLockState state = LootLockClient.getState();
+    Optional<LootLockPlayerData> snapshotOptional = state.getSnapshot();
+    if (snapshotOptional.isEmpty()) {
+      return;
+    }
+    LootLockProfile profile = null;
+    for (LootLockProfile candidate : snapshotOptional.get().getProfiles()) {
+      if (profileId.equals(candidate.getId())) {
+        profile = candidate;
+        break;
+      }
+    }
+    if (profile == null) {
+      return;
+    }
+    int nextColor = nextProfileColor(profile.getColor());
+    state
+        .beginDraft(profileId)
+        .ifPresent(
+            draft -> {
+              draft.setColor(nextColor);
+              state.buildSaveRequest().ifPresent(saveRequestDispatcher);
+            });
+  }
+
+  /** Index lookup tolerant of an unset (0) colour: returns the next palette entry, wrapping. */
+  static int nextProfileColor(int currentColor) {
+    int[] palette = Palette.PROFILE_COLORS;
+    int currentIndex = 0;
+    for (int i = 0; i < palette.length; i++) {
+      if (palette[i] == currentColor) {
+        currentIndex = i;
+        break;
+      }
+    }
+    return palette[(currentIndex + 1) % palette.length];
   }
 
   static String ruleCountLabel(LootLockProfile profile) {
@@ -1065,9 +1139,16 @@ public final class LootLockInventoryPanel {
             && mouseY >= dropdownFrameY
             && mouseY < dropdownFrameY + dropdownFrameH;
     if (!insideFrame) {
-      // Click anywhere off the popup dismisses the dropdown and lets the click bubble to vanilla
-      // so the user can still operate the rest of the inventory in the same gesture. An in-flight
-      // rename commits so the user does not lose pending edits when they click away.
+      if (profilePill != null
+          && mouseX >= profilePill.getX()
+          && mouseX < profilePill.getX() + profilePill.getWidth()
+          && mouseY >= profilePill.getY()
+          && mouseY < profilePill.getY() + profilePill.getHeight()) {
+        if (isInlineRenameActive()) {
+          commitInlineRename();
+        }
+        return false;
+      }
       if (isInlineRenameActive()) {
         commitInlineRename();
       }
@@ -1117,7 +1198,9 @@ public final class LootLockInventoryPanel {
             .append('=')
             .append(profile.getName())
             .append(':')
-            .append(ruleCountLabel(profile));
+            .append(ruleCountLabel(profile))
+            .append(':')
+            .append(profile.getColor());
       }
     }
     String newSignature = sigBuilder.toString();
@@ -1146,7 +1229,8 @@ public final class LootLockInventoryPanel {
               profile.getName(),
               ruleCountLabel(profile),
               isActive,
-              () -> activateProfile(profile.getId()));
+              () -> activateProfile(profile.getId()),
+              () -> cycleProfileColor(profile.getId()));
       int actionsX = dropdownAnchorX + rowMainWidth + 2;
       int gap = (actionsWidth - MiniActionButton.SIZE * 3) / 4;
       MiniActionButton renameButton =
@@ -1180,12 +1264,11 @@ public final class LootLockInventoryPanel {
             .build();
     dropdownWidgets.add(newProfileButton);
 
-    int framePad = 5;
-    int frameTop = dropdownAnchorY - framePad;
-    int frameBottom = y + 3 + 16 + framePad;
-    dropdownFrameX = dropdownAnchorX - framePad;
+    int frameTop = dropdownAnchorY - DROPDOWN_FRAME_PAD;
+    int frameBottom = y + 3 + 16 + DROPDOWN_FRAME_PAD;
+    dropdownFrameX = dropdownAnchorX - DROPDOWN_FRAME_PAD;
     dropdownFrameY = frameTop;
-    dropdownFrameW = dropdownAnchorWidth + framePad * 2;
+    dropdownFrameW = dropdownAnchorWidth + DROPDOWN_FRAME_PAD * 2;
     dropdownFrameH = frameBottom - frameTop;
 
     for (ClickableWidget widget : dropdownWidgets) {

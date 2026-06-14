@@ -3,6 +3,7 @@ package com.grahambartley.client.keybind;
 import com.grahambartley.client.LootLockClient;
 import com.grahambartley.client.config.ClientSettings;
 import com.grahambartley.client.screen.inventory.GlobalEnableController;
+import com.grahambartley.client.screen.inventory.LootLockInventoryPanel;
 import com.grahambartley.client.screen.inventory.LootLockToast;
 import com.grahambartley.client.state.ClientLootLockState;
 import com.grahambartley.data.LootLockPlayerData;
@@ -14,8 +15,9 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.KeyBinding;
+import net.minecraft.text.Style;
 import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.text.TextColor;
 import org.lwjgl.glfw.GLFW;
 
 public final class LootLockKeybinds {
@@ -101,10 +103,12 @@ public final class LootLockKeybinds {
     if (!settings.isEnableProfileCycleToast()) {
       return;
     }
+    int rgb = LootLockInventoryPanel.colorForProfile(nextProfile) & 0xFFFFFF;
     LootLockToast.show(
         client,
         Text.literal("Profile switched"),
-        Text.literal(nextProfile.getName()).formatted(Formatting.YELLOW));
+        Text.literal(nextProfile.getName())
+            .setStyle(Style.EMPTY.withColor(TextColor.fromRgb(rgb))));
   }
 
   private static int indexOfProfile(LootLockPlayerData data, UUID profileId) {

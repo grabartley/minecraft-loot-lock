@@ -471,6 +471,7 @@ public final class ClientToServerPackets {
         Optional.ofNullable(source.getMode()).orElse(FilterMode.DENYLIST),
         action,
         source.isEnabled(),
+        source.getColor(),
         sanitizedRules);
   }
 
@@ -481,6 +482,7 @@ public final class ClientToServerPackets {
         FilterMode.DENYLIST,
         RejectedItemAction.LEAVE_ON_GROUND,
         true,
+        0,
         List.of());
   }
 
@@ -501,6 +503,7 @@ public final class ClientToServerPackets {
     buf.writeEnumConstant(profile.getMode());
     buf.writeEnumConstant(profile.getRejectedItemAction());
     buf.writeBoolean(profile.isEnabled());
+    buf.writeInt(profile.getColor());
     buf.writeVarInt(profile.getRules().size());
     for (RuleEntry rule : profile.getRules()) {
       buf.writeString(rule.itemId(), PacketLimits.MAX_RULE_ID_LENGTH);
@@ -513,12 +516,13 @@ public final class ClientToServerPackets {
     FilterMode mode = buf.readEnumConstant(FilterMode.class);
     RejectedItemAction action = buf.readEnumConstant(RejectedItemAction.class);
     boolean enabled = buf.readBoolean();
+    int color = buf.readInt();
     int ruleCount = buf.readVarInt();
     List<RuleEntry> rules = new ArrayList<>(ruleCount);
     for (int i = 0; i < ruleCount; i++) {
       rules.add(new RuleEntry(buf.readString(PacketLimits.MAX_RULE_ID_LENGTH)));
     }
-    return new LootLockProfile(profileId, profileName, mode, action, enabled, rules);
+    return new LootLockProfile(profileId, profileName, mode, action, enabled, color, rules);
   }
 
   record HelloPayload(String clientVersion, int schemaVersion) {}

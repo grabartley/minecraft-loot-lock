@@ -44,4 +44,14 @@ public final class Palette {
   public static final int ROW_DIVIDER = 0xFF1E1E22;
 
   public static final int SHADOW = 0x8C000000;
+
+  /**
+   * Profile colour palette cycled by clicking the chip on a profile dropdown row. Order is the
+   * cycle order: index 0 is the default for unset profiles, each click advances by one, the last
+   * entry wraps back to index 0. ARGB with full alpha so the values feed directly into {@link
+   * Chrome#colorChip}.
+   */
+  public static final int[] PROFILE_COLORS = {
+    0xFF8A8A90, 0xFF4F9D43, 0xFF5A8FD6, 0xFFC0453A, 0xFFE6B33E, 0xFF7A52C9, 0xFFD77A2A, 0xFF3AA6A0,
+  };
 }
