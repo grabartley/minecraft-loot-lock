@@ -15,9 +15,4 @@ public final class ProfileNameValidator {
     }
     return trimmed.substring(0, MAX_UI_PROFILE_NAME_LENGTH);
   }
-
-  public static boolean isValid(String name) {
-    String sanitized = sanitize(name);
-    return !sanitized.isBlank() && sanitized.length() <= MAX_UI_PROFILE_NAME_LENGTH;
-  }
 }
