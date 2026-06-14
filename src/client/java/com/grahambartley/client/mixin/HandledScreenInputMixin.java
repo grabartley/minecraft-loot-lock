@@ -89,6 +89,8 @@ public abstract class HandledScreenInputMixin {
     // Keep the stack on the cursor so the user can put it back; vanilla would otherwise drop the
     // whole stack into the world from this release.
     panel.setTab(PanelTab.RULES);
+    panel.flashDropSuccess();
+    panel.setDropArmed(false);
     info.setReturnValue(true);
   }
 }

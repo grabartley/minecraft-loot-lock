@@ -19,6 +19,7 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
  * Mounts the Loot Lock docked panel onto the survival inventory screen. Adds a small entry button
@@ -94,8 +95,28 @@ public abstract class InventoryScreenMixin implements LootLockPanelHolder {
       }
       lootlock$panel.layout(anchorX, scaledWidth, scaledHeight);
       lootlock$panel.refresh();
+      lootlock$updateDropArmedState(self, mouseX, mouseY);
       lootlock$panel.paintChrome(context);
     }
+  }
+
+  /**
+   * Per-frame: arm the rules content well when the player is dragging a cursor stack over the open
+   * panel on the Rules tab. The flag clears the moment the cursor leaves the panel rectangle or the
+   * stack returns to a slot, so the gold inset reads as a live drop target.
+   */
+  @Unique
+  private void lootlock$updateDropArmedState(InventoryScreen self, int mouseX, int mouseY) {
+    if (lootlock$panel == null) {
+      return;
+    }
+    boolean armed =
+        lootlock$panel.isOpen()
+            && lootlock$panel.getActiveTab() == PanelTab.RULES
+            && self.getScreenHandler() != null
+            && !self.getScreenHandler().getCursorStack().isEmpty()
+            && lootlock$panel.containsPoint(mouseX, mouseY);
+    lootlock$panel.setDropArmed(armed);
   }
 
   /** Paint foreground (labels, summary text, brand icon) AFTER widgets so labels read clearly. */
@@ -107,12 +128,52 @@ public abstract class InventoryScreenMixin implements LootLockPanelHolder {
     }
   }
 
+  /**
+   * Drag-to-closed-button shortcut: when the panel is closed and the player releases a non-empty
+   * cursor stack over the brand entry button, open the panel, switch to Rules, clear the search,
+   * and route the stack through the same {@link DragToAddRouter} as the open-panel drop path.
+   * Flashes the success animation so the player sees the rule landed.
+   */
+  @Inject(method = "mouseReleased", at = @At("HEAD"), cancellable = true)
+  private void lootlock$catchDragReleaseOverEntryButton(
+      double mouseX, double mouseY, int button, CallbackInfoReturnable<Boolean> info) {
+    if (button != 0 || lootlock$panel == null || lootlock$entryButton == null) {
+      return;
+    }
+    if (lootlock$panel.isOpen() || !lootlock$isOverEntryButton(mouseX, mouseY)) {
+      return;
+    }
+    InventoryScreen self = (InventoryScreen) (Object) this;
+    if (self.getScreenHandler() == null) {
+      return;
+    }
+    ItemStack cursorStack = self.getScreenHandler().getCursorStack();
+    if (cursorStack == null || cursorStack.isEmpty()) {
+      return;
+    }
+    String itemId = DragToAddRouter.route(cursorStack);
+    if (itemId == null) {
+      return;
+    }
+    lootlock$panel.setOpen(true);
+    lootlock$panel.setTab(PanelTab.RULES);
+    lootlock$panel.clearRulesSearch();
+    lootlock$panel.flashDropSuccess();
+    info.setReturnValue(true);
+  }
+
+  @Unique
+  private boolean lootlock$isOverEntryButton(double mouseX, double mouseY) {
+    ButtonWidget btn = lootlock$entryButton;
+    return mouseX >= btn.getX()
+        && mouseX < btn.getX() + btn.getWidth()
+        && mouseY >= btn.getY()
+        && mouseY < btn.getY() + btn.getHeight();
+  }
+
   @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true)
   private void lootlock$routeDropdownOrAltClick(
-      double mouseX,
-      double mouseY,
-      int button,
-      org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable<Boolean> info) {
+      double mouseX, double mouseY, int button, CallbackInfoReturnable<Boolean> info) {
     if (lootlock$panel != null && lootlock$panel.handleDropdownMouseClick(mouseX, mouseY, button)) {
       info.setReturnValue(true);
       return;
