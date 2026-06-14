@@ -1187,7 +1187,9 @@ public final class LootLockInventoryPanel {
             .append('=')
             .append(profile.getName())
             .append(':')
-            .append(ruleCountLabel(profile));
+            .append(ruleCountLabel(profile))
+            .append(':')
+            .append(profile.getColor());
       }
     }
     String newSignature = sigBuilder.toString();
