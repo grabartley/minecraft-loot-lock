@@ -95,7 +95,7 @@ All commands are rooted at `/lootlock`. The in-game UI covers most of these, but
 | --- | --- | --- | --- |
 | Fabric Loader | `>=0.19.2` | Yes | Mod loader |
 | Fabric API | `>=0.92.9+1.20.1` | Yes | Fabric hooks and APIs |
-| Mod Menu | `>=7.2.2` | No | Settings access from the mod list |
+| Mod Menu | `>=7.2.2` | No | Opens the Loot Lock panel from the mod list |
 
 ## Permissions
 
