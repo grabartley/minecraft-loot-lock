@@ -114,7 +114,7 @@ All commands are rooted at `/lootlock`. The in-game UI covers everything below, 
 
 | Command | What it does | Notes |
 | --- | --- | --- |
-| `/lootlock profile create <name>` | Creates a new profile with default settings. | Names are trimmed and must be 1 to 32 chars. |
+| `/lootlock profile create <name>` | Creates a new profile with default settings. | Names are trimmed and must be 1 to 32 chars. Max 9 profiles per player. |
 | `/lootlock profile delete <name>` | Deletes a profile by name. | Cannot delete your last profile. |
 | `/lootlock mode denylist` | Sets active profile filter mode to denylist. | |
 | `/lootlock mode allowlist` | Sets active profile filter mode to allowlist. | |

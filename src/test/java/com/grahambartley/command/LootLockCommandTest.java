@@ -97,6 +97,28 @@ class LootLockCommandTest {
         LootLockCommand.normalizeRejectedItemAction(null, true));
   }
 
+  @ParameterizedTest(name = "{0} profiles -> canCreate={1}")
+  @CsvSource({
+    "1, true",
+    "8, true",
+    "9, false",
+  })
+  void canCreateProfileRespectsCap(int existingProfiles, boolean expected) {
+    LootLockPlayerData data = LootLockPlayerData.createDefault(UUID.randomUUID());
+    List<LootLockProfile> profiles = new ArrayList<>(existingProfiles);
+    for (int i = 0; i < existingProfiles; i++) {
+      profiles.add(profile("Profile " + i, FilterMode.DENYLIST, true));
+    }
+    data.setProfiles(profiles);
+
+    assertEquals(expected, LootLockCommand.canCreateProfile(data));
+  }
+
+  @Test
+  void canCreateProfileFalseForNullData() {
+    assertFalse(LootLockCommand.canCreateProfile(null));
+  }
+
   @ParameterizedTest(name = "applyGlobalEnable({0}) flips every profile")
   @CsvSource({"true", "false"})
   void applyGlobalEnableFlipsEveryProfileFromMixedState(boolean targetState) {

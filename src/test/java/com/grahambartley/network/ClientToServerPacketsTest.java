@@ -10,10 +10,13 @@ import com.grahambartley.data.LootLockPlayerData;
 import com.grahambartley.data.LootLockProfile;
 import com.grahambartley.data.RejectedItemAction;
 import com.grahambartley.data.RuleEntry;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import net.minecraft.network.PacketByteBuf;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 class ClientToServerPacketsTest {
 
@@ -104,6 +107,28 @@ class ClientToServerPacketsTest {
     assertEquals(2, data.getProfiles().size());
     assertEquals("Farming", data.getProfiles().get(1).getName());
     assertEquals(originalActiveProfileId, data.getActiveProfileId());
+  }
+
+  @ParameterizedTest(name = "existing={0} -> success={1}")
+  @CsvSource({
+    "8, true",
+    "9, false",
+  })
+  void applyCreateProfileEnforcesMaxProfilesCap(int existing, boolean expectedSuccess) {
+    LootLockPlayerData data = createDataWithNProfiles(existing);
+
+    ClientToServerPackets.MutationResult result =
+        ClientToServerPackets.applyCreateProfile(
+            data,
+            new ClientToServerPackets.CreateProfilePayload(data.getRevision(), "Fresh", null));
+
+    assertEquals(expectedSuccess, result.success());
+    if (expectedSuccess) {
+      assertEquals(existing + 1, data.getProfiles().size());
+    } else {
+      assertEquals(ClientToServerPackets.MutationRejectionReason.TOO_MANY, result.reason());
+      assertEquals(existing, data.getProfiles().size());
+    }
   }
 
   @Test
@@ -235,6 +260,21 @@ class ClientToServerPacketsTest {
         List.of(
             newProfile("Farming", FilterMode.DENYLIST, RejectedItemAction.LEAVE_ON_GROUND, true),
             newProfile("Mining", FilterMode.ALLOWLIST, RejectedItemAction.LEAVE_ON_GROUND, false)));
+    return data;
+  }
+
+  private static LootLockPlayerData createDataWithNProfiles(int count) {
+    LootLockPlayerData data = LootLockPlayerData.createDefault(UUID.randomUUID());
+    List<LootLockProfile> profiles = new ArrayList<>(count);
+    for (int i = 0; i < count; i++) {
+      profiles.add(
+          newProfile(
+              "Profile " + i, FilterMode.DENYLIST, RejectedItemAction.LEAVE_ON_GROUND, true));
+    }
+    data.setProfiles(profiles);
+    if (!profiles.isEmpty()) {
+      data.setActiveProfileId(profiles.get(0).getId());
+    }
     return data;
   }
 

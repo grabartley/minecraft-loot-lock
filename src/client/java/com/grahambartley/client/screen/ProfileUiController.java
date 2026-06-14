@@ -1,6 +1,7 @@
 package com.grahambartley.client.screen;
 
 import com.grahambartley.data.LootLockProfile;
+import com.grahambartley.network.PacketLimits;
 import java.util.List;
 
 public final class ProfileUiController {
@@ -8,6 +9,10 @@ public final class ProfileUiController {
 
   public static boolean canDelete(List<LootLockProfile> profiles) {
     return profiles != null && profiles.size() > 1;
+  }
+
+  public static boolean canCreateProfile(List<LootLockProfile> profiles) {
+    return profiles != null && profiles.size() < PacketLimits.MAX_PROFILES;
   }
 
   public static String nextDuplicateName(List<LootLockProfile> profiles, String sourceName) {

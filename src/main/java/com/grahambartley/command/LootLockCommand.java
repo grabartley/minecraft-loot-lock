@@ -6,6 +6,7 @@ import com.grahambartley.data.LootLockPlayerData;
 import com.grahambartley.data.LootLockProfile;
 import com.grahambartley.data.RejectedItemAction;
 import com.grahambartley.data.RuleEntry;
+import com.grahambartley.network.PacketLimits;
 import com.grahambartley.network.ServerToClientPackets;
 import com.grahambartley.server.ServerPlayerDataManager;
 import com.grahambartley.server.ServerPolicyService;
@@ -250,6 +251,17 @@ public final class LootLockCommand {
       context
           .getSource()
           .sendError(Text.literal("Profile name must be between 1 and 32 characters."));
+      return 0;
+    }
+
+    if (!canCreateProfile(state.data)) {
+      context
+          .getSource()
+          .sendError(
+              Text.literal(
+                  "You already have "
+                      + PacketLimits.MAX_PROFILES
+                      + " profiles, which is the maximum. Delete one before creating another."));
       return 0;
     }
 
@@ -555,6 +567,10 @@ public final class LootLockCommand {
     }
 
     return new StateContext(player, dataManager, playerData, activeProfile);
+  }
+
+  static boolean canCreateProfile(LootLockPlayerData data) {
+    return data != null && data.getProfiles().size() < PacketLimits.MAX_PROFILES;
   }
 
   static String normalizeProfileName(String raw) {

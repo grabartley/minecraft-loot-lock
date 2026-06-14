@@ -68,6 +68,7 @@ public final class RulesTabView {
   private List<ItemCandidate> visibleResults = List.of();
   private boolean showingSearch;
   private boolean visible;
+  private boolean overlayHidden;
   private long lastClickTime;
   private String lastClickedItemId;
   private int scrollOffset;
@@ -160,8 +161,8 @@ public final class RulesTabView {
     int viewHeight = panel.getContentInsetHeight();
 
     searchOffsetY = 0;
-    bulkOffsetY = SEARCH_HEIGHT + 2;
-    rowsTopOffsetY = SEARCH_HEIGHT + BULK_BAR_HEIGHT + 2;
+    bulkOffsetY = SEARCH_HEIGHT + 4;
+    rowsTopOffsetY = SEARCH_HEIGHT + BULK_BAR_HEIGHT + 4;
     int footerReserved = FOOTER_GAP + FOOTER_HEIGHT;
     int rowsAvailable = viewHeight - rowsTopOffsetY - footerReserved;
     int rowStride = RuleRowButton.ROW_HEIGHT + 1;
@@ -224,11 +225,24 @@ public final class RulesTabView {
 
   public void setVisible(boolean visible) {
     this.visible = visible;
-    for (ClickableWidget widget : widgets) {
-      widget.visible = visible;
-    }
+    applyWidgetVisibility();
     if (!visible) {
       selection.clear();
+    }
+  }
+
+  public void setOverlayHidden(boolean overlayHidden) {
+    if (this.overlayHidden == overlayHidden) {
+      return;
+    }
+    this.overlayHidden = overlayHidden;
+    applyWidgetVisibility();
+  }
+
+  private void applyWidgetVisibility() {
+    boolean widgetVisible = visible && !overlayHidden;
+    for (ClickableWidget widget : widgets) {
+      widget.visible = widgetVisible;
     }
   }
 
@@ -426,14 +440,13 @@ public final class RulesTabView {
     // Empty state placed centered in the rows area.
     if (visibleResults.isEmpty()) {
       String big = showingSearch ? "No items match" : "No items here yet";
-      String sub =
+      List<String> subLines =
           showingSearch
-              ? "Try a different name or id."
-              : "Search above or Alt+click an item in your inventory.";
+              ? List.of("Try a different name or id.")
+              : List.of("Search above or Alt+click", "an item in your inventory.");
       int areaHeight = rowsBottomY() - rowsTopY();
       int centerY = rowsTopY() + areaHeight / 2;
       int bigWidth = client.textRenderer.getWidth(big);
-      int subWidth = client.textRenderer.getWidth(sub);
       context.drawText(
           client.textRenderer,
           Text.literal(big).formatted(Formatting.GRAY),
@@ -441,13 +454,19 @@ public final class RulesTabView {
           centerY - 6,
           0xFFCFCFD6,
           false);
-      context.drawText(
-          client.textRenderer,
-          Text.literal(sub).formatted(Formatting.GRAY),
-          viewX + (viewWidth - subWidth) / 2,
-          centerY + 4,
-          0xFF9A9AA4,
-          false);
+      int subY = centerY + 4;
+      int lineHeight = 10;
+      for (String sub : subLines) {
+        int subWidth = client.textRenderer.getWidth(sub);
+        context.drawText(
+            client.textRenderer,
+            Text.literal(sub).formatted(Formatting.GRAY),
+            viewX + (viewWidth - subWidth) / 2,
+            subY,
+            0xFF9A9AA4,
+            false);
+        subY += lineHeight;
+      }
     }
   }
 
