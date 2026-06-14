@@ -41,6 +41,16 @@ public final class LootLockKeybinds {
     return TOGGLE_ENABLED.matchesKey(keyCode, scanCode);
   }
 
+  /** Exposes the toggle-enabled binding so UI surfaces can read its current key label. */
+  public static KeyBinding getToggleEnabled() {
+    return TOGGLE_ENABLED;
+  }
+
+  /** Exposes the cycle-profile binding so UI surfaces can read its current key label. */
+  public static KeyBinding getCycleProfile() {
+    return CYCLE_PROFILE;
+  }
+
   /** Fires the cycle-profile action directly. Public so the screen hook can drive it. */
   public static void cycleProfileNow(MinecraftClient client) {
     cycleProfile(client);
