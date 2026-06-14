@@ -162,7 +162,7 @@ publishing {
 modrinth {
 projectId = 'loot-lock'
 versionNumber = System.getenv('MOD_VERSION') ?: project.version
-versionName = 'LootLock v' + (System.getenv('MOD_VERSION') ?: project.version)
+versionName = 'Loot Lock v' + (System.getenv('MOD_VERSION') ?: project.version)
 versionType = System.getenv('MOD_RELEASE_TYPE') ?: 'alpha'
 uploadFile = remapJar
 gameVersions = ['1.20.1']

@@ -167,4 +167,21 @@ class LootLockInventoryPanelTest {
 
     assertThrows(IllegalStateException.class, () -> panel.setClientPrefsMode(false));
   }
+
+  @Test
+  void inlineRenameInactiveByDefault() {
+    assertFalse(panel.isInlineRenameActive());
+  }
+
+  @ParameterizedTest(
+      name = "handleInlineRenameKey(keyCode={0}) returns false when no rename is active")
+  @ValueSource(ints = {69, 257, 256, 263, 259})
+  void handleInlineRenameKeyReturnsFalseWhenInactive(int keyCode) {
+    assertFalse(panel.handleInlineRenameKey(keyCode, 0, 0));
+  }
+
+  @Test
+  void handleInlineRenameCharReturnsFalseWhenInactive() {
+    assertFalse(panel.handleInlineRenameChar('e', 0));
+  }
 }

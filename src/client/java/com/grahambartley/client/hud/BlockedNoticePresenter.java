@@ -22,7 +22,7 @@ public final class BlockedNoticePresenter {
       SystemToast.show(
           client.getToastManager(),
           SystemToast.Type.PERIODIC_NOTIFICATION,
-          Text.literal("LootLock"),
+          Text.literal("Loot Lock"),
           message);
     }
   }

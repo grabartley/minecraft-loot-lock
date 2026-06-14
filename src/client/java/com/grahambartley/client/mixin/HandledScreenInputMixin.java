@@ -34,12 +34,21 @@ public abstract class HandledScreenInputMixin {
     if (panel == null) {
       return;
     }
-    // Inline-rename field has top priority while active: Enter / Escape / typing belong to it.
-    if (panel.handleInlineRenameKey(keyCode, scanCode, modifiers)) {
-      info.setReturnValue(true);
+    MinecraftClient client = MinecraftClient.getInstance();
+    // Inline-rename field has top priority while active: Enter / Escape / typing belong to it,
+    // and the inventory key must be swallowed so typing it into the field doesn't close the screen.
+    if (panel.isInlineRenameActive()) {
+      if (client != null
+          && client.options != null
+          && client.options.inventoryKey.matchesKey(keyCode, scanCode)) {
+        info.setReturnValue(true);
+        return;
+      }
+      if (panel.handleInlineRenameKey(keyCode, scanCode, modifiers)) {
+        info.setReturnValue(true);
+      }
       return;
     }
-    MinecraftClient client = MinecraftClient.getInstance();
     boolean searchFocused = panel.isSearchFieldFocused();
     if (searchFocused) {
       if (client != null
