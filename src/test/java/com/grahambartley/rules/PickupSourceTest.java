@@ -1,18 +1,21 @@
 package com.grahambartley.rules;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 class PickupSourceTest {
 
+  @ParameterizedTest
+  @EnumSource(PickupSource.class)
+  void everyConstantRoundTripsThroughValueOf(PickupSource source) {
+    assertEquals(source, PickupSource.valueOf(source.name()));
+  }
+
   @Test
-  void enumHasExpectedValues() {
-    assertNotNull(PickupSource.valueOf("ITEM_ENTITY_COLLISION"));
-    assertNotNull(PickupSource.valueOf("INVENTORY_INSERT_GUARD"));
-    assertNotNull(PickupSource.valueOf("COMMAND_TEST"));
-    assertNotNull(PickupSource.valueOf("FUTURE_UNKNOWN"));
+  void enumHasExactlyFourConstants() {
     assertEquals(4, PickupSource.values().length);
   }
 }

@@ -2,257 +2,228 @@ package com.grahambartley.server;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.grahambartley.config.ConfigManager;
 import com.grahambartley.data.LootLockPlayerData;
-import java.nio.file.Path;
 import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+@ExtendWith(MockitoExtension.class)
 class ServerPlayerDataManagerTest {
 
-  @TempDir Path tempDir;
+  @Mock private ConfigManager configManager;
+
+  private ServerPlayerDataManager manager;
+  private UUID playerUuid;
+
+  @BeforeEach
+  void setUp() {
+    manager = new ServerPlayerDataManager(configManager);
+    playerUuid = UUID.randomUUID();
+  }
 
   @Test
-  void getOrLoadReturnsDataForUuid() {
-    ConfigManager configManager = new ConfigManager(tempDir);
-    ServerPlayerDataManager manager = new ServerPlayerDataManager(configManager);
-    UUID playerUuid = UUID.randomUUID();
+  void getOrLoadDelegatesToConfigManagerOnCacheMiss() {
+    LootLockPlayerData stored = LootLockPlayerData.createDefault(playerUuid);
+    stored.setRevision(42);
+    when(configManager.loadPlayerData(playerUuid)).thenReturn(stored);
 
-    LootLockPlayerData data = manager.getOrLoad(playerUuid);
+    LootLockPlayerData loaded = manager.getOrLoad(playerUuid);
 
-    assertNotNull(data);
-    assertEquals(playerUuid, data.getPlayerUuid());
-    assertEquals(1, data.getProfiles().size());
+    assertSame(stored, loaded);
+    assertEquals(42, loaded.getRevision());
+    verify(configManager, times(1)).loadPlayerData(playerUuid);
   }
 
   @Test
   void getOrLoadCachesSubsequentCalls() {
-    ConfigManager configManager = new ConfigManager(tempDir);
-    ServerPlayerDataManager manager = new ServerPlayerDataManager(configManager);
-    UUID playerUuid = UUID.randomUUID();
+    when(configManager.loadPlayerData(playerUuid))
+        .thenReturn(LootLockPlayerData.createDefault(playerUuid));
 
     LootLockPlayerData first = manager.getOrLoad(playerUuid);
     LootLockPlayerData second = manager.getOrLoad(playerUuid);
 
     assertSame(first, second);
     assertEquals(1, manager.getCacheSize());
+    verify(configManager, times(1)).loadPlayerData(playerUuid);
   }
 
   @Test
-  void getOrLoadLoadsFromDiskOnCacheMiss() {
-    ConfigManager configManager = new ConfigManager(tempDir);
-    UUID playerUuid = UUID.randomUUID();
-
-    LootLockPlayerData original = LootLockPlayerData.createDefault(playerUuid);
-    original.setRevision(42);
-    configManager.savePlayerData(original);
-
-    ServerPlayerDataManager manager = new ServerPlayerDataManager(configManager);
-    LootLockPlayerData loaded = manager.getOrLoad(playerUuid);
-
-    assertEquals(42, loaded.getRevision());
-  }
-
-  @Test
-  void markDirtySetsDirtyFlag() {
-    ConfigManager configManager = new ConfigManager(tempDir);
-    ServerPlayerDataManager manager = new ServerPlayerDataManager(configManager);
-    UUID playerUuid = UUID.randomUUID();
-
-    LootLockPlayerData data = manager.getOrLoad(playerUuid);
-    assertTrue(manager.isDirty(playerUuid));
-
-    manager.markDirty(playerUuid, 100);
-
-    assertTrue(manager.isDirty(playerUuid));
-    assertEquals(1, data.getRevision());
-  }
-
-  @Test
-  void markDirtyRecordsCurrentTick() {
-    ConfigManager configManager = new ConfigManager(tempDir);
-    ServerPlayerDataManager manager = new ServerPlayerDataManager(configManager);
-    UUID playerUuid = UUID.randomUUID();
+  void getOrLoadMarksDataDirtyOnLoad() {
+    when(configManager.loadPlayerData(playerUuid))
+        .thenReturn(LootLockPlayerData.createDefault(playerUuid));
 
     manager.getOrLoad(playerUuid);
+
+    assertTrue(manager.isDirty(playerUuid));
+  }
+
+  @Test
+  void markDirtyOnCacheMissIsNoOp() {
+    manager.markDirty(playerUuid, 100);
+
+    assertEquals(0, manager.getCacheSize());
+    assertFalse(manager.isDirty(playerUuid));
+    verify(configManager, never()).savePlayerData(any());
+  }
+
+  @Test
+  void markDirtyIncrementsRevisionAndRecordsTick() {
+    LootLockPlayerData data = LootLockPlayerData.createDefault(playerUuid);
+    long initialRevision = data.getRevision();
+    when(configManager.loadPlayerData(playerUuid)).thenReturn(data);
+    manager.getOrLoad(playerUuid);
+
     manager.markDirty(playerUuid, 50);
 
+    assertTrue(manager.isDirty(playerUuid));
+    assertEquals(initialRevision + 1, data.getRevision());
     assertEquals(50, manager.getDirtyTick(playerUuid));
   }
 
   @Test
-  void markDirtyIncrementsRevision() {
-    ConfigManager configManager = new ConfigManager(tempDir);
-    ServerPlayerDataManager manager = new ServerPlayerDataManager(configManager);
-    UUID playerUuid = UUID.randomUUID();
-
-    LootLockPlayerData data = manager.getOrLoad(playerUuid);
-    long initialRevision = data.getRevision();
-
-    manager.markDirty(playerUuid, 50);
-
-    assertEquals(initialRevision + 1, data.getRevision());
-  }
-
-  @Test
-  void saveOnDisconnectSavesDirtyDataAndRemovesFromCache() {
-    ConfigManager configManager = new ConfigManager(tempDir);
-    ServerPlayerDataManager manager = new ServerPlayerDataManager(configManager);
-    UUID playerUuid = UUID.randomUUID();
-
+  void saveOnDisconnectSavesDirtyDataAndEvictsCache() {
+    LootLockPlayerData data = LootLockPlayerData.createDefault(playerUuid);
+    when(configManager.loadPlayerData(playerUuid)).thenReturn(data);
     manager.getOrLoad(playerUuid);
     manager.markDirty(playerUuid, 10);
-    assertEquals(1, manager.getCacheSize());
 
     manager.saveOnDisconnect(playerUuid);
 
     assertEquals(0, manager.getCacheSize());
-    LootLockPlayerData reloaded = configManager.loadPlayerData(playerUuid);
-    assertEquals(1, reloaded.getRevision());
+    verify(configManager).savePlayerData(data);
   }
 
   @Test
-  void saveOnDisconnectDoesNotSaveNonDirtyData() {
-    ConfigManager configManager = new ConfigManager(tempDir);
-    ServerPlayerDataManager manager = new ServerPlayerDataManager(configManager);
-    UUID playerUuid = UUID.randomUUID();
-
+  void saveOnDisconnectDoesNotSaveCleanData() {
+    LootLockPlayerData data = LootLockPlayerData.createDefault(playerUuid);
+    when(configManager.loadPlayerData(playerUuid)).thenReturn(data);
     manager.getOrLoad(playerUuid);
+    manager.flushAll();
+
     manager.saveOnDisconnect(playerUuid);
 
     assertEquals(0, manager.getCacheSize());
+    verify(configManager, times(1)).savePlayerData(data);
   }
 
   @Test
-  void tickDoesNotSaveBeforeDebounceThreshold() {
-    ConfigManager configManager = new ConfigManager(tempDir);
-    ServerPlayerDataManager manager = new ServerPlayerDataManager(configManager);
-    UUID playerUuid = UUID.randomUUID();
-
+  void tickSkipsSaveBeforeDebounceThreshold() {
+    LootLockPlayerData data = LootLockPlayerData.createDefault(playerUuid);
+    when(configManager.loadPlayerData(playerUuid)).thenReturn(data);
     manager.getOrLoad(playerUuid);
     manager.markDirty(playerUuid, 0);
 
     manager.tick(ServerPlayerDataManager.SAVE_DEBOUNCE_TICKS - 1);
 
     assertTrue(manager.isDirty(playerUuid));
+    verify(configManager, never()).savePlayerData(any());
   }
 
   @Test
   void tickSavesExactlyAtDebounceThreshold() {
-    ConfigManager configManager = new ConfigManager(tempDir);
-    ServerPlayerDataManager manager = new ServerPlayerDataManager(configManager);
-    UUID playerUuid = UUID.randomUUID();
-
+    LootLockPlayerData data = LootLockPlayerData.createDefault(playerUuid);
+    when(configManager.loadPlayerData(playerUuid)).thenReturn(data);
     manager.getOrLoad(playerUuid);
     manager.markDirty(playerUuid, 0);
 
     manager.tick(ServerPlayerDataManager.SAVE_DEBOUNCE_TICKS);
 
     assertFalse(manager.isDirty(playerUuid));
+    verify(configManager).savePlayerData(data);
   }
 
   @Test
-  void tickOnlySavesExactlyDebouncedEntries() {
-    ConfigManager configManager = new ConfigManager(tempDir);
-    ServerPlayerDataManager manager = new ServerPlayerDataManager(configManager);
-    UUID playerUuid1 = UUID.randomUUID();
-    UUID playerUuid2 = UUID.randomUUID();
-
-    manager.getOrLoad(playerUuid1);
-    manager.getOrLoad(playerUuid2);
-
-    manager.markDirty(playerUuid1, 0);
-    manager.markDirty(playerUuid2, 39);
+  void tickOnlySavesDebouncedEntries() {
+    UUID otherPlayer = UUID.randomUUID();
+    LootLockPlayerData data1 = LootLockPlayerData.createDefault(playerUuid);
+    LootLockPlayerData data2 = LootLockPlayerData.createDefault(otherPlayer);
+    when(configManager.loadPlayerData(playerUuid)).thenReturn(data1);
+    when(configManager.loadPlayerData(otherPlayer)).thenReturn(data2);
+    manager.getOrLoad(playerUuid);
+    manager.getOrLoad(otherPlayer);
+    manager.markDirty(playerUuid, 0);
+    manager.markDirty(otherPlayer, 39);
 
     manager.tick(ServerPlayerDataManager.SAVE_DEBOUNCE_TICKS);
 
-    assertFalse(manager.isDirty(playerUuid1));
-    assertTrue(manager.isDirty(playerUuid2));
+    assertFalse(manager.isDirty(playerUuid));
+    assertTrue(manager.isDirty(otherPlayer));
+    verify(configManager).savePlayerData(data1);
+    verify(configManager, never()).savePlayerData(data2);
   }
 
   @Test
   void flushAllSavesAllDirtyEntries() {
-    ConfigManager configManager = new ConfigManager(tempDir);
-    ServerPlayerDataManager manager = new ServerPlayerDataManager(configManager);
-    UUID playerUuid1 = UUID.randomUUID();
-    UUID playerUuid2 = UUID.randomUUID();
-
-    manager.getOrLoad(playerUuid1);
-    manager.getOrLoad(playerUuid2);
-
-    manager.markDirty(playerUuid1, 0);
-    manager.markDirty(playerUuid2, 0);
-
-    manager.flushAll();
-
-    assertFalse(manager.isDirty(playerUuid1));
-    assertFalse(manager.isDirty(playerUuid2));
-  }
-
-  @Test
-  void flushAllOnlySavesDirtyEntries() {
-    ConfigManager configManager = new ConfigManager(tempDir);
-    ServerPlayerDataManager manager = new ServerPlayerDataManager(configManager);
-    UUID dirtyUuid = UUID.randomUUID();
-    UUID cleanUuid = UUID.randomUUID();
-
-    manager.getOrLoad(dirtyUuid);
-    manager.getOrLoad(cleanUuid);
-    // Both are dirty after fresh getOrLoad. Flush to persist, then re-mark just one.
-    manager.flushAll();
-    manager.markDirty(dirtyUuid, 0);
+    UUID otherPlayer = UUID.randomUUID();
+    LootLockPlayerData data1 = LootLockPlayerData.createDefault(playerUuid);
+    LootLockPlayerData data2 = LootLockPlayerData.createDefault(otherPlayer);
+    when(configManager.loadPlayerData(playerUuid)).thenReturn(data1);
+    when(configManager.loadPlayerData(otherPlayer)).thenReturn(data2);
+    manager.getOrLoad(playerUuid);
+    manager.getOrLoad(otherPlayer);
+    manager.markDirty(playerUuid, 0);
+    manager.markDirty(otherPlayer, 0);
 
     int saved = manager.flushAll();
 
-    assertFalse(manager.isDirty(dirtyUuid));
-    assertFalse(manager.isDirty(cleanUuid));
-    assertEquals(1, saved);
+    assertEquals(2, saved);
+    assertFalse(manager.isDirty(playerUuid));
+    assertFalse(manager.isDirty(otherPlayer));
   }
 
   @Test
-  void markDirtyOnCacheMissIsNoOp() {
-    ConfigManager configManager = new ConfigManager(tempDir);
-    ServerPlayerDataManager manager = new ServerPlayerDataManager(configManager);
-    UUID playerUuid = UUID.randomUUID();
+  void flushAllSkipsCleanEntries() {
+    LootLockPlayerData data = LootLockPlayerData.createDefault(playerUuid);
+    when(configManager.loadPlayerData(playerUuid)).thenReturn(data);
+    manager.getOrLoad(playerUuid);
+    manager.flushAll();
 
-    assertEquals(0, manager.getCacheSize());
-    manager.markDirty(playerUuid, 100);
+    int saved = manager.flushAll();
 
-    assertEquals(0, manager.getCacheSize());
-    assertFalse(manager.isDirty(playerUuid));
+    assertEquals(0, saved);
   }
 
   @Test
   void getCacheSizeReflectsLoadedPlayers() {
-    ConfigManager configManager = new ConfigManager(tempDir);
-    ServerPlayerDataManager manager = new ServerPlayerDataManager(configManager);
+    UUID otherPlayer = UUID.randomUUID();
+    when(configManager.loadPlayerData(playerUuid))
+        .thenReturn(LootLockPlayerData.createDefault(playerUuid));
+    when(configManager.loadPlayerData(otherPlayer))
+        .thenReturn(LootLockPlayerData.createDefault(otherPlayer));
 
     assertEquals(0, manager.getCacheSize());
 
-    manager.getOrLoad(UUID.randomUUID());
+    manager.getOrLoad(playerUuid);
     assertEquals(1, manager.getCacheSize());
 
-    manager.getOrLoad(UUID.randomUUID());
+    manager.getOrLoad(otherPlayer);
     assertEquals(2, manager.getCacheSize());
   }
 
   @Test
   void multiplePlayersAreIsolated() {
-    ConfigManager configManager = new ConfigManager(tempDir);
-    ServerPlayerDataManager manager = new ServerPlayerDataManager(configManager);
-    UUID playerUuid1 = UUID.randomUUID();
-    UUID playerUuid2 = UUID.randomUUID();
+    UUID otherPlayer = UUID.randomUUID();
+    LootLockPlayerData data1 = LootLockPlayerData.createDefault(playerUuid);
+    LootLockPlayerData data2 = LootLockPlayerData.createDefault(otherPlayer);
+    when(configManager.loadPlayerData(playerUuid)).thenReturn(data1);
+    when(configManager.loadPlayerData(otherPlayer)).thenReturn(data2);
 
-    LootLockPlayerData data1 = manager.getOrLoad(playerUuid1);
-    LootLockPlayerData data2 = manager.getOrLoad(playerUuid2);
+    LootLockPlayerData loaded1 = manager.getOrLoad(playerUuid);
+    LootLockPlayerData loaded2 = manager.getOrLoad(otherPlayer);
 
-    assertEquals(playerUuid1, data1.getPlayerUuid());
-    assertEquals(playerUuid2, data2.getPlayerUuid());
-    assertEquals(2, manager.getCacheSize());
+    assertSame(data1, loaded1);
+    assertSame(data2, loaded2);
   }
 }

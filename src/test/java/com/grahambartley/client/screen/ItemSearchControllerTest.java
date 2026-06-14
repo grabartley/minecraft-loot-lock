@@ -1,7 +1,6 @@
 package com.grahambartley.client.screen;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 import java.util.stream.Stream;
@@ -54,8 +53,9 @@ class ItemSearchControllerTest {
     List<ItemSearchController.ItemCandidate> filtered =
         ItemSearchController.filter(source, "minecraft");
 
+    assertEquals(2, filtered.size());
     assertEquals("minecraft:apple", filtered.get(0).itemId());
-    assertTrue(filtered.size() == 2);
+    assertEquals("minecraft:stone", filtered.get(1).itemId());
   }
 
   @Test

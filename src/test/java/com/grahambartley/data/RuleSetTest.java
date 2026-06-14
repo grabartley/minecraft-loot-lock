@@ -5,22 +5,40 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.function.Supplier;
+import java.util.stream.Stream;
 import net.minecraft.util.Identifier;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 class RuleSetTest {
 
-  @Test
-  void emptyRulesProducesEmptySet() {
-    RuleSet ruleSet = RuleSet.fromRuleEntries(List.of());
-    assertTrue(ruleSet.isEmpty());
+  static Stream<Arguments> emptyResultCases() {
+    Supplier<List<RuleEntry>> emptyList = () -> List.of();
+    Supplier<List<RuleEntry>> nullList = () -> null;
+    Supplier<List<RuleEntry>> entriesWithBlankItemIds =
+        () -> List.of(new RuleEntry(""), new RuleEntry("   "));
+    Supplier<List<RuleEntry>> singleNull =
+        () -> {
+          List<RuleEntry> list = new ArrayList<>();
+          list.add(null);
+          return list;
+        };
+    return Stream.of(
+        Arguments.of("empty list", emptyList),
+        Arguments.of("null list", nullList),
+        Arguments.of("blank item ids", entriesWithBlankItemIds),
+        Arguments.of("single null entry", singleNull));
   }
 
-  @Test
-  void nullRulesProducesEmptySet() {
-    RuleSet ruleSet = RuleSet.fromRuleEntries(null);
-    assertTrue(ruleSet.isEmpty());
+  @ParameterizedTest(name = "{0} compiles to empty rule set")
+  @MethodSource("emptyResultCases")
+  void emptyOrInvalidEntriesProduceEmptySet(String label, Supplier<List<RuleEntry>> entries) {
+    assertTrue(RuleSet.fromRuleEntries(entries.get()).isEmpty());
   }
 
   @Test
@@ -55,7 +73,7 @@ class RuleSetTest {
   void duplicateEntriesAreDeduplicated() {
     RuleSet ruleSet =
         RuleSet.fromRuleEntries(
-            List.of(
+            Arrays.asList(
                 new RuleEntry("minecraft:dirt"),
                 new RuleEntry("minecraft:dirt"),
                 new RuleEntry("minecraft:dirt")));
@@ -64,22 +82,15 @@ class RuleSetTest {
   }
 
   @Test
-  void nullRuleEntryIsSkipped() {
+  void nullRuleEntryIsSkippedWhenMixedWithValid() {
     List<RuleEntry> entries = new ArrayList<>();
     entries.add(new RuleEntry("minecraft:dirt"));
     entries.add(null);
+
     RuleSet ruleSet = RuleSet.fromRuleEntries(entries);
 
     assertEquals(1, ruleSet.itemIds().size());
-  }
-
-  @Test
-  void ruleEntryWithBlankItemIdIsSkipped() {
-    RuleSet ruleSet =
-        RuleSet.fromRuleEntries(
-            List.of(new RuleEntry(""), new RuleEntry("   "), new RuleEntry("minecraft:dirt")));
-
-    assertEquals(1, ruleSet.itemIds().size());
+    assertTrue(ruleSet.contains(Identifier.tryParse("minecraft:dirt")));
   }
 
   @Test

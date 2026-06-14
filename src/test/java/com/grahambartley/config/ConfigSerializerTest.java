@@ -2,7 +2,6 @@ package com.grahambartley.config;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.grahambartley.config.ConfigSerializer.ConfigDeserializationException;
 import com.grahambartley.data.FilterMode;
@@ -13,11 +12,13 @@ import com.grahambartley.data.RuleEntry;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class ConfigSerializerTest {
 
   @Test
-  void defaultProfileRoundtrip() throws ConfigDeserializationException {
+  void defaultProfileRoundtrips() throws ConfigDeserializationException {
     UUID playerUuid = UUID.randomUUID();
     LootLockPlayerData original = LootLockPlayerData.createDefault(playerUuid);
 
@@ -43,43 +44,38 @@ class ConfigSerializerTest {
   @Test
   void multipleProfilesRoundtrip() throws ConfigDeserializationException {
     UUID playerUuid = UUID.randomUUID();
-    LootLockPlayerData original = LootLockPlayerData.createDefault(playerUuid);
-
     UUID miningId = UUID.randomUUID();
-    LootLockProfile mining =
-        new LootLockProfile(
-            miningId,
-            "Mining",
-            FilterMode.DENYLIST,
-            RejectedItemAction.DELETE,
-            true,
-            List.of(
-                new RuleEntry("minecraft:cobblestone"),
-                new RuleEntry("minecraft:granite"),
-                new RuleEntry("minecraft:diorite"),
-                new RuleEntry("minecraft:andesite")));
-
     UUID farmingId = UUID.randomUUID();
-    LootLockProfile farming =
-        new LootLockProfile(
-            farmingId,
-            "Farming",
-            FilterMode.DENYLIST,
-            RejectedItemAction.LEAVE_ON_GROUND,
-            true,
-            List.of(new RuleEntry("minecraft:wheat_seeds"), new RuleEntry("minecraft:egg")));
-
     UUID mobFarmId = UUID.randomUUID();
-    LootLockProfile mobFarm =
-        new LootLockProfile(
-            mobFarmId,
-            "Mob Farm",
-            FilterMode.ALLOWLIST,
-            RejectedItemAction.LEAVE_ON_GROUND,
-            true,
-            List.of(new RuleEntry("minecraft:gunpowder")));
 
-    original.setProfiles(List.of(mining, farming, mobFarm));
+    LootLockPlayerData original = LootLockPlayerData.createDefault(playerUuid);
+    original.setProfiles(
+        List.of(
+            new LootLockProfile(
+                miningId,
+                "Mining",
+                FilterMode.DENYLIST,
+                RejectedItemAction.DELETE,
+                true,
+                List.of(
+                    new RuleEntry("minecraft:cobblestone"),
+                    new RuleEntry("minecraft:granite"),
+                    new RuleEntry("minecraft:diorite"),
+                    new RuleEntry("minecraft:andesite"))),
+            new LootLockProfile(
+                farmingId,
+                "Farming",
+                FilterMode.DENYLIST,
+                RejectedItemAction.LEAVE_ON_GROUND,
+                true,
+                List.of(new RuleEntry("minecraft:wheat_seeds"), new RuleEntry("minecraft:egg"))),
+            new LootLockProfile(
+                mobFarmId,
+                "Mob Farm",
+                FilterMode.ALLOWLIST,
+                RejectedItemAction.LEAVE_ON_GROUND,
+                true,
+                List.of(new RuleEntry("minecraft:gunpowder")))));
     original.setActiveProfileId(farmingId);
 
     String json = ConfigSerializer.serialize(original);
@@ -88,29 +84,17 @@ class ConfigSerializerTest {
     assertEquals(3, restored.getProfiles().size());
     assertEquals(farmingId, restored.getActiveProfileId());
 
-    LootLockProfile restoredMining =
-        restored.getProfiles().stream()
-            .filter(p -> p.getId().equals(miningId))
-            .findFirst()
-            .orElseThrow();
+    LootLockProfile restoredMining = profileById(restored, miningId);
     assertEquals("Mining", restoredMining.getName());
     assertEquals(FilterMode.DENYLIST, restoredMining.getMode());
     assertEquals(RejectedItemAction.DELETE, restoredMining.getRejectedItemAction());
     assertEquals(4, restoredMining.getRules().size());
 
-    LootLockProfile restoredFarming =
-        restored.getProfiles().stream()
-            .filter(p -> p.getId().equals(farmingId))
-            .findFirst()
-            .orElseThrow();
+    LootLockProfile restoredFarming = profileById(restored, farmingId);
     assertEquals("Farming", restoredFarming.getName());
     assertEquals(2, restoredFarming.getRules().size());
 
-    LootLockProfile restoredMobFarm =
-        restored.getProfiles().stream()
-            .filter(p -> p.getId().equals(mobFarmId))
-            .findFirst()
-            .orElseThrow();
+    LootLockProfile restoredMobFarm = profileById(restored, mobFarmId);
     assertEquals("Mob Farm", restoredMobFarm.getName());
     assertEquals(FilterMode.ALLOWLIST, restoredMobFarm.getMode());
     assertEquals(1, restoredMobFarm.getRules().size());
@@ -120,107 +104,87 @@ class ConfigSerializerTest {
   void unknownItemIdIsRetained() throws ConfigDeserializationException {
     UUID playerUuid = UUID.randomUUID();
     LootLockPlayerData original = LootLockPlayerData.createDefault(playerUuid);
-
-    UUID profileId = UUID.randomUUID();
-    LootLockProfile profile =
-        new LootLockProfile(
-            profileId,
-            "Test",
-            FilterMode.DENYLIST,
-            RejectedItemAction.LEAVE_ON_GROUND,
-            true,
-            List.of(
-                new RuleEntry("minecraft:dirt"),
-                new RuleEntry("oldmod:removed_item"),
-                new RuleEntry("anothermod:unknown_item")));
-    original.setProfiles(List.of(profile));
+    original.setProfiles(
+        List.of(
+            new LootLockProfile(
+                UUID.randomUUID(),
+                "Test",
+                FilterMode.DENYLIST,
+                RejectedItemAction.LEAVE_ON_GROUND,
+                true,
+                List.of(
+                    new RuleEntry("minecraft:dirt"),
+                    new RuleEntry("oldmod:removed_item"),
+                    new RuleEntry("anothermod:unknown_item")))));
 
     String json = ConfigSerializer.serialize(original);
     LootLockPlayerData restored = ConfigSerializer.deserialize(json, playerUuid);
 
-    LootLockProfile restoredProfile = restored.getProfiles().get(0);
-    assertEquals(3, restoredProfile.getRules().size());
-
-    List<String> itemIds = restoredProfile.getRules().stream().map(RuleEntry::itemId).toList();
-    assertTrue(itemIds.contains("minecraft:dirt"));
-    assertTrue(itemIds.contains("oldmod:removed_item"));
-    assertTrue(itemIds.contains("anothermod:unknown_item"));
+    List<String> itemIds =
+        restored.getProfiles().get(0).getRules().stream().map(RuleEntry::itemId).toList();
+    assertEquals(
+        List.of("minecraft:dirt", "oldmod:removed_item", "anothermod:unknown_item"), itemIds);
   }
 
-  @Test
-  void schemaVersionIsPreserved() throws ConfigDeserializationException {
+  @ParameterizedTest(name = "schemaVersion={0} round-trips")
+  @ValueSource(ints = {0, 1, 42})
+  void schemaVersionIsPreserved(int schemaVersion) throws ConfigDeserializationException {
     UUID playerUuid = UUID.randomUUID();
     LootLockPlayerData original = LootLockPlayerData.createDefault(playerUuid);
-    original.setSchemaVersion(1);
+    original.setSchemaVersion(schemaVersion);
 
     String json = ConfigSerializer.serialize(original);
     LootLockPlayerData restored = ConfigSerializer.deserialize(json, playerUuid);
 
-    assertEquals(1, restored.getSchemaVersion());
+    assertEquals(schemaVersion, restored.getSchemaVersion());
   }
 
-  @Test
-  void revisionIsPreserved() throws ConfigDeserializationException {
+  @ParameterizedTest(name = "revision={0} round-trips")
+  @ValueSource(longs = {0L, 1L, 42L, 1_000_000L})
+  void revisionIsPreserved(long revision) throws ConfigDeserializationException {
     UUID playerUuid = UUID.randomUUID();
     LootLockPlayerData original = LootLockPlayerData.createDefault(playerUuid);
-    original.setRevision(42);
+    original.setRevision(revision);
 
     String json = ConfigSerializer.serialize(original);
     LootLockPlayerData restored = ConfigSerializer.deserialize(json, playerUuid);
 
-    assertEquals(42, restored.getRevision());
+    assertEquals(revision, restored.getRevision());
   }
 
   @Test
   void deserializeWithWrongUuidFails() {
     UUID playerUuid = UUID.randomUUID();
     UUID wrongUuid = UUID.randomUUID();
-    LootLockPlayerData data = LootLockPlayerData.createDefault(playerUuid);
-
-    String json = ConfigSerializer.serialize(data);
+    String json = ConfigSerializer.serialize(LootLockPlayerData.createDefault(playerUuid));
 
     assertThrows(
         ConfigDeserializationException.class, () -> ConfigSerializer.deserialize(json, wrongUuid));
   }
 
-  @Test
-  void deserializeEmptyJsonFails() {
+  @ParameterizedTest(name = "deserialize rejects \"{0}\"")
+  @ValueSource(strings = {"", "{not valid json}", "null"})
+  void deserializeRejectsInvalidJson(String invalidJson) {
     assertThrows(
         ConfigDeserializationException.class,
-        () -> ConfigSerializer.deserialize("", UUID.randomUUID()));
-  }
-
-  @Test
-  void deserializeInvalidJsonFails() {
-    assertThrows(
-        ConfigDeserializationException.class,
-        () -> ConfigSerializer.deserialize("{not valid json}", UUID.randomUUID()));
-  }
-
-  @Test
-  void deserializeNullJsonFails() {
-    assertThrows(
-        ConfigDeserializationException.class,
-        () -> ConfigSerializer.deserialize("null", UUID.randomUUID()));
+        () -> ConfigSerializer.deserialize(invalidJson, UUID.randomUUID()));
   }
 
   @Test
   void profileColorRoundtripsThroughJson() throws ConfigDeserializationException {
     UUID playerUuid = UUID.randomUUID();
     LootLockPlayerData original = LootLockPlayerData.createDefault(playerUuid);
-
-    UUID profileId = UUID.randomUUID();
     int color = 0xFF4F9D43;
-    LootLockProfile profile =
-        new LootLockProfile(
-            profileId,
-            "Tinted",
-            FilterMode.DENYLIST,
-            RejectedItemAction.LEAVE_ON_GROUND,
-            true,
-            color,
-            List.of());
-    original.setProfiles(List.of(profile));
+    original.setProfiles(
+        List.of(
+            new LootLockProfile(
+                UUID.randomUUID(),
+                "Tinted",
+                FilterMode.DENYLIST,
+                RejectedItemAction.LEAVE_ON_GROUND,
+                true,
+                color,
+                List.of())));
 
     String json = ConfigSerializer.serialize(original);
     LootLockPlayerData restored = ConfigSerializer.deserialize(json, playerUuid);
@@ -232,23 +196,24 @@ class ConfigSerializerTest {
   void legacyProfileWithoutColorDeserializesAsZero() throws ConfigDeserializationException {
     UUID playerUuid = UUID.randomUUID();
     LootLockPlayerData original = LootLockPlayerData.createDefault(playerUuid);
-    UUID profileId = UUID.randomUUID();
-    LootLockProfile profile =
-        new LootLockProfile(
-            profileId,
-            "Legacy",
-            FilterMode.DENYLIST,
-            RejectedItemAction.LEAVE_ON_GROUND,
-            true,
-            List.of());
-    original.setProfiles(List.of(profile));
+    original.setProfiles(
+        List.of(
+            new LootLockProfile(
+                UUID.randomUUID(),
+                "Legacy",
+                FilterMode.DENYLIST,
+                RejectedItemAction.LEAVE_ON_GROUND,
+                true,
+                List.of())));
 
-    // Strip the colour field from the serialized JSON to simulate config written before this
-    // feature shipped.
     String json =
         ConfigSerializer.serialize(original).replaceAll("\"color\": [\\-]?\\d+,?\\n?\\s*", "");
     LootLockPlayerData restored = ConfigSerializer.deserialize(json, playerUuid);
 
     assertEquals(0, restored.getProfiles().get(0).getColor());
+  }
+
+  private static LootLockProfile profileById(LootLockPlayerData data, UUID id) {
+    return data.getProfiles().stream().filter(p -> p.getId().equals(id)).findFirst().orElseThrow();
   }
 }

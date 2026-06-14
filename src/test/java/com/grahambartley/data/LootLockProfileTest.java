@@ -6,118 +6,136 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.grahambartley.api.PickupDecision;
 import java.util.List;
-import java.util.UUID;
+import java.util.stream.Stream;
 import net.minecraft.util.Identifier;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 class LootLockProfileTest {
 
-  private static boolean evaluate(LootLockPlayerData data, Identifier itemId) {
-    LootLockProfile profile = data.getActiveProfile().orElse(null);
-    if (profile == null || !profile.isEnabled()) {
-      return false;
-    }
-    boolean matched = profile.getCompiledRuleSet().contains(itemId);
-    return profile.shouldReject(matched);
+  private static final Identifier DIRT = Identifier.tryParse("minecraft:dirt");
+  private static final Identifier DIAMOND = Identifier.tryParse("minecraft:diamond");
+  private static final Identifier UNKNOWN = Identifier.tryParse("oldmod:removed_item");
+
+  static Stream<Arguments> evaluateCases() {
+    return Stream.of(
+        Arguments.of(
+            "denylist match -> REJECT_LEAVE",
+            FilterMode.DENYLIST,
+            RejectedItemAction.LEAVE_ON_GROUND,
+            true,
+            List.of(new RuleEntry("minecraft:dirt")),
+            DIRT,
+            PickupDecision.REJECT_LEAVE),
+        Arguments.of(
+            "denylist non-match -> ALLOW",
+            FilterMode.DENYLIST,
+            RejectedItemAction.LEAVE_ON_GROUND,
+            true,
+            List.of(new RuleEntry("minecraft:dirt")),
+            DIAMOND,
+            PickupDecision.ALLOW),
+        Arguments.of(
+            "allowlist match -> ALLOW",
+            FilterMode.ALLOWLIST,
+            RejectedItemAction.LEAVE_ON_GROUND,
+            true,
+            List.of(new RuleEntry("minecraft:diamond")),
+            DIAMOND,
+            PickupDecision.ALLOW),
+        Arguments.of(
+            "allowlist non-match -> REJECT_LEAVE",
+            FilterMode.ALLOWLIST,
+            RejectedItemAction.LEAVE_ON_GROUND,
+            true,
+            List.of(new RuleEntry("minecraft:diamond")),
+            DIRT,
+            PickupDecision.REJECT_LEAVE),
+        Arguments.of(
+            "disabled denylist -> ALLOW",
+            FilterMode.DENYLIST,
+            RejectedItemAction.LEAVE_ON_GROUND,
+            false,
+            List.of(new RuleEntry("minecraft:dirt")),
+            DIRT,
+            PickupDecision.ALLOW),
+        Arguments.of(
+            "disabled allowlist -> ALLOW",
+            FilterMode.ALLOWLIST,
+            RejectedItemAction.LEAVE_ON_GROUND,
+            false,
+            List.of(new RuleEntry("minecraft:diamond")),
+            DIAMOND,
+            PickupDecision.ALLOW),
+        Arguments.of(
+            "denylist delete action match -> REJECT_DELETE",
+            FilterMode.DENYLIST,
+            RejectedItemAction.DELETE,
+            true,
+            List.of(new RuleEntry("minecraft:dirt")),
+            DIRT,
+            PickupDecision.REJECT_DELETE),
+        Arguments.of(
+            "denylist leave action match -> REJECT_LEAVE",
+            FilterMode.DENYLIST,
+            RejectedItemAction.LEAVE_ON_GROUND,
+            true,
+            List.of(new RuleEntry("minecraft:dirt")),
+            DIRT,
+            PickupDecision.REJECT_LEAVE),
+        Arguments.of(
+            "empty denylist -> ALLOW",
+            FilterMode.DENYLIST,
+            RejectedItemAction.LEAVE_ON_GROUND,
+            true,
+            List.of(),
+            DIRT,
+            PickupDecision.ALLOW),
+        Arguments.of(
+            "empty allowlist -> REJECT_LEAVE",
+            FilterMode.ALLOWLIST,
+            RejectedItemAction.LEAVE_ON_GROUND,
+            true,
+            List.of(),
+            DIRT,
+            PickupDecision.REJECT_LEAVE),
+        Arguments.of(
+            "unknown item id matches denylist entry -> REJECT_LEAVE",
+            FilterMode.DENYLIST,
+            RejectedItemAction.LEAVE_ON_GROUND,
+            true,
+            List.of(new RuleEntry("oldmod:removed_item")),
+            UNKNOWN,
+            PickupDecision.REJECT_LEAVE),
+        Arguments.of(
+            "unknown item id non-match denylist -> ALLOW",
+            FilterMode.DENYLIST,
+            RejectedItemAction.LEAVE_ON_GROUND,
+            true,
+            List.of(new RuleEntry("oldmod:removed_item")),
+            DIAMOND,
+            PickupDecision.ALLOW));
   }
 
-  private static RejectedItemAction resolveAction(LootLockPlayerData data) {
-    LootLockProfile profile = data.getActiveProfile().orElse(null);
-    if (profile == null || !profile.isEnabled()) {
-      return RejectedItemAction.LEAVE_ON_GROUND;
-    }
-    return profile.getRejectedItemAction();
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("evaluateCases")
+  void evaluateReturnsExpectedDecision(
+      String label,
+      FilterMode mode,
+      RejectedItemAction action,
+      boolean enabled,
+      List<RuleEntry> rules,
+      Identifier itemId,
+      PickupDecision expected) {
+    LootLockProfile profile = newProfile(mode, action, enabled, rules);
+
+    assertEquals(expected, profile.evaluate(itemId));
   }
 
   @Test
-  void denylistRejectsListedItem() {
-    UUID playerUuid = UUID.randomUUID();
-    LootLockPlayerData data = LootLockPlayerData.createDefault(playerUuid);
-    LootLockProfile profile = data.getActiveProfile().orElseThrow();
-    profile.setRules(List.of(new RuleEntry("minecraft:dirt")));
-
-    assertTrue(evaluate(data, Identifier.tryParse("minecraft:dirt")));
-  }
-
-  @Test
-  void denylistAcceptsUnlistedItem() {
-    UUID playerUuid = UUID.randomUUID();
-    LootLockPlayerData data = LootLockPlayerData.createDefault(playerUuid);
-    LootLockProfile profile = data.getActiveProfile().orElseThrow();
-    profile.setRules(List.of(new RuleEntry("minecraft:dirt")));
-
-    assertFalse(evaluate(data, Identifier.tryParse("minecraft:diamond")));
-  }
-
-  @Test
-  void allowlistAcceptsListedItem() {
-    UUID playerUuid = UUID.randomUUID();
-    LootLockPlayerData data = LootLockPlayerData.createDefault(playerUuid);
-    LootLockProfile profile = data.getActiveProfile().orElseThrow();
-    profile.setMode(FilterMode.ALLOWLIST);
-    profile.setRules(List.of(new RuleEntry("minecraft:diamond")));
-
-    assertFalse(evaluate(data, Identifier.tryParse("minecraft:diamond")));
-  }
-
-  @Test
-  void allowlistRejectsUnlistedItem() {
-    UUID playerUuid = UUID.randomUUID();
-    LootLockPlayerData data = LootLockPlayerData.createDefault(playerUuid);
-    LootLockProfile profile = data.getActiveProfile().orElseThrow();
-    profile.setMode(FilterMode.ALLOWLIST);
-    profile.setRules(List.of(new RuleEntry("minecraft:diamond")));
-
-    assertTrue(evaluate(data, Identifier.tryParse("minecraft:dirt")));
-  }
-
-  @Test
-  void disabledProfileAcceptsAll() {
-    UUID playerUuid = UUID.randomUUID();
-    LootLockPlayerData data = LootLockPlayerData.createDefault(playerUuid);
-    LootLockProfile profile = data.getActiveProfile().orElseThrow();
-    profile.setEnabled(false);
-    profile.setRules(List.of(new RuleEntry("minecraft:dirt")));
-
-    assertFalse(evaluate(data, Identifier.tryParse("minecraft:dirt")));
-    assertFalse(evaluate(data, Identifier.tryParse("minecraft:diamond")));
-  }
-
-  @Test
-  void nullActiveProfileAcceptsAll() {
-    UUID playerUuid = UUID.randomUUID();
-    LootLockPlayerData data = LootLockPlayerData.createDefault(playerUuid);
-    data.setActiveProfileId(UUID.randomUUID());
-
-    assertTrue(data.getActiveProfile().isEmpty());
-    assertFalse(evaluate(data, Identifier.tryParse("minecraft:dirt")));
-    assertFalse(evaluate(data, Identifier.tryParse("minecraft:diamond")));
-  }
-
-  @Test
-  void emptyDenylistAcceptsAll() {
-    UUID playerUuid = UUID.randomUUID();
-    LootLockPlayerData data = LootLockPlayerData.createDefault(playerUuid);
-
-    assertTrue(data.getActiveProfile().orElseThrow().getCompiledRuleSet().isEmpty());
-    assertFalse(evaluate(data, Identifier.tryParse("minecraft:dirt")));
-    assertFalse(evaluate(data, Identifier.tryParse("minecraft:diamond")));
-  }
-
-  @Test
-  void emptyAllowlistRejectsAll() {
-    UUID playerUuid = UUID.randomUUID();
-    LootLockPlayerData data = LootLockPlayerData.createDefault(playerUuid);
-    LootLockProfile profile = data.getActiveProfile().orElseThrow();
-    profile.setMode(FilterMode.ALLOWLIST);
-
-    assertTrue(profile.getCompiledRuleSet().isEmpty());
-    assertTrue(evaluate(data, Identifier.tryParse("minecraft:dirt")));
-    assertTrue(evaluate(data, Identifier.tryParse("minecraft:diamond")));
-  }
-
-  @Test
-  void profileDefaultsToDenylistEnabled() {
+  void createDefaultBuildsDenylistEnabledLeaveProfile() {
     LootLockProfile profile = LootLockProfile.createDefault();
 
     assertEquals(FilterMode.DENYLIST, profile.getMode());
@@ -128,160 +146,28 @@ class LootLockProfileTest {
   }
 
   @Test
-  void fullPipelineIdentifierThroughProfileDecision() {
-    UUID playerUuid = UUID.randomUUID();
-    LootLockPlayerData data = LootLockPlayerData.createDefault(playerUuid);
-    LootLockProfile profile = data.getActiveProfile().orElseThrow();
+  void compiledRuleSetContainsConfiguredItemIds() {
+    LootLockProfile profile = LootLockProfile.createDefault();
     profile.setRules(
         List.of(
             new RuleEntry("minecraft:cobblestone"),
             new RuleEntry("minecraft:dirt"),
             new RuleEntry("minecraft:gravel")));
 
-    assertTrue(profile.getCompiledRuleSet().contains(Identifier.tryParse("minecraft:cobblestone")));
-    assertTrue(profile.getCompiledRuleSet().contains(Identifier.tryParse("minecraft:dirt")));
-    assertTrue(profile.getCompiledRuleSet().contains(Identifier.tryParse("minecraft:gravel")));
-    assertFalse(profile.getCompiledRuleSet().contains(Identifier.tryParse("minecraft:diamond")));
-
-    assertTrue(evaluate(data, Identifier.tryParse("minecraft:dirt")));
-    assertFalse(evaluate(data, Identifier.tryParse("minecraft:diamond")));
+    RuleSet ruleSet = profile.getCompiledRuleSet();
+    assertTrue(ruleSet.contains(Identifier.tryParse("minecraft:cobblestone")));
+    assertTrue(ruleSet.contains(Identifier.tryParse("minecraft:dirt")));
+    assertTrue(ruleSet.contains(Identifier.tryParse("minecraft:gravel")));
+    assertFalse(ruleSet.contains(Identifier.tryParse("minecraft:diamond")));
   }
 
-  @Test
-  void deleteActionUsedOnRejectWhenSet() {
-    UUID playerUuid = UUID.randomUUID();
-    LootLockPlayerData data = LootLockPlayerData.createDefault(playerUuid);
-    LootLockProfile profile = data.getActiveProfile().orElseThrow();
-    profile.setRejectedItemAction(RejectedItemAction.DELETE);
-    profile.setRules(List.of(new RuleEntry("minecraft:dirt")));
-
-    assertTrue(evaluate(data, Identifier.tryParse("minecraft:dirt")));
-    assertEquals(RejectedItemAction.DELETE, resolveAction(data));
-  }
-
-  @Test
-  void leaveOnGroundActionUsedOnRejectByDefault() {
-    UUID playerUuid = UUID.randomUUID();
-    LootLockPlayerData data = LootLockPlayerData.createDefault(playerUuid);
-    LootLockProfile profile = data.getActiveProfile().orElseThrow();
-    profile.setRules(List.of(new RuleEntry("minecraft:dirt")));
-
-    assertTrue(evaluate(data, Identifier.tryParse("minecraft:dirt")));
-    assertEquals(RejectedItemAction.LEAVE_ON_GROUND, resolveAction(data));
-  }
-
-  @Test
-  void leaveOnGroundActionReturnedWhenProfileDisabled() {
-    UUID playerUuid = UUID.randomUUID();
-    LootLockPlayerData data = LootLockPlayerData.createDefault(playerUuid);
-    LootLockProfile profile = data.getActiveProfile().orElseThrow();
-    profile.setRejectedItemAction(RejectedItemAction.DELETE);
-    profile.setEnabled(false);
-
-    assertEquals(RejectedItemAction.LEAVE_ON_GROUND, resolveAction(data));
-  }
-
-  @Test
-  void leaveOnGroundActionReturnedWhenNoActiveProfile() {
-    UUID playerUuid = UUID.randomUUID();
-    LootLockPlayerData data = LootLockPlayerData.createDefault(playerUuid);
-    data.setActiveProfileId(UUID.randomUUID());
-
-    assertEquals(RejectedItemAction.LEAVE_ON_GROUND, resolveAction(data));
-  }
-
-  @Test
-  void evaluateReturnsRejectLeaveForDenylistMatch() {
+  private static LootLockProfile newProfile(
+      FilterMode mode, RejectedItemAction action, boolean enabled, List<RuleEntry> rules) {
     LootLockProfile profile = LootLockProfile.createDefault();
-    profile.setRules(List.of(new RuleEntry("minecraft:dirt")));
-
-    assertEquals(
-        PickupDecision.REJECT_LEAVE, profile.evaluate(Identifier.tryParse("minecraft:dirt")));
-  }
-
-  @Test
-  void evaluateReturnsAllowForDenylistNonMatch() {
-    LootLockProfile profile = LootLockProfile.createDefault();
-    profile.setRules(List.of(new RuleEntry("minecraft:dirt")));
-
-    assertEquals(PickupDecision.ALLOW, profile.evaluate(Identifier.tryParse("minecraft:diamond")));
-  }
-
-  @Test
-  void evaluateReturnsAllowForAllowlistMatch() {
-    LootLockProfile profile = LootLockProfile.createDefault();
-    profile.setMode(FilterMode.ALLOWLIST);
-    profile.setRules(List.of(new RuleEntry("minecraft:diamond")));
-
-    assertEquals(PickupDecision.ALLOW, profile.evaluate(Identifier.tryParse("minecraft:diamond")));
-  }
-
-  @Test
-  void evaluateReturnsRejectLeaveForAllowlistNonMatch() {
-    LootLockProfile profile = LootLockProfile.createDefault();
-    profile.setMode(FilterMode.ALLOWLIST);
-    profile.setRules(List.of(new RuleEntry("minecraft:diamond")));
-
-    assertEquals(
-        PickupDecision.REJECT_LEAVE, profile.evaluate(Identifier.tryParse("minecraft:dirt")));
-  }
-
-  @Test
-  void evaluateReturnsAllWhenProfileDisabled() {
-    LootLockProfile profile = LootLockProfile.createDefault();
-    profile.setEnabled(false);
-    profile.setRules(List.of(new RuleEntry("minecraft:dirt")));
-
-    assertEquals(PickupDecision.ALLOW, profile.evaluate(Identifier.tryParse("minecraft:dirt")));
-    assertEquals(PickupDecision.ALLOW, profile.evaluate(Identifier.tryParse("minecraft:diamond")));
-  }
-
-  @Test
-  void evaluateReturnsRejectDeleteWhenActionIsDelete() {
-    LootLockProfile profile = LootLockProfile.createDefault();
-    profile.setRejectedItemAction(RejectedItemAction.DELETE);
-    profile.setRules(List.of(new RuleEntry("minecraft:dirt")));
-
-    assertEquals(
-        PickupDecision.REJECT_DELETE, profile.evaluate(Identifier.tryParse("minecraft:dirt")));
-  }
-
-  @Test
-  void evaluateReturnsRejectLeaveWhenActionIsLeave() {
-    LootLockProfile profile = LootLockProfile.createDefault();
-    profile.setRejectedItemAction(RejectedItemAction.LEAVE_ON_GROUND);
-    profile.setRules(List.of(new RuleEntry("minecraft:dirt")));
-
-    assertEquals(
-        PickupDecision.REJECT_LEAVE, profile.evaluate(Identifier.tryParse("minecraft:dirt")));
-  }
-
-  @Test
-  void evaluateEmptyDenylistReturnsAllow() {
-    LootLockProfile profile = LootLockProfile.createDefault();
-
-    assertEquals(PickupDecision.ALLOW, profile.evaluate(Identifier.tryParse("minecraft:dirt")));
-    assertEquals(PickupDecision.ALLOW, profile.evaluate(Identifier.tryParse("minecraft:diamond")));
-  }
-
-  @Test
-  void evaluateEmptyAllowlistReturnsRejectLeave() {
-    LootLockProfile profile = LootLockProfile.createDefault();
-    profile.setMode(FilterMode.ALLOWLIST);
-
-    assertEquals(
-        PickupDecision.REJECT_LEAVE, profile.evaluate(Identifier.tryParse("minecraft:dirt")));
-    assertEquals(
-        PickupDecision.REJECT_LEAVE, profile.evaluate(Identifier.tryParse("minecraft:diamond")));
-  }
-
-  @Test
-  void evaluateUnknownItemIdIsHandled() {
-    LootLockProfile profile = LootLockProfile.createDefault();
-    profile.setRules(List.of(new RuleEntry("oldmod:removed_item")));
-
-    assertEquals(
-        PickupDecision.REJECT_LEAVE, profile.evaluate(Identifier.tryParse("oldmod:removed_item")));
-    assertEquals(PickupDecision.ALLOW, profile.evaluate(Identifier.tryParse("minecraft:diamond")));
+    profile.setMode(mode);
+    profile.setRejectedItemAction(action);
+    profile.setEnabled(enabled);
+    profile.setRules(rules);
+    return profile;
   }
 }

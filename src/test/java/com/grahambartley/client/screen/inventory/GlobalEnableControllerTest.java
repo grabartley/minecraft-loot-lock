@@ -1,12 +1,17 @@
 package com.grahambartley.client.screen.inventory;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.grahambartley.client.LootLockClient;
 import com.grahambartley.client.config.ClientSettings;
+import java.util.function.Supplier;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 class GlobalEnableControllerTest {
   @BeforeEach
@@ -14,24 +19,24 @@ class GlobalEnableControllerTest {
     LootLockClient.getState().clear();
   }
 
-  @Test
-  void shouldShowToastReturnsTrueWhenSettingEnabled() {
-    ClientSettings settings = ClientSettings.defaults();
-    settings.setEnableToggleToast(true);
-
-    assertTrue(GlobalEnableController.shouldShowToast(settings));
+  static Stream<Arguments> shouldShowToastCases() {
+    Supplier<ClientSettings> toastEnabled =
+        () -> {
+          ClientSettings settings = ClientSettings.defaults();
+          settings.setEnableToggleToast(true);
+          return settings;
+        };
+    return Stream.of(
+        Arguments.of("toast-enabled", toastEnabled, true),
+        Arguments.of("defaults", (Supplier<ClientSettings>) ClientSettings::defaults, false),
+        Arguments.of("null", (Supplier<ClientSettings>) () -> null, false));
   }
 
-  @Test
-  void shouldShowToastReturnsFalseWhenSettingDisabled() {
-    ClientSettings settings = ClientSettings.defaults();
-
-    assertFalse(GlobalEnableController.shouldShowToast(settings));
-  }
-
-  @Test
-  void shouldShowToastReturnsFalseWhenSettingsIsNull() {
-    assertFalse(GlobalEnableController.shouldShowToast(null));
+  @ParameterizedTest(name = "{0} -> {2}")
+  @MethodSource("shouldShowToastCases")
+  void shouldShowToastMatchesSetting(
+      String label, Supplier<ClientSettings> settings, boolean expected) {
+    assertEquals(expected, GlobalEnableController.shouldShowToast(settings.get()));
   }
 
   @Test

@@ -16,6 +16,7 @@ import net.minecraft.network.PacketByteBuf;
 import org.junit.jupiter.api.Test;
 
 class ClientToServerPacketsTest {
+
   @Test
   void helloPayloadRoundTripsVersionAndSchema() {
     PacketByteBuf buf = ClientToServerPackets.writeHelloPayload("1.2.3", 7);
@@ -29,13 +30,12 @@ class ClientToServerPacketsTest {
   @Test
   void updateProfilePayloadRoundTrips() {
     LootLockProfile profile =
-        new LootLockProfile(
-            UUID.randomUUID(),
+        newProfile(
             "Mining",
             FilterMode.DENYLIST,
             RejectedItemAction.LEAVE_ON_GROUND,
             true,
-            List.of(new RuleEntry("minecraft:cobblestone")));
+            "minecraft:cobblestone");
 
     PacketByteBuf buf = ClientToServerPackets.writeUpdateProfilePayload(8L, profile);
     ClientToServerPackets.UpdateProfilePayload payload =
@@ -51,13 +51,13 @@ class ClientToServerPacketsTest {
   void applyUpdateProfileRejectsStaleRevision() {
     LootLockPlayerData data = createDataWithOneProfile();
     LootLockProfile replacement =
-        new LootLockProfile(
+        newProfileWithId(
             data.getProfiles().get(0).getId(),
             "Updated",
             FilterMode.ALLOWLIST,
             RejectedItemAction.DELETE,
             false,
-            List.of(new RuleEntry("minecraft:diamond")));
+            "minecraft:diamond");
 
     ClientToServerPackets.MutationResult result =
         ClientToServerPackets.applyUpdateProfile(
@@ -73,13 +73,13 @@ class ClientToServerPacketsTest {
     LootLockPlayerData data = createDataWithOneProfile();
     data.setRevision(6L);
     LootLockProfile replacement =
-        new LootLockProfile(
+        newProfileWithId(
             data.getProfiles().get(0).getId(),
             "Updated",
             FilterMode.DENYLIST,
             RejectedItemAction.DELETE,
             true,
-            List.of(new RuleEntry("minecraft:stone")));
+            "minecraft:stone");
 
     ClientToServerPackets.MutationResult result =
         ClientToServerPackets.applyUpdateProfile(
@@ -125,13 +125,7 @@ class ClientToServerPacketsTest {
     LootLockPlayerData data = createDataWithOneProfile();
     data.setRevision(3L);
     LootLockProfile second =
-        new LootLockProfile(
-            UUID.randomUUID(),
-            "Second",
-            FilterMode.DENYLIST,
-            RejectedItemAction.LEAVE_ON_GROUND,
-            true,
-            List.of());
+        newProfile("Second", FilterMode.DENYLIST, RejectedItemAction.LEAVE_ON_GROUND, true);
     data.setProfiles(List.of(data.getProfiles().get(0), second));
 
     ClientToServerPackets.MutationResult activateResult =
@@ -212,25 +206,35 @@ class ClientToServerPacketsTest {
     assertEquals(ClientToServerPackets.MutationRejectionReason.NOT_EDITABLE, result.reason());
   }
 
+  private static LootLockProfile newProfile(
+      String name,
+      FilterMode mode,
+      RejectedItemAction action,
+      boolean enabled,
+      String... ruleItemIds) {
+    return newProfileWithId(UUID.randomUUID(), name, mode, action, enabled, ruleItemIds);
+  }
+
+  private static LootLockProfile newProfileWithId(
+      UUID id,
+      String name,
+      FilterMode mode,
+      RejectedItemAction action,
+      boolean enabled,
+      String... ruleItemIds) {
+    RuleEntry[] rules = new RuleEntry[ruleItemIds.length];
+    for (int i = 0; i < ruleItemIds.length; i++) {
+      rules[i] = new RuleEntry(ruleItemIds[i]);
+    }
+    return new LootLockProfile(id, name, mode, action, enabled, List.of(rules));
+  }
+
   private static LootLockPlayerData createDataWithMixedEnabledProfiles() {
     LootLockPlayerData data = LootLockPlayerData.createDefault(UUID.randomUUID());
-    LootLockProfile first =
-        new LootLockProfile(
-            UUID.randomUUID(),
-            "Farming",
-            FilterMode.DENYLIST,
-            RejectedItemAction.LEAVE_ON_GROUND,
-            true,
-            List.of());
-    LootLockProfile second =
-        new LootLockProfile(
-            UUID.randomUUID(),
-            "Mining",
-            FilterMode.ALLOWLIST,
-            RejectedItemAction.LEAVE_ON_GROUND,
-            false,
-            List.of());
-    data.setProfiles(List.of(first, second));
+    data.setProfiles(
+        List.of(
+            newProfile("Farming", FilterMode.DENYLIST, RejectedItemAction.LEAVE_ON_GROUND, true),
+            newProfile("Mining", FilterMode.ALLOWLIST, RejectedItemAction.LEAVE_ON_GROUND, false)));
     return data;
   }
 
@@ -238,13 +242,12 @@ class ClientToServerPacketsTest {
     UUID playerId = UUID.randomUUID();
     LootLockPlayerData data = LootLockPlayerData.createDefault(playerId);
     LootLockProfile profile =
-        new LootLockProfile(
-            UUID.randomUUID(),
+        newProfile(
             "Default",
             FilterMode.DENYLIST,
             RejectedItemAction.LEAVE_ON_GROUND,
             true,
-            List.of(new RuleEntry("minecraft:stone")));
+            "minecraft:stone");
     data.setProfiles(List.of(profile));
     data.setActiveProfileId(profile.getId());
     return data;

@@ -10,15 +10,32 @@ import com.grahambartley.network.ServerToClientPackets;
 import java.util.List;
 import java.util.UUID;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 class ClientLootLockStateTest {
-  @Test
-  void onLoginResetsSupportSyncAndSnapshot() {
+
+  static Stream<Arguments> resetActions() {
+    Consumer<ClientLootLockState> onLogin = ClientLootLockState::onLogin;
+    Consumer<ClientLootLockState> clear = ClientLootLockState::clear;
+    Consumer<ClientLootLockState> onServerCapabilitiesFalse =
+        state -> state.onServerCapabilities(false);
+    return Stream.of(
+        Arguments.of("onLogin", onLogin),
+        Arguments.of("clear", clear),
+        Arguments.of("onServerCapabilities(false)", onServerCapabilitiesFalse));
+  }
+
+  @ParameterizedTest(name = "{0} clears support, sync, and snapshot")
+  @MethodSource("resetActions")
+  void actionsThatResetState(String label, Consumer<ClientLootLockState> action) {
     ClientLootLockState state = new ClientLootLockState();
     state.onAuthoritativeSync(createPayload());
 
-    state.onLogin();
+    action.accept(state);
 
     assertFalse(state.isServerSupportsLootLock());
     assertFalse(state.isSynced());
@@ -38,30 +55,6 @@ class ClientLootLockStateTest {
     assertEquals(payload.revision(), state.getSnapshot().orElseThrow().getRevision());
     assertEquals(payload.activeProfileId(), state.getSnapshot().orElseThrow().getActiveProfileId());
     assertEquals(payload.profiles().size(), state.getSnapshot().orElseThrow().getProfiles().size());
-  }
-
-  @Test
-  void clearResetsAllStateOnDisconnect() {
-    ClientLootLockState state = new ClientLootLockState();
-    state.onAuthoritativeSync(createPayload());
-
-    state.clear();
-
-    assertFalse(state.isServerSupportsLootLock());
-    assertFalse(state.isSynced());
-    assertTrue(state.getSnapshot().isEmpty());
-  }
-
-  @Test
-  void onServerCapabilitiesFalseClearsSnapshotAndSync() {
-    ClientLootLockState state = new ClientLootLockState();
-    state.onAuthoritativeSync(createPayload());
-
-    state.onServerCapabilities(false);
-
-    assertFalse(state.isServerSupportsLootLock());
-    assertFalse(state.isSynced());
-    assertTrue(state.getSnapshot().isEmpty());
   }
 
   @Test
@@ -106,31 +99,26 @@ class ClientLootLockStateTest {
   }
 
   @Test
-  void consumerMutationPathMarksDirtyWhenValueChanges() {
+  void mutationMarksDraftDirtyWhenValueChanges() {
     ClientLootLockState state = new ClientLootLockState();
     ServerToClientPackets.SyncPayload payload = createPayload();
     state.onAuthoritativeSync(payload);
 
-    ClientDraftProfile draft = state.beginDraft(payload.activeProfileId()).orElseThrow();
-    Consumer<ClientDraftProfile> mutator = value -> value.setEnabled(false);
-    mutator.accept(draft);
+    state.beginDraft(payload.activeProfileId()).orElseThrow().setEnabled(false);
 
     ClientLootLockState.ClientDraftSaveRequest saveRequest = state.buildSaveRequest().orElseThrow();
-
     assertEquals(payload.revision(), saveRequest.baseRevision());
     assertFalse(saveRequest.profile().isEnabled());
   }
 
   @Test
-  void consumerMutationPathStaysCleanForNoOpSetter() {
+  void noOpMutationDoesNotProduceSaveRequest() {
     ClientLootLockState state = new ClientLootLockState();
     ServerToClientPackets.SyncPayload payload = createPayload();
     state.onAuthoritativeSync(payload);
 
     ClientDraftProfile draft = state.beginDraft(payload.activeProfileId()).orElseThrow();
-    boolean enabled = draft.getDraft().isEnabled();
-    Consumer<ClientDraftProfile> mutator = value -> value.setEnabled(enabled);
-    mutator.accept(draft);
+    draft.setEnabled(draft.getDraft().isEnabled());
 
     assertTrue(state.buildSaveRequest().isEmpty());
   }

@@ -7,6 +7,9 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import com.grahambartley.client.config.ClientSettings;
 import com.grahambartley.client.config.ClientSettingsManager;
 import java.nio.file.Path;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
+import java.util.stream.Stream;
 import net.minecraft.Bootstrap;
 import net.minecraft.SharedConstants;
 import net.minecraft.client.option.KeyBinding;
@@ -15,10 +18,13 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.lwjgl.glfw.GLFW;
 
 class SettingsTabViewTest {
+
   @BeforeAll
   static void bootstrap() {
     SharedConstants.createGameVersion();
@@ -27,24 +33,14 @@ class SettingsTabViewTest {
 
   @Test
   void keyLabelReturnsUnboundForUnknownKey() {
-    KeyBinding binding =
-        new KeyBinding(
-            "key.loot-lock.test_unbound",
-            InputUtil.Type.KEYSYM,
-            GLFW.GLFW_KEY_UNKNOWN,
-            "key.categories.misc");
+    KeyBinding binding = newBinding("test_unbound", GLFW.GLFW_KEY_UNKNOWN);
 
     assertEquals("Unbound", SettingsTabView.keyLabel(binding));
   }
 
   @Test
   void keyLabelReturnsLocalizedNameForBoundKey() {
-    KeyBinding binding =
-        new KeyBinding(
-            "key.loot-lock.test_bound",
-            InputUtil.Type.KEYSYM,
-            GLFW.GLFW_KEY_P,
-            "key.categories.misc");
+    KeyBinding binding = newBinding("test_bound", GLFW.GLFW_KEY_P);
 
     String label = SettingsTabView.keyLabel(binding);
 
@@ -68,44 +64,36 @@ class SettingsTabViewTest {
     assertEquals(expected, SettingsTabView.isPolicySwitchReadOnly(integrated, operator));
   }
 
-  @Test
-  void toggleBlockedHudFlipsAndPersists(@TempDir Path tempDir) {
-    ClientSettingsManager manager = freshManager(tempDir);
-    boolean initial = manager.getSettingsCopy().isShowBlockedHudNotification();
-
-    SettingsTabView.toggleBlockedHud(manager);
-
-    assertEquals(!initial, reload(tempDir).isShowBlockedHudNotification());
+  static Stream<Arguments> toggleCases() {
+    Consumer<ClientSettingsManager> blockedHud = SettingsTabView::toggleBlockedHud;
+    Consumer<ClientSettingsManager> profileCycleToast = SettingsTabView::toggleProfileCycleToast;
+    Consumer<ClientSettingsManager> toggleToast = SettingsTabView::toggleToggleToast;
+    Consumer<ClientSettingsManager> confirmBeforeDelete =
+        SettingsTabView::toggleConfirmBeforeDelete;
+    Predicate<ClientSettings> isBlockedHud = ClientSettings::isShowBlockedHudNotification;
+    Predicate<ClientSettings> isProfileCycleToast = ClientSettings::isEnableProfileCycleToast;
+    Predicate<ClientSettings> isToggleToast = ClientSettings::isEnableToggleToast;
+    Predicate<ClientSettings> isConfirmBeforeDelete = ClientSettings::isConfirmBeforeEnablingDelete;
+    return Stream.of(
+        Arguments.of("blockedHud", blockedHud, isBlockedHud),
+        Arguments.of("profileCycleToast", profileCycleToast, isProfileCycleToast),
+        Arguments.of("toggleToast", toggleToast, isToggleToast),
+        Arguments.of("confirmBeforeDelete", confirmBeforeDelete, isConfirmBeforeDelete));
   }
 
-  @Test
-  void toggleProfileCycleToastFlipsAndPersists(@TempDir Path tempDir) {
+  @ParameterizedTest(name = "toggle({0}) flips persisted setting")
+  @MethodSource("toggleCases")
+  void toggleFlipsAndPersistsSetting(
+      String label,
+      Consumer<ClientSettingsManager> toggle,
+      Predicate<ClientSettings> reader,
+      @TempDir Path tempDir) {
     ClientSettingsManager manager = freshManager(tempDir);
-    boolean initial = manager.getSettingsCopy().isEnableProfileCycleToast();
+    boolean initial = reader.test(manager.getSettingsCopy());
 
-    SettingsTabView.toggleProfileCycleToast(manager);
+    toggle.accept(manager);
 
-    assertEquals(!initial, reload(tempDir).isEnableProfileCycleToast());
-  }
-
-  @Test
-  void toggleToggleToastFlipsAndPersists(@TempDir Path tempDir) {
-    ClientSettingsManager manager = freshManager(tempDir);
-    boolean initial = manager.getSettingsCopy().isEnableToggleToast();
-
-    SettingsTabView.toggleToggleToast(manager);
-
-    assertEquals(!initial, reload(tempDir).isEnableToggleToast());
-  }
-
-  @Test
-  void toggleConfirmBeforeDeleteFlipsAndPersists(@TempDir Path tempDir) {
-    ClientSettingsManager manager = freshManager(tempDir);
-    boolean initial = manager.getSettingsCopy().isConfirmBeforeEnablingDelete();
-
-    SettingsTabView.toggleConfirmBeforeDelete(manager);
-
-    assertEquals(!initial, reload(tempDir).isConfirmBeforeEnablingDelete());
+    assertEquals(!initial, reader.test(reload(tempDir)));
   }
 
   @Test
@@ -114,6 +102,11 @@ class SettingsTabViewTest {
     SettingsTabView.toggleProfileCycleToast(null);
     SettingsTabView.toggleToggleToast(null);
     SettingsTabView.toggleConfirmBeforeDelete(null);
+  }
+
+  private static KeyBinding newBinding(String name, int key) {
+    return new KeyBinding(
+        "key.loot-lock." + name, InputUtil.Type.KEYSYM, key, "key.categories.misc");
   }
 
   private static ClientSettingsManager freshManager(Path tempDir) {
