@@ -480,7 +480,8 @@ public final class LootLockInventoryPanel {
         this::cancelEnableDelete);
 
     dropdownAnchorX = pillX;
-    dropdownAnchorY = panelY + SIDE_PADDING + HEADER_HEIGHT + PROFILE_ROW_HEIGHT + 5;
+    // Anchor the popup below the profile well so the frame doesn't bite into the pill row.
+    dropdownAnchorY = profileWellY + profileWellH + 8;
     dropdownAnchorWidth = pillWidth;
     dropdownSignature = "";
     rebuildDropdownIfStale();
@@ -666,7 +667,8 @@ public final class LootLockInventoryPanel {
 
     // Re-anchor dropdown.
     dropdownAnchorX = pillX;
-    dropdownAnchorY = panelY + SIDE_PADDING + HEADER_HEIGHT + PROFILE_ROW_HEIGHT + 5;
+    // Anchor the popup below the profile well so the frame doesn't bite into the pill row.
+    dropdownAnchorY = profileWellY + profileWellH + 8;
     dropdownAnchorWidth = pillWidth;
     dropdownSignature = "";
     rebuildDropdownIfStale();
