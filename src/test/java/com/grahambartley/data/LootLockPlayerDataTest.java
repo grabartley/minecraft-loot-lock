@@ -9,9 +9,15 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class LootLockPlayerDataTest {
+
   @Test
   void setRevisionRejectsNegativeValues() {
     LootLockPlayerData data = LootLockPlayerData.createDefault(UUID.randomUUID());
@@ -28,20 +34,15 @@ class LootLockPlayerDataTest {
     assertEquals(5, data.getRevision());
   }
 
-  @Test
-  void setEnabledForAllFlipsEveryProfile() {
+  @ParameterizedTest(name = "setEnabledForAll({0}) flips every profile")
+  @ValueSource(booleans = {true, false})
+  void setEnabledForAllFlipsEveryProfile(boolean targetState) {
     LootLockPlayerData data = newDataWithProfiles(true, false, true);
 
-    data.setEnabledForAll(false);
+    data.setEnabledForAll(targetState);
 
     for (LootLockProfile profile : data.getProfiles()) {
-      assertFalse(profile.isEnabled());
-    }
-
-    data.setEnabledForAll(true);
-
-    for (LootLockProfile profile : data.getProfiles()) {
-      assertTrue(profile.isEnabled());
+      assertEquals(targetState, profile.isEnabled());
     }
   }
 
@@ -50,7 +51,6 @@ class LootLockPlayerDataTest {
     LootLockPlayerData data = newDataWithProfiles(true, true);
     List<LootLockProfile> profiles = new ArrayList<>(data.getProfiles());
     profiles.add(null);
-    // setProfiles rejects an empty list but does not strip nulls. Inject directly.
     data.setProfiles(profiles);
 
     data.setEnabledForAll(false);
@@ -62,18 +62,21 @@ class LootLockPlayerDataTest {
     }
   }
 
-  @Test
-  void isGloballyEnabledTrueWhenEveryProfileEnabled() {
-    LootLockPlayerData data = newDataWithProfiles(true, true, true);
-
-    assertTrue(data.isGloballyEnabled());
+  static Stream<Arguments> globallyEnabledCases() {
+    return Stream.of(
+        Arguments.of("all enabled", new boolean[] {true, true, true}, true),
+        Arguments.of("single disabled", new boolean[] {true, false, true}, false),
+        Arguments.of("all disabled", new boolean[] {false, false, false}, false),
+        Arguments.of("single enabled", new boolean[] {true}, true));
   }
 
-  @Test
-  void isGloballyEnabledFalseWhenAnyProfileDisabled() {
-    LootLockPlayerData data = newDataWithProfiles(true, false, true);
+  @ParameterizedTest(name = "isGloballyEnabled {0} -> {2}")
+  @MethodSource("globallyEnabledCases")
+  void isGloballyEnabledReflectsEveryProfile(
+      String label, boolean[] enabledStates, boolean expected) {
+    LootLockPlayerData data = newDataWithProfiles(enabledStates);
 
-    assertFalse(data.isGloballyEnabled());
+    assertEquals(expected, data.isGloballyEnabled());
   }
 
   @Test
@@ -100,15 +103,14 @@ class LootLockPlayerDataTest {
     List<LootLockProfile> profiles = new ArrayList<>();
     int index = 0;
     for (boolean enabled : enabledStates) {
-      LootLockProfile profile =
+      profiles.add(
           new LootLockProfile(
               UUID.randomUUID(),
               "Profile " + index++,
               FilterMode.DENYLIST,
               RejectedItemAction.LEAVE_ON_GROUND,
               enabled,
-              Collections.emptyList());
-      profiles.add(profile);
+              Collections.emptyList()));
     }
     data.setProfiles(profiles);
     return data;

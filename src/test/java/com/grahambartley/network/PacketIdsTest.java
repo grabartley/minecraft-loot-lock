@@ -1,44 +1,39 @@
 package com.grahambartley.network;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.stream.Stream;
-import org.junit.jupiter.api.Test;
+import net.minecraft.util.Identifier;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 class PacketIdsTest {
-  @Test
-  void packetIdsMatchDesignChannels() {
-    assertEquals("loot-lock:hello_c2s", PacketIds.HELLO_C2S.toString());
-    assertEquals("loot-lock:sync_player_data_s2c", PacketIds.SYNC_PLAYER_DATA_S2C.toString());
-    assertEquals("loot-lock:request_sync_c2s", PacketIds.REQUEST_SYNC_C2S.toString());
-    assertEquals("loot-lock:server_capabilities_s2c", PacketIds.SERVER_CAPABILITIES_S2C.toString());
-    assertEquals("loot-lock:update_profile_c2s", PacketIds.UPDATE_PROFILE_C2S.toString());
-    assertEquals("loot-lock:activate_profile_c2s", PacketIds.ACTIVATE_PROFILE_C2S.toString());
-    assertEquals("loot-lock:create_profile_c2s", PacketIds.CREATE_PROFILE_C2S.toString());
-    assertEquals("loot-lock:delete_profile_c2s", PacketIds.DELETE_PROFILE_C2S.toString());
-    assertEquals(
-        "loot-lock:update_server_policy_c2s", PacketIds.UPDATE_SERVER_POLICY_C2S.toString());
-    assertEquals(
-        "loot-lock:update_global_enable_c2s", PacketIds.UPDATE_GLOBAL_ENABLE_C2S.toString());
-    assertEquals("loot-lock:blocked_notice_s2c", PacketIds.BLOCKED_NOTICE_S2C.toString());
+
+  static Stream<Arguments> packetIds() {
+    return Stream.of(
+        Arguments.of(PacketIds.HELLO_C2S, "loot-lock:hello_c2s"),
+        Arguments.of(PacketIds.SYNC_PLAYER_DATA_S2C, "loot-lock:sync_player_data_s2c"),
+        Arguments.of(PacketIds.REQUEST_SYNC_C2S, "loot-lock:request_sync_c2s"),
+        Arguments.of(PacketIds.SERVER_CAPABILITIES_S2C, "loot-lock:server_capabilities_s2c"),
+        Arguments.of(PacketIds.UPDATE_PROFILE_C2S, "loot-lock:update_profile_c2s"),
+        Arguments.of(PacketIds.ACTIVATE_PROFILE_C2S, "loot-lock:activate_profile_c2s"),
+        Arguments.of(PacketIds.CREATE_PROFILE_C2S, "loot-lock:create_profile_c2s"),
+        Arguments.of(PacketIds.DELETE_PROFILE_C2S, "loot-lock:delete_profile_c2s"),
+        Arguments.of(PacketIds.UPDATE_SERVER_POLICY_C2S, "loot-lock:update_server_policy_c2s"),
+        Arguments.of(PacketIds.UPDATE_GLOBAL_ENABLE_C2S, "loot-lock:update_global_enable_c2s"),
+        Arguments.of(PacketIds.BLOCKED_NOTICE_S2C, "loot-lock:blocked_notice_s2c"));
   }
 
-  @Test
-  void allPacketIdsUseLootLockNamespace() {
-    assertTrue(
-        Stream.of(
-                PacketIds.HELLO_C2S,
-                PacketIds.SYNC_PLAYER_DATA_S2C,
-                PacketIds.REQUEST_SYNC_C2S,
-                PacketIds.SERVER_CAPABILITIES_S2C,
-                PacketIds.UPDATE_PROFILE_C2S,
-                PacketIds.ACTIVATE_PROFILE_C2S,
-                PacketIds.CREATE_PROFILE_C2S,
-                PacketIds.DELETE_PROFILE_C2S,
-                PacketIds.UPDATE_SERVER_POLICY_C2S,
-                PacketIds.UPDATE_GLOBAL_ENABLE_C2S,
-                PacketIds.BLOCKED_NOTICE_S2C)
-            .allMatch(id -> "loot-lock".equals(id.getNamespace())));
+  @ParameterizedTest(name = "{1}")
+  @MethodSource("packetIds")
+  void packetIdMatchesDesignChannel(Identifier id, String expected) {
+    assertEquals(expected, id.toString());
+  }
+
+  @ParameterizedTest(name = "{1}")
+  @MethodSource("packetIds")
+  void packetIdUsesLootLockNamespace(Identifier id, String expected) {
+    assertEquals("loot-lock", id.getNamespace());
   }
 }

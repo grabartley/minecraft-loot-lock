@@ -6,43 +6,48 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
-/**
- * Covers the chip-versus-row click routing on {@link ProfileDropdownRow}: the chip hit box only
- * consumes clicks inside the chip rectangle, and clicks outside the chip still select the profile.
- */
 class ProfileDropdownRowTest {
+
   private static final int X = 10;
   private static final int Y = 20;
   private static final int WIDTH = 200;
+  private static final int CHIP_LEFT = X + ProfileDropdownRow.CHIP_INSET_X;
+  private static final int CHIP_TOP =
+      Y + (ProfileDropdownRow.ROW_HEIGHT - ProfileDropdownRow.CHIP_SIZE) / 2;
+  private static final int CHIP_END = ProfileDropdownRow.CHIP_SIZE - 1;
 
-  @Test
-  void isMouseOverChipHitsInsideChipRectangle() {
-    ProfileDropdownRow row = newRow(() -> {}, () -> {});
-    // Chip is inset 6px from the row's left edge, vertically centred, sized CHIP_SIZE px.
-    int chipLeft = X + ProfileDropdownRow.CHIP_INSET_X;
-    int chipTop = Y + (ProfileDropdownRow.ROW_HEIGHT - ProfileDropdownRow.CHIP_SIZE) / 2;
-    assertTrue(row.isMouseOverChip(chipLeft, chipTop));
-    assertTrue(row.isMouseOverChip(chipLeft + 5, chipTop + 5));
-    assertTrue(
-        row.isMouseOverChip(
-            chipLeft + ProfileDropdownRow.CHIP_SIZE - 1,
-            chipTop + ProfileDropdownRow.CHIP_SIZE - 1));
+  static Stream<Arguments> chipInsidePoints() {
+    return Stream.of(
+        Arguments.of("top-left corner", CHIP_LEFT, CHIP_TOP),
+        Arguments.of("middle", CHIP_LEFT + 5, CHIP_TOP + 5),
+        Arguments.of("bottom-right corner", CHIP_LEFT + CHIP_END, CHIP_TOP + CHIP_END));
   }
 
-  @Test
-  void isMouseOverChipMissesOutsideChipRectangle() {
-    ProfileDropdownRow row = newRow(() -> {}, () -> {});
-    int chipLeft = X + ProfileDropdownRow.CHIP_INSET_X;
-    int chipTop = Y + (ProfileDropdownRow.ROW_HEIGHT - ProfileDropdownRow.CHIP_SIZE) / 2;
-    // Left of chip, above chip, right of chip, below chip.
-    assertFalse(row.isMouseOverChip(chipLeft - 1, chipTop + 4));
-    assertFalse(row.isMouseOverChip(chipLeft + 4, chipTop - 1));
-    assertFalse(row.isMouseOverChip(chipLeft + ProfileDropdownRow.CHIP_SIZE, chipTop + 4));
-    assertFalse(row.isMouseOverChip(chipLeft + 4, chipTop + ProfileDropdownRow.CHIP_SIZE));
-    // Well to the right, in the name region.
-    assertFalse(row.isMouseOverChip(X + WIDTH - 10, Y + ProfileDropdownRow.ROW_HEIGHT / 2));
+  static Stream<Arguments> chipOutsidePoints() {
+    return Stream.of(
+        Arguments.of("left of chip", CHIP_LEFT - 1, CHIP_TOP + 4),
+        Arguments.of("above chip", CHIP_LEFT + 4, CHIP_TOP - 1),
+        Arguments.of("right of chip", CHIP_LEFT + ProfileDropdownRow.CHIP_SIZE, CHIP_TOP + 4),
+        Arguments.of("below chip", CHIP_LEFT + 4, CHIP_TOP + ProfileDropdownRow.CHIP_SIZE),
+        Arguments.of("name region", X + WIDTH - 10, Y + ProfileDropdownRow.ROW_HEIGHT / 2));
+  }
+
+  @ParameterizedTest(name = "{0} is inside chip")
+  @MethodSource("chipInsidePoints")
+  void isMouseOverChipHitsInsideChipRectangle(String label, int mouseX, int mouseY) {
+    assertTrue(newRow(() -> {}, () -> {}).isMouseOverChip(mouseX, mouseY));
+  }
+
+  @ParameterizedTest(name = "{0} is outside chip")
+  @MethodSource("chipOutsidePoints")
+  void isMouseOverChipMissesOutsideChipRectangle(String label, int mouseX, int mouseY) {
+    assertFalse(newRow(() -> {}, () -> {}).isMouseOverChip(mouseX, mouseY));
   }
 
   @Test
@@ -51,9 +56,7 @@ class ProfileDropdownRowTest {
     AtomicInteger rowPresses = new AtomicInteger();
     ProfileDropdownRow row = newRow(rowPresses::incrementAndGet, chipPresses::incrementAndGet);
 
-    int chipLeft = X + ProfileDropdownRow.CHIP_INSET_X;
-    int chipTop = Y + (ProfileDropdownRow.ROW_HEIGHT - ProfileDropdownRow.CHIP_SIZE) / 2;
-    row.onClick(chipLeft + 4, chipTop + 4);
+    row.onClick(CHIP_LEFT + 4, CHIP_TOP + 4);
 
     assertEquals(1, chipPresses.get());
     assertEquals(0, rowPresses.get());
@@ -65,7 +68,6 @@ class ProfileDropdownRowTest {
     AtomicInteger rowPresses = new AtomicInteger();
     ProfileDropdownRow row = newRow(rowPresses::incrementAndGet, chipPresses::incrementAndGet);
 
-    // Well past the chip, in the name region.
     row.onClick(X + WIDTH - 20, Y + ProfileDropdownRow.ROW_HEIGHT / 2);
 
     assertEquals(0, chipPresses.get());
@@ -77,14 +79,12 @@ class ProfileDropdownRowTest {
     AtomicInteger chipPresses = new AtomicInteger();
     AtomicInteger rowPresses = new AtomicInteger();
     ProfileDropdownRow row = newRow(rowPresses::incrementAndGet, chipPresses::incrementAndGet);
-    int chipLeft = X + ProfileDropdownRow.CHIP_INSET_X;
-    int chipTop = Y + (ProfileDropdownRow.ROW_HEIGHT - ProfileDropdownRow.CHIP_SIZE) / 2;
 
-    row.onClick(chipLeft + 4, chipTop + 4);
+    row.onClick(CHIP_LEFT + 4, CHIP_TOP + 4);
     row.onClick(X + WIDTH - 20, Y + ProfileDropdownRow.ROW_HEIGHT / 2);
 
-    assertEquals(1, chipPresses.get(), "chip should fire once on the first click");
-    assertEquals(1, rowPresses.get(), "row should fire once on the second click");
+    assertEquals(1, chipPresses.get());
+    assertEquals(1, rowPresses.get());
   }
 
   private static ProfileDropdownRow newRow(Runnable onPressAction, Runnable onChipPressAction) {

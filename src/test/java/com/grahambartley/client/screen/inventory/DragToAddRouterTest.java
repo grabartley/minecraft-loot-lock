@@ -11,6 +11,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 class DragToAddRouterTest {
+
   @BeforeAll
   static void bootstrap() {
     SharedConstants.createGameVersion();

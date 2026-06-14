@@ -1,7 +1,6 @@
 package com.grahambartley.client.screen.inventory;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.grahambartley.data.FilterMode;
 import com.grahambartley.data.LootLockProfile;
@@ -9,93 +8,86 @@ import com.grahambartley.data.RejectedItemAction;
 import com.grahambartley.data.RuleEntry;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Stream;
 import net.minecraft.Bootstrap;
 import net.minecraft.SharedConstants;
-import net.minecraft.text.MutableText;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 class LootLockSummaryTextTest {
+
   @BeforeAll
   static void bootstrapMinecraft() {
     SharedConstants.createGameVersion();
     Bootstrap.initialize();
   }
 
-  @Test
-  void describesOffStateWhenGloballyDisabled() {
-    LootLockProfile profile =
-        newProfile(FilterMode.DENYLIST, RejectedItemAction.LEAVE_ON_GROUND, 3);
+  static Stream<Arguments> summaryCases() {
+    return Stream.of(
+        Arguments.of(
+            "globally off",
+            false,
+            FilterMode.DENYLIST,
+            RejectedItemAction.LEAVE_ON_GROUND,
+            3,
+            "Loot Lock is off, every item is picked up normally for all profiles."),
+        Arguments.of(
+            "denylist empty",
+            true,
+            FilterMode.DENYLIST,
+            RejectedItemAction.LEAVE_ON_GROUND,
+            0,
+            "Denylist, nothing is filtered yet, add items below to skip them."),
+        Arguments.of(
+            "denylist populated with leave action",
+            true,
+            FilterMode.DENYLIST,
+            RejectedItemAction.LEAVE_ON_GROUND,
+            2,
+            "Denylist, 2 items are skipped and left on the ground."),
+        Arguments.of(
+            "denylist populated with delete action (singular)",
+            true,
+            FilterMode.DENYLIST,
+            RejectedItemAction.DELETE,
+            1,
+            "Denylist, 1 item is skipped and deleted."),
+        Arguments.of(
+            "allowlist empty",
+            true,
+            FilterMode.ALLOWLIST,
+            RejectedItemAction.LEAVE_ON_GROUND,
+            0,
+            "Allowlist, no items allowed yet, you will keep nothing."),
+        Arguments.of(
+            "allowlist populated with delete action",
+            true,
+            FilterMode.ALLOWLIST,
+            RejectedItemAction.DELETE,
+            4,
+            "Allowlist, only these 4 items are picked up, everything else is deleted."));
+  }
 
-    MutableText text = LootLockSummaryText.build(false, profile);
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("summaryCases")
+  void buildRendersExpectedText(
+      String label,
+      boolean enabled,
+      FilterMode mode,
+      RejectedItemAction action,
+      int ruleCount,
+      String expected) {
+    LootLockProfile profile = newProfile(mode, action, ruleCount);
 
-    assertNotNull(text);
-    String rendered = text.getString();
-    assertTrue(rendered.contains("off"), rendered);
-    assertTrue(rendered.toLowerCase().contains("picked up normally"), rendered);
+    assertEquals(expected, LootLockSummaryText.build(enabled, profile).getString());
   }
 
   @Test
-  void describesDenylistEmpty() {
-    LootLockProfile profile =
-        newProfile(FilterMode.DENYLIST, RejectedItemAction.LEAVE_ON_GROUND, 0);
-
-    String rendered = LootLockSummaryText.build(true, profile).getString();
-
-    assertTrue(rendered.startsWith("Denylist"), rendered);
-    assertTrue(rendered.contains("nothing is filtered yet"), rendered);
-  }
-
-  @Test
-  void describesDenylistPopulatedWithLeaveAction() {
-    LootLockProfile profile =
-        newProfile(FilterMode.DENYLIST, RejectedItemAction.LEAVE_ON_GROUND, 2);
-
-    String rendered = LootLockSummaryText.build(true, profile).getString();
-
-    assertTrue(rendered.contains("2 items"), rendered);
-    assertTrue(rendered.contains("skipped"), rendered);
-    assertTrue(rendered.contains("left on the ground"), rendered);
-  }
-
-  @Test
-  void describesDenylistPopulatedWithDeleteAction() {
-    LootLockProfile profile = newProfile(FilterMode.DENYLIST, RejectedItemAction.DELETE, 1);
-
-    String rendered = LootLockSummaryText.build(true, profile).getString();
-
-    assertTrue(rendered.contains("1 item "), rendered);
-    assertTrue(rendered.contains("is skipped"), rendered);
-    assertTrue(rendered.contains("deleted"), rendered);
-  }
-
-  @Test
-  void describesAllowlistEmpty() {
-    LootLockProfile profile =
-        newProfile(FilterMode.ALLOWLIST, RejectedItemAction.LEAVE_ON_GROUND, 0);
-
-    String rendered = LootLockSummaryText.build(true, profile).getString();
-
-    assertTrue(rendered.startsWith("Allowlist"), rendered);
-    assertTrue(rendered.contains("no items allowed yet"), rendered);
-  }
-
-  @Test
-  void describesAllowlistPopulatedWithDeleteAction() {
-    LootLockProfile profile = newProfile(FilterMode.ALLOWLIST, RejectedItemAction.DELETE, 4);
-
-    String rendered = LootLockSummaryText.build(true, profile).getString();
-
-    assertTrue(rendered.startsWith("Allowlist"), rendered);
-    assertTrue(rendered.contains("only these 4 items"), rendered);
-    assertTrue(rendered.contains("deleted"), rendered);
-  }
-
-  @Test
-  void nullProfileWhenEnabledRendersGracefully() {
-    String rendered = LootLockSummaryText.build(true, null).getString();
-
-    assertTrue(rendered.toLowerCase().contains("no active profile"), rendered);
+  void nullProfileWhenEnabledReturnsNoActiveProfileMessage() {
+    assertEquals("No active profile.", LootLockSummaryText.build(true, null).getString());
   }
 
   private static LootLockProfile newProfile(
