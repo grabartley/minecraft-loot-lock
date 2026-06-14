@@ -215,6 +215,13 @@ public final class RulesTabView {
     return viewY() + rowsBottomOffsetY;
   }
 
+  /** Resets the search field text. Triggers the change listener so results re-render. */
+  public void clearSearch() {
+    if (searchField != null && !searchField.getText().isEmpty()) {
+      searchField.setText("");
+    }
+  }
+
   public void setVisible(boolean visible) {
     this.visible = visible;
     for (ClickableWidget widget : widgets) {

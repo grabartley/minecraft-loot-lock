@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
+import java.util.function.LongSupplier;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
@@ -67,6 +68,16 @@ public final class LootLockInventoryPanel {
     return STICKY_ACTIVE_TAB;
   }
 
+  /** Drop-flash starts as a forest green and fades to the well's normal fill over the duration. */
+  static final int FLASH_START_COLOR = 0xFF3F5A3A;
+
+  static final long FLASH_DURATION_MILLIS = 500L;
+
+  private static final int ARMED_BORDER_THICKNESS = 3;
+
+  /** Test seam: swap in a deterministic clock to verify flash timing without a real game loop. */
+  static LongSupplier clockMillis = System::currentTimeMillis;
+
   private static final int SIDE_PADDING = 8;
   private static final int HEADER_HEIGHT = 26;
   private static final int PROFILE_ROW_HEIGHT = 20;
@@ -98,6 +109,8 @@ public final class LootLockInventoryPanel {
 
   private boolean open;
   private boolean dropdownOpen;
+  private boolean dropArmed;
+  private long flashStartMillis = -1L;
 
   private VanillaTab rulesTabButton;
   private VanillaTab settingsTabButton;
@@ -195,6 +208,51 @@ public final class LootLockInventoryPanel {
 
   public void toggleOpen() {
     setOpen(!open);
+  }
+
+  /**
+   * Flag that the rules content well should paint its 3px gold drop-armed border on the next frame.
+   * Driven per frame from the screen-mixin based on the live cursor stack + mouse position; the
+   * caller sets it back to false as soon as the cursor leaves the panel or the stack returns to a
+   * slot.
+   */
+  public void setDropArmed(boolean armed) {
+    this.dropArmed = armed;
+  }
+
+  public boolean isDropArmed() {
+    return dropArmed;
+  }
+
+  /**
+   * Triggers a one-shot drop-flash that fades the rules content well from {@link
+   * #FLASH_START_COLOR} back to {@link Palette#WELL} over {@link #FLASH_DURATION_MILLIS}. A
+   * subsequent call resets the timer so back-to-back adds re-flash cleanly.
+   */
+  public void flashDropSuccess() {
+    this.flashStartMillis = clockMillis.getAsLong();
+  }
+
+  public boolean isFlashActive() {
+    return flashProgress() < 1f;
+  }
+
+  /** Returns 0..1 progress through the current flash, or 1 when no flash is active. */
+  public float flashProgress() {
+    if (flashStartMillis < 0L) {
+      return 1f;
+    }
+    long elapsed = clockMillis.getAsLong() - flashStartMillis;
+    if (elapsed < 0L || elapsed >= FLASH_DURATION_MILLIS) {
+      flashStartMillis = -1L;
+      return 1f;
+    }
+    return (float) elapsed / (float) FLASH_DURATION_MILLIS;
+  }
+
+  /** Clears the Rules-tab search field. Routes through the rules view so layout stays in sync. */
+  public void clearRulesSearch() {
+    rulesView.clearSearch();
   }
 
   public void attach(
@@ -638,6 +696,55 @@ public final class LootLockInventoryPanel {
     Chrome.summaryBlock(
         context, panelX + SIDE_PADDING, summaryY, WIDTH - SIDE_PADDING * 2, SUMMARY_HEIGHT, accent);
     Chrome.well(context, panelX + SIDE_PADDING, contentY, WIDTH - SIDE_PADDING * 2, contentHeight);
+    paintRulesWellOverlays(context);
+  }
+
+  /**
+   * Paints the drop-flash fill and the drop-armed gold inset on the rules content well, when
+   * active. Runs as part of {@link #paintChrome} so widgets render on top, letting the flash bleed
+   * through row gutters and the armed border sit between the well edge and the widget inset.
+   */
+  private void paintRulesWellOverlays(DrawContext context) {
+    if (activeTab != PanelTab.RULES) {
+      return;
+    }
+    int wellX = panelX + SIDE_PADDING;
+    int wellY = contentY;
+    int wellX2 = wellX + WIDTH - SIDE_PADDING * 2;
+    int wellY2 = wellY + contentHeight;
+    if (isFlashActive()) {
+      int blended = blendArgb(FLASH_START_COLOR, Palette.WELL, flashProgress());
+      context.fill(wellX + 1, wellY + 1, wellX2 - 1, wellY2 - 1, blended);
+    }
+    if (dropArmed) {
+      int t = ARMED_BORDER_THICKNESS;
+      context.fill(wellX, wellY, wellX2, wellY + t, Palette.GOLD);
+      context.fill(wellX, wellY2 - t, wellX2, wellY2, Palette.GOLD);
+      context.fill(wellX, wellY + t, wellX + t, wellY2 - t, Palette.GOLD);
+      context.fill(wellX2 - t, wellY + t, wellX2, wellY2 - t, Palette.GOLD);
+    }
+  }
+
+  private static int blendArgb(int from, int to, float t) {
+    if (t <= 0f) {
+      return from;
+    }
+    if (t >= 1f) {
+      return to;
+    }
+    int fa = (from >>> 24) & 0xFF;
+    int fr = (from >> 16) & 0xFF;
+    int fg = (from >> 8) & 0xFF;
+    int fb = from & 0xFF;
+    int ta = (to >>> 24) & 0xFF;
+    int tr = (to >> 16) & 0xFF;
+    int tg = (to >> 8) & 0xFF;
+    int tb = to & 0xFF;
+    int a = (int) (fa + (ta - fa) * t);
+    int r = (int) (fr + (tr - fr) * t);
+    int g = (int) (fg + (tg - fg) * t);
+    int b = (int) (fb + (tb - fb) * t);
+    return (a << 24) | (r << 16) | (g << 8) | b;
   }
 
   /**

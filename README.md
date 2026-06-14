@@ -42,7 +42,7 @@ Stop letting your inventory turn into a graveyard of rotten flesh and wheat seed
 
 1. Install LootLock and Fabric API into your `mods` folder.
 2. Launch the game, join your world, open your inventory, and click the small Loot Lock button beside the recipe-book button. The docked panel opens alongside the inventory.
-3. Open the **Rules** tab and type to search items. Use `Shift` click for a range, `Ctrl`/`Cmd` click to add or remove individual rows, and double-click any row to add it immediately. `Alt` click any inventory slot to add that item directly. Pick a mode, hit `Add selected` (or `Clear all` to wipe), and walk over a few drops to verify.
+3. Open the **Rules** tab and type to search items. Use `Shift` click for a range, `Ctrl`/`Cmd` click to add or remove individual rows, and double-click any row to add it immediately. `Alt` click any inventory slot to add that item directly, or just drag a stack onto the panel (or onto the closed Loot Lock button) to drop it straight into your rules. Pick a mode, hit `Add selected` (or `Clear all` to wipe), and walk over a few drops to verify.
 
 That is the whole setup. No config file editing required.
 
