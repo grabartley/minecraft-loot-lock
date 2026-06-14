@@ -15,17 +15,12 @@ import net.minecraft.util.Formatting;
  */
 public final class SettingsTabView {
   private final List<ClickableWidget> widgets = new ArrayList<>();
-  private int x;
-  private int y;
-  private int width;
+  private LootLockInventoryPanel panel;
   private boolean visible;
 
-  public void attach(
-      int viewX, int viewY, int viewWidth, Consumer<ClickableWidget> addDrawableChild) {
+  public void attach(LootLockInventoryPanel panel, Consumer<ClickableWidget> addDrawableChild) {
+    this.panel = panel;
     widgets.clear();
-    x = viewX;
-    y = viewY;
-    width = viewWidth;
     setVisible(false);
   }
 
@@ -37,14 +32,14 @@ public final class SettingsTabView {
   }
 
   public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-    if (!visible) {
+    if (!visible || panel == null) {
       return;
     }
     context.drawText(
         MinecraftClient.getInstance().textRenderer,
         Text.literal("Settings come online in the next story.").formatted(Formatting.GRAY),
-        x,
-        y + 8,
+        panel.getContentInsetX(),
+        panel.getContentInsetY() + 8,
         0x6E6E6E,
         false);
   }

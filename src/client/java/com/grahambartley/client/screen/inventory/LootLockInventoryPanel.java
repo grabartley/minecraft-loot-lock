@@ -356,24 +356,15 @@ public final class LootLockInventoryPanel {
     // Content well: dark recessed background, host for the active tab.
     contentY = cursorY;
     contentHeight = (panelY + HEIGHT - SIDE_PADDING) - cursorY;
-    int contentInsetX = innerLeft + CONTENT_PADDING;
-    int contentInsetY = contentY + CONTENT_PADDING;
-    int contentInsetWidth = innerWidth - CONTENT_PADDING * 2;
-    int contentInsetHeight = contentHeight - CONTENT_PADDING * 2;
     rulesView.attach(
-        contentInsetX,
-        contentInsetY,
-        contentInsetWidth,
-        contentInsetHeight,
+        this,
         widget -> {
           addDrawableChild.accept(widget);
           allWidgets.add(widget);
           lockableWidgets.add(widget);
         });
     settingsView.attach(
-        contentInsetX,
-        contentInsetY,
-        contentInsetWidth,
+        this,
         widget -> {
           addDrawableChild.accept(widget);
           allWidgets.add(widget);
@@ -413,6 +404,26 @@ public final class LootLockInventoryPanel {
 
   public int getPanelY() {
     return panelY;
+  }
+
+  /** Live X of the content well's inner inset, used by tab views to render container-relative. */
+  public int getContentInsetX() {
+    return panelX + SIDE_PADDING + CONTENT_PADDING;
+  }
+
+  /** Live Y of the content well's inner inset. Tracks panelY through relocate(). */
+  public int getContentInsetY() {
+    return contentY + CONTENT_PADDING;
+  }
+
+  /** Live width of the content inset area. */
+  public int getContentInsetWidth() {
+    return WIDTH - SIDE_PADDING * 2 - CONTENT_PADDING * 2;
+  }
+
+  /** Live height of the content inset area. */
+  public int getContentInsetHeight() {
+    return contentHeight - CONTENT_PADDING * 2;
   }
 
   /** Shifts every panel widget so the panel anchor moves to ({@code newX}, {@code newY}). */

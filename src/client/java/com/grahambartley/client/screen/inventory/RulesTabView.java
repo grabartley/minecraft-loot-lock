@@ -46,12 +46,16 @@ public final class RulesTabView {
   private final List<ClickableWidget> widgets = new ArrayList<>();
   private final RulesSelectionState selection = new RulesSelectionState();
 
-  private int viewX;
-  private int viewY;
-  private int viewWidth;
+  private LootLockInventoryPanel panel;
   private int visibleRows = 4;
-  private int rowsTopY;
-  private int rowsBottomY;
+  // Per-view offsets relative to the panel content inset origin. These never change after attach;
+  // all live positions are derived as panel.getContentInsetX/Y + offset to keep the view glued to
+  // the container as it moves (e.g. when the recipe book shifts the inventory).
+  private int searchOffsetY;
+  private int bulkOffsetY;
+  private int rowsTopOffsetY;
+  private int rowsBottomOffsetY;
+  private int footerOffsetY;
   private TextFieldWidget searchField;
   private ButtonWidget addSelectedButton;
   private ButtonWidget clearAllButton;
@@ -65,24 +69,35 @@ public final class RulesTabView {
   private int scrollOffset;
 
   public void attach(
-      int viewX,
-      int viewY,
-      int viewWidth,
-      int viewHeight,
-      Consumer<ClickableWidget> addDrawableChild) {
-    this.viewX = viewX;
-    this.viewY = viewY;
-    this.viewWidth = viewWidth;
+      LootLockInventoryPanel panel, Consumer<ClickableWidget> addDrawableChild) {
+    this.panel = panel;
     widgets.clear();
     rowButtons.clear();
     selection.clear();
 
-    int searchY = viewY;
+    int viewX = panel.getContentInsetX();
+    int viewY = panel.getContentInsetY();
+    int viewWidth = panel.getContentInsetWidth();
+    int viewHeight = panel.getContentInsetHeight();
+
+    // Per-view offsets are computed once from the inset height; the widgets initialised here are
+    // created at their absolute spawn coords and live-shifted by panel.relocate() so they stay
+    // glued to the panel.
+    searchOffsetY = 0;
+    bulkOffsetY = SEARCH_HEIGHT + 2;
+    rowsTopOffsetY = SEARCH_HEIGHT + BULK_BAR_HEIGHT + 2;
+    int footerReserved = FOOTER_GAP + FOOTER_HEIGHT;
+    int rowsAvailable = viewHeight - rowsTopOffsetY - footerReserved;
+    int rowStride = RuleRowButton.ROW_HEIGHT + 1;
+    visibleRows = Math.max(2, Math.min(8, rowsAvailable / rowStride));
+    rowsBottomOffsetY = rowsTopOffsetY + visibleRows * rowStride;
+    footerOffsetY = rowsBottomOffsetY + FOOTER_GAP;
+
     searchField =
         new TextFieldWidget(
             MinecraftClient.getInstance().textRenderer,
             viewX,
-            searchY,
+            viewY + searchOffsetY,
             viewWidth,
             SEARCH_HEIGHT,
             Text.literal("Loot Lock search"));
@@ -92,17 +107,8 @@ public final class RulesTabView {
     addDrawableChild.accept(searchField);
     widgets.add(searchField);
 
-    // Reserve vertical space for the bulk bar between search and rows; the row count adapts to the
-    // available content height so the footer never overflows the well. Min 2 rows ensures the empty
-    // state still has somewhere to render.
-    rowsTopY = searchY + SEARCH_HEIGHT + BULK_BAR_HEIGHT + 2;
-    int rowsAreaTop = rowsTopY - viewY;
-    int footerReserved = FOOTER_GAP + FOOTER_HEIGHT;
-    int rowsAvailable = viewHeight - rowsAreaTop - footerReserved;
-    int rowStride = RuleRowButton.ROW_HEIGHT + 1;
-    visibleRows = Math.max(2, Math.min(8, rowsAvailable / rowStride));
     for (int i = 0; i < visibleRows; i++) {
-      int rowY = rowsTopY + i * rowStride;
+      int rowY = viewY + rowsTopOffsetY + i * rowStride;
       int rowIndex = i;
       RuleRowButton row =
           new RuleRowButton(
@@ -123,9 +129,8 @@ public final class RulesTabView {
       rowButtons.add(row);
       widgets.add(row);
     }
-    rowsBottomY = rowsTopY + visibleRows * rowStride;
 
-    int footerY = rowsBottomY + FOOTER_GAP;
+    int footerY = viewY + footerOffsetY;
     int halfWidth = (viewWidth - 4) / 2;
     addSelectedButton =
         ButtonWidget.builder(Text.literal("Add selected"), button -> addSelected())
@@ -151,11 +156,28 @@ public final class RulesTabView {
     addDrawableChild.accept(clearAllButton);
     widgets.add(clearAllButton);
 
-    addSelectedButton.setPosition(viewX, footerY);
-    clearAllButton.setPosition(viewX + halfWidth + 4, footerY);
-
     setVisible(false);
     refresh();
+  }
+
+  private int viewX() {
+    return panel == null ? 0 : panel.getContentInsetX();
+  }
+
+  private int viewY() {
+    return panel == null ? 0 : panel.getContentInsetY();
+  }
+
+  private int viewWidth() {
+    return panel == null ? 0 : panel.getContentInsetWidth();
+  }
+
+  private int rowsTopY() {
+    return viewY() + rowsTopOffsetY;
+  }
+
+  private int rowsBottomY() {
+    return viewY() + rowsBottomOffsetY;
   }
 
   public void setVisible(boolean visible) {
@@ -233,10 +255,10 @@ public final class RulesTabView {
   public boolean mouseScrolledInRows(double mouseX, double mouseY, double amount) {
     if (!visible
         || rowButtons.isEmpty()
-        || mouseY < rowsTopY
-        || mouseY > rowsBottomY
-        || mouseX < viewX
-        || mouseX > viewX + viewWidth) {
+        || mouseY < rowsTopY()
+        || mouseY > rowsBottomY()
+        || mouseX < viewX()
+        || mouseX > viewX() + viewWidth()) {
       return false;
     }
     int maxOffset = Math.max(0, visibleResults.size() - visibleRows);
@@ -281,9 +303,18 @@ public final class RulesTabView {
       return;
     }
 
-    // When showing current rules, clicking a row removes it.
-    RuleMutations.removeFromActiveProfile(clickedCandidate.itemId());
-    refresh();
+    // When showing current rules, only a double click removes the rule. Single click is a no-op
+    // so an accidental tap doesn't immediately destroy data.
+    long now = System.currentTimeMillis();
+    boolean doubleClick =
+        now - lastClickTime < DOUBLE_CLICK_MS
+            && clickedCandidate.itemId().equals(lastClickedItemId);
+    lastClickTime = now;
+    lastClickedItemId = clickedCandidate.itemId();
+    if (doubleClick) {
+      RuleMutations.removeFromActiveProfile(clickedCandidate.itemId());
+      refresh();
+    }
   }
 
   void addSelected() {
@@ -319,9 +350,12 @@ public final class RulesTabView {
       return;
     }
     MinecraftClient client = MinecraftClient.getInstance();
+    int viewX = viewX();
+    int viewY = viewY();
+    int viewWidth = viewWidth();
 
     // Bulk bar above the rows: "N results" on left, modifier hint with kbd pills on right.
-    int bulkY = viewY + SEARCH_HEIGHT + 2;
+    int bulkY = viewY + bulkOffsetY;
     String leftText;
     if (showingSearch) {
       int n = visibleResults.size();
@@ -348,8 +382,8 @@ public final class RulesTabView {
           showingSearch
               ? "Try a different name or id."
               : "Search above or Alt+click an item in your inventory.";
-      int areaHeight = rowsBottomY - rowsTopY;
-      int centerY = rowsTopY + areaHeight / 2;
+      int areaHeight = rowsBottomY() - rowsTopY();
+      int centerY = rowsTopY() + areaHeight / 2;
       int bigWidth = client.textRenderer.getWidth(big);
       int subWidth = client.textRenderer.getWidth(sub);
       context.drawText(
