@@ -121,6 +121,8 @@
   "loot-lock.command.help.line.profile_create": "- /lootlock profile create <name|\"name with spaces\">",
   "loot-lock.command.help.line.profile_delete": "- /lootlock profile delete <name|\"name with spaces\">",
   "loot-lock.command.help.line.profile_activate": "- /lootlock profile activate <name|\"name with spaces\">",
+  "loot-lock.command.help.line.profile_export": "- /lootlock profile export <name|\"name with spaces\">",
+  "loot-lock.command.help.line.profile_import": "- /lootlock profile import <code>",
   "loot-lock.command.help.line.mode": "- /lootlock mode denylist|allowlist",
   "loot-lock.command.help.line.action_leave": "- /lootlock action leave",
   "loot-lock.command.help.line.action_delete": "- /lootlock action delete confirm",
@@ -164,6 +166,15 @@
   "loot-lock.command.profile_activate.feedback.self": "Activated profile '%s'.",
   "loot-lock.command.profile_activate.feedback.target": "Activated profile '%s' for %s.",
 
+  "loot-lock.command.profile_export.header.self": "Share code for profile '%s' (click to copy):",
+  "loot-lock.command.profile_export.header.target": "Share code for profile '%s' from %s (click to copy):",
+  "loot-lock.command.profile_export.summary.one": "Encoded %s rule into %s chars.",
+  "loot-lock.command.profile_export.summary.many": "Encoded %s rules into %s chars.",
+  "loot-lock.command.profile_export.hover": "Click to copy",
+  "loot-lock.command.profile_import.feedback.self": "Imported profile '%s' with %s rules.",
+  "loot-lock.command.profile_import.feedback.target": "Imported profile '%s' with %s rules for %s.",
+  "loot-lock.command.profile_import.feedback.renamed": "Imported as '%s' (%s rules); '%s' was already taken.",
+
   "loot-lock.command.rule_add.feedback.self": "Added rule: %s",
   "loot-lock.command.rule_add.feedback.target": "Added rule: %s for %s",
   "loot-lock.command.rule_remove.feedback.self": "Removed rule: %s",
@@ -204,5 +215,10 @@
   "loot-lock.command.error.unknown_item": "Unknown item id: %s",
   "loot-lock.command.error.rule_exists": "Rule already exists for: %s",
   "loot-lock.command.error.rule_not_found": "Rule not found for: %s",
-  "loot-lock.command.error.delete_policy_blocked": "Server policy blocks delete mode for rejected items. Use 'leave' instead."
+  "loot-lock.command.error.delete_policy_blocked": "Server policy blocks delete mode for rejected items. Use 'leave' instead.",
+  "loot-lock.command.error.share_code.empty": "Share code is empty.",
+  "loot-lock.command.error.share_code.too_long": "Share code is too long.",
+  "loot-lock.command.error.share_code.bad_prefix": "Share code is missing the 'll1.' prefix.",
+  "loot-lock.command.error.share_code.bad_payload": "Share code payload is corrupted or unreadable.",
+  "loot-lock.command.error.share_code.bad_field": "Share code contains an invalid field."
 }

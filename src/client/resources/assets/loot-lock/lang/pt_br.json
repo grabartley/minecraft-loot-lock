@@ -121,6 +121,8 @@
   "loot-lock.command.help.line.profile_create": "- /lootlock profile create <nome|\"nome com espaços\">",
   "loot-lock.command.help.line.profile_delete": "- /lootlock profile delete <nome|\"nome com espaços\">",
   "loot-lock.command.help.line.profile_activate": "- /lootlock profile activate <nome|\"nome com espaços\">",
+  "loot-lock.command.help.line.profile_export": "- /lootlock profile export <nome|\"nome com espaços\">",
+  "loot-lock.command.help.line.profile_import": "- /lootlock profile import <código>",
   "loot-lock.command.help.line.mode": "- /lootlock mode denylist|allowlist",
   "loot-lock.command.help.line.action_leave": "- /lootlock action leave",
   "loot-lock.command.help.line.action_delete": "- /lootlock action delete confirm",
@@ -164,6 +166,15 @@
   "loot-lock.command.profile_activate.feedback.self": "Perfil '%s' ativado.",
   "loot-lock.command.profile_activate.feedback.target": "Perfil '%s' ativado para %s.",
 
+  "loot-lock.command.profile_export.header.self": "Código compartilhável do perfil '%s' (clique para copiar):",
+  "loot-lock.command.profile_export.header.target": "Código compartilhável do perfil '%s' de %s (clique para copiar):",
+  "loot-lock.command.profile_export.summary.one": "Codificada %s regra em %s caracteres.",
+  "loot-lock.command.profile_export.summary.many": "Codificadas %s regras em %s caracteres.",
+  "loot-lock.command.profile_export.hover": "Clique para copiar",
+  "loot-lock.command.profile_import.feedback.self": "Perfil '%s' importado com %s regras.",
+  "loot-lock.command.profile_import.feedback.target": "Perfil '%s' importado com %s regras para %s.",
+  "loot-lock.command.profile_import.feedback.renamed": "Importado como '%s' (%s regras); '%s' já estava em uso.",
+
   "loot-lock.command.rule_add.feedback.self": "Regra adicionada: %s",
   "loot-lock.command.rule_add.feedback.target": "Regra adicionada: %s para %s",
   "loot-lock.command.rule_remove.feedback.self": "Regra removida: %s",
@@ -204,5 +215,10 @@
   "loot-lock.command.error.unknown_item": "Id de item desconhecido: %s",
   "loot-lock.command.error.rule_exists": "Já existe uma regra para: %s",
   "loot-lock.command.error.rule_not_found": "Regra não encontrada para: %s",
-  "loot-lock.command.error.delete_policy_blocked": "A política do servidor bloqueia o modo Excluir para itens rejeitados. Use 'leave' no lugar."
+  "loot-lock.command.error.delete_policy_blocked": "A política do servidor bloqueia o modo Excluir para itens rejeitados. Use 'leave' no lugar.",
+  "loot-lock.command.error.share_code.empty": "O código está vazio.",
+  "loot-lock.command.error.share_code.too_long": "O código é grande demais.",
+  "loot-lock.command.error.share_code.bad_prefix": "O código não começa com o prefixo 'll1.'.",
+  "loot-lock.command.error.share_code.bad_payload": "O conteúdo do código está corrompido ou ilegível.",
+  "loot-lock.command.error.share_code.bad_field": "O código contém um campo inválido."
 }
