@@ -71,12 +71,18 @@ public final class ServerPlayerDataManager {
   LootLockPlayerData getOrLoad(UUID playerUuid) {
     CachedEntry entry = cache.get(playerUuid);
     if (entry == null) {
-      LootLockPlayerData data = configManager.loadPlayerData(playerUuid);
+      ConfigManager.LoadResult loaded = configManager.loadPlayerData(playerUuid);
+      LootLockPlayerData data = loaded.data();
       data.compileProfiles();
       entry = new CachedEntry(data);
-      entry.dirty = true;
+      entry.dirty = loaded.createdDefault();
       cache.put(playerUuid, entry);
-      LOGGER.debug("Loaded player data for {} (revision {})", playerUuid, data.getRevision());
+      if (loaded.createdDefault()) {
+        LOGGER.debug(
+            "Created default player data for {} (revision {})", playerUuid, data.getRevision());
+      } else {
+        LOGGER.debug("Loaded player data for {} (revision {})", playerUuid, data.getRevision());
+      }
     }
     return entry.data;
   }

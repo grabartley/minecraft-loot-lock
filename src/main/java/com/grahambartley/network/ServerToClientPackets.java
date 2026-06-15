@@ -43,12 +43,11 @@ public final class ServerToClientPackets {
     }
 
     LootLockPlayerData data = LootLock.PLAYER_DATA_MANAGER.get(player);
-    // For v0.1.0, GUI/profile edits are OP-only. clientCanEdit mirrors operator status.
+    // clientCanEdit reflects data ownership: self-data sync always grants edit rights.
     ServerPlayNetworking.send(
         player,
         PacketIds.SYNC_PLAYER_DATA_S2C,
-        writeSyncPayload(
-            data, player.hasPermissionLevel(2), LootLock.SERVER_CONFIG.allowDeleteRejectedItems()));
+        writeSyncPayload(data, true, LootLock.SERVER_CONFIG.allowDeleteRejectedItems()));
   }
 
   public static PacketByteBuf writeSyncPayload(LootLockPlayerData data) {
