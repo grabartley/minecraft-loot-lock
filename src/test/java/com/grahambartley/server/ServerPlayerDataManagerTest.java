@@ -148,6 +148,8 @@ class ServerPlayerDataManagerTest {
 
   @Test
   void saveOnDisconnectDoesNotSaveCleanData() {
+    // Returning-player loads start clean per the #142 contract: no save without an explicit
+    // mutation.
     LootLockPlayerData data = LootLockPlayerData.createDefault(playerUuid);
     when(configManager.loadPlayerData(playerUuid)).thenReturn(loadedFromDisk(data));
     manager.getOrLoad(playerUuid);

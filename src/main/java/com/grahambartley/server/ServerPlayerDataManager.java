@@ -78,7 +78,7 @@ public final class ServerPlayerDataManager {
       entry.dirty = loaded.createdDefault();
       cache.put(playerUuid, entry);
       if (loaded.createdDefault()) {
-        LOGGER.info(
+        LOGGER.debug(
             "Created default player data for {} (revision {})", playerUuid, data.getRevision());
       } else {
         LOGGER.debug("Loaded player data for {} (revision {})", playerUuid, data.getRevision());

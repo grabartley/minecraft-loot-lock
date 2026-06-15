@@ -220,20 +220,6 @@ class ClientToServerPacketsTest {
     assertTrue(data.getProfiles().get(0).isEnabled());
   }
 
-  @Test
-  void applyUpdateGlobalEnableRejectsWhenClientCannotEdit() {
-    LootLockPlayerData data = createDataWithMixedEnabledProfiles();
-    data.setRevision(5L);
-    data.setClientCanEdit(false);
-
-    ClientToServerPackets.MutationResult result =
-        ClientToServerPackets.applyUpdateGlobalEnable(
-            data, new ClientToServerPackets.UpdateGlobalEnablePayload(5L, false));
-
-    assertFalse(result.success());
-    assertEquals(ClientToServerPackets.MutationRejectionReason.NOT_EDITABLE, result.reason());
-  }
-
   @ParameterizedTest(name = "permissionLevel2={0} -> isOperator={1}")
   @CsvSource({"true, true", "false, false"})
   void isOperatorReflectsPermissionLevel(boolean hasPermissionLevel2, boolean expected) {
@@ -281,6 +267,51 @@ class ClientToServerPacketsTest {
                 2L, data.getProfiles().get(0).getId()));
 
     assertTrue(result.success());
+  }
+
+  @Test
+  void applyCreateProfileSucceedsForNonOpSelfEditAtApplyLayer() {
+    LootLockPlayerData data = createDataWithOneProfile();
+    data.setRevision(2L);
+
+    ClientToServerPackets.MutationResult result =
+        ClientToServerPackets.applyCreateProfile(
+            data, new ClientToServerPackets.CreateProfilePayload(2L, "Self Created", null));
+
+    assertTrue(result.success());
+    assertEquals(2, data.getProfiles().size());
+    assertEquals("Self Created", data.getProfiles().get(1).getName());
+  }
+
+  @Test
+  void applyDeleteProfileSucceedsForNonOpSelfEditAtApplyLayer() {
+    LootLockPlayerData data = createDataWithOneProfile();
+    data.setRevision(3L);
+    LootLockProfile second =
+        newProfile("Second", FilterMode.DENYLIST, RejectedItemAction.LEAVE_ON_GROUND, true);
+    data.setProfiles(List.of(data.getProfiles().get(0), second));
+
+    ClientToServerPackets.MutationResult result =
+        ClientToServerPackets.applyDeleteProfile(
+            data, new ClientToServerPackets.DeleteProfilePayload(3L, second.getId()));
+
+    assertTrue(result.success());
+    assertEquals(1, data.getProfiles().size());
+  }
+
+  @Test
+  void applyUpdateGlobalEnableSucceedsForNonOpSelfEditAtApplyLayer() {
+    LootLockPlayerData data = createDataWithMixedEnabledProfiles();
+    data.setRevision(5L);
+
+    ClientToServerPackets.MutationResult result =
+        ClientToServerPackets.applyUpdateGlobalEnable(
+            data, new ClientToServerPackets.UpdateGlobalEnablePayload(5L, false));
+
+    assertTrue(result.success());
+    for (LootLockProfile profile : data.getProfiles()) {
+      assertFalse(profile.isEnabled());
+    }
   }
 
   private static LootLockProfile newProfile(
