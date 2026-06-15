@@ -1,5 +1,6 @@
 package com.grahambartley.client.screen.inventory;
 
+import com.grahambartley.data.RuleEntry;
 import com.grahambartley.text.LootLockLang;
 import java.util.function.BooleanSupplier;
 import net.minecraft.client.MinecraftClient;
@@ -98,6 +99,12 @@ public final class RuleRowButton extends PressableWidget {
       context.drawItem(new ItemStack(icon), iconX, iconY);
     } else {
       Chrome.slot(context, iconX, iconY, ICON_SIZE, ICON_SIZE);
+      if (itemId != null && itemId.startsWith(RuleEntry.TAG_PREFIX)) {
+        String glyph = RuleEntry.TAG_PREFIX;
+        int gx = iconX + (ICON_SIZE - client.textRenderer.getWidth(glyph)) / 2;
+        int gy = iconY + (ICON_SIZE - 8) / 2;
+        context.drawText(client.textRenderer, Text.literal(glyph), gx, gy, Palette.GOLD, false);
+      }
     }
 
     int textX = iconX + ICON_SIZE + 4;

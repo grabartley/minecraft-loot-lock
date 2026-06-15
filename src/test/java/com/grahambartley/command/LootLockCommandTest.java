@@ -15,12 +15,21 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import net.minecraft.Bootstrap;
+import net.minecraft.SharedConstants;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 class LootLockCommandTest {
+
+  @BeforeAll
+  static void bootstrap() {
+    SharedConstants.createGameVersion();
+    Bootstrap.initialize();
+  }
 
   @ParameterizedTest(name = "{0} -> {1}")
   @CsvSource({
@@ -218,6 +227,25 @@ class LootLockCommandTest {
 
     assertEquals(expectedAdded, LootLockCommand.addRuleToProfile(profile, itemId));
     assertTrue(LootLockCommand.containsRule(profile, itemId));
+  }
+
+  @ParameterizedTest(name = "addRuleToProfile(\"{0}\") -> added={1}")
+  @CsvSource({
+    "#minecraft:flowers, true",
+    "#minecraft:wool,    true",
+  })
+  void addRuleToProfileAcceptsTagTokens(String token, boolean expectedAdded) {
+    LootLockProfile profile = LootLockProfile.createDefault();
+
+    assertEquals(expectedAdded, LootLockCommand.addRuleToProfile(profile, token));
+    assertTrue(LootLockCommand.containsRule(profile, token));
+  }
+
+  @Test
+  void tagExistsReturnsFalseForNullOrUnknownTag() {
+    assertFalse(LootLockCommand.tagExists(null));
+    assertFalse(
+        LootLockCommand.tagExists(net.minecraft.util.Identifier.tryParse("lootlock:bogus_tag")));
   }
 
   @ParameterizedTest(name = "removeRuleFromProfile(\"{0}\") -> removed={1}")

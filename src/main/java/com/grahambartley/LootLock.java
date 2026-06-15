@@ -10,6 +10,7 @@ import com.grahambartley.server.ServerPlayerDataManager;
 import java.nio.file.Path;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.fabricmc.fabric.api.event.lifecycle.v1.CommonLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.util.WorldSavePath;
 import org.slf4j.Logger;
@@ -37,6 +38,16 @@ public class LootLock implements ModInitializer {
           PICKUP_GUARD = new PickupGuard(PLAYER_DATA_MANAGER);
           ServerLifecycleHooks.initialize(PLAYER_DATA_MANAGER, PICKUP_GUARD);
           LOGGER.info("{} initialized (world: {})", LootLockConstants.MOD_NAME, worldDir);
+        });
+
+    CommonLifecycleEvents.TAGS_LOADED.register(
+        (registries, client) -> {
+          if (client) {
+            return;
+          }
+          if (PLAYER_DATA_MANAGER != null) {
+            PLAYER_DATA_MANAGER.recompileAllProfiles();
+          }
         });
   }
 }

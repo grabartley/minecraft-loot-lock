@@ -23,6 +23,48 @@ import org.junit.jupiter.params.provider.CsvSource;
 
 class ClientToServerPacketsTest {
 
+  @ParameterizedTest(name = "isValidRuleEntryToken(\"{0}\") -> {1}")
+  @CsvSource({
+    "minecraft:dirt,           true",
+    "#minecraft:flowers,       true",
+    "#c:seeds,                 true",
+    "#,                        false",
+    "'',                       false",
+    "has space,                false",
+    "#has space,               false",
+  })
+  void isValidRuleEntryTokenAcceptsItemsAndTags(String token, boolean expected) {
+    assertEquals(expected, ClientToServerPackets.isValidRuleEntryToken(token));
+  }
+
+  @Test
+  void cloneProfileSilentlyDropsInvalidEntriesAndKeepsRest() {
+    LootLockPlayerData data = createDataWithOneProfile();
+    LootLockProfile existing = data.getProfiles().get(0);
+    LootLockProfile payloadProfile =
+        newProfileWithId(
+            existing.getId(),
+            existing.getName(),
+            existing.getMode(),
+            existing.getRejectedItemAction(),
+            existing.isEnabled(),
+            "minecraft:dirt",
+            "#minecraft:flowers",
+            "has space",
+            "#also bad");
+
+    ClientToServerPackets.MutationResult result =
+        ClientToServerPackets.applyUpdateProfile(
+            data,
+            new ClientToServerPackets.UpdateProfilePayload(data.getRevision(), payloadProfile));
+
+    assertTrue(result.success());
+    LootLockProfile stored = data.getProfiles().get(0);
+    assertEquals(2, stored.getRules().size());
+    assertEquals("minecraft:dirt", stored.getRules().get(0).itemId());
+    assertEquals("#minecraft:flowers", stored.getRules().get(1).itemId());
+  }
+
   @Test
   void helloPayloadRoundTripsVersionAndSchema() {
     PacketByteBuf buf = ClientToServerPackets.writeHelloPayload("1.2.3", 7);
