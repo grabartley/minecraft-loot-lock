@@ -1,6 +1,5 @@
 package com.grahambartley.client.config;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -28,16 +27,6 @@ class ClientSettingsTest {
     copy.setEnableToggleToast(false);
     assertTrue(settings.isEnableToggleToast());
     assertFalse(copy.isEnableToggleToast());
-  }
-
-  @Test
-  void uiScaleIsClampedToExpectedBounds() {
-    ClientSettings settings = ClientSettings.defaults();
-    settings.setUiScalePercent(20);
-    assertEquals(80, settings.getUiScalePercent());
-
-    settings.setUiScalePercent(999);
-    assertEquals(140, settings.getUiScalePercent());
   }
 
   @Test

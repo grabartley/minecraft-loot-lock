@@ -24,9 +24,6 @@
 		],
 		"modmenu": [
 			"com.grahambartley.client.modmenu.LootLockModMenuIntegration"
-		],
-		"fabric-datagen": [
-			"com.grahambartley.client.LootLockDataGenerator"
 		]
 	},
 	"mixins": [

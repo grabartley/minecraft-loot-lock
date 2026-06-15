@@ -6,7 +6,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.util.Optional;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,10 +56,6 @@ public final class ConfigManager {
     savePlayerDataToFile(data, dataFile);
   }
 
-  public void savePlayerData(LootLockPlayerData data, Path targetPath) {
-    savePlayerDataToFile(data, targetPath);
-  }
-
   private void savePlayerDataToFile(LootLockPlayerData data, Path dataFile) {
     try {
       Files.createDirectories(dataFile.getParent());
@@ -71,29 +66,6 @@ public final class ConfigManager {
           tempFile, dataFile, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
     } catch (IOException e) {
       LOGGER.error("Failed to save player data for {}: {}", data.getPlayerUuid(), e.getMessage());
-    }
-  }
-
-  public Optional<String> loadRawJson(UUID playerUuid) {
-    Path dataFile = paths.getPlayerDataPath(playerUuid);
-    if (!Files.exists(dataFile)) {
-      return Optional.empty();
-    }
-    try {
-      return Optional.of(Files.readString(dataFile));
-    } catch (IOException e) {
-      LOGGER.warn("Failed to read raw player data file for {}: {}", playerUuid, e.getMessage());
-      return Optional.empty();
-    }
-  }
-
-  public boolean deletePlayerData(UUID playerUuid) {
-    Path dataFile = paths.getPlayerDataPath(playerUuid);
-    try {
-      return Files.deleteIfExists(dataFile);
-    } catch (IOException e) {
-      LOGGER.warn("Failed to delete player data for {}: {}", playerUuid, e.getMessage());
-      return false;
     }
   }
 

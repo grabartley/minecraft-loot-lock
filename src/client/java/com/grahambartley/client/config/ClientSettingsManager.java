@@ -34,7 +34,6 @@ public final class ClientSettingsManager {
     try (Reader reader = Files.newBufferedReader(configPath)) {
       ClientSettings loaded = gson.fromJson(reader, ClientSettings.class);
       settings = loaded == null ? ClientSettings.defaults() : loaded;
-      settings.setUiScalePercent(settings.getUiScalePercent());
     } catch (IOException | RuntimeException exception) {
       LootLock.LOGGER.warn("Failed to load client settings, using defaults", exception);
       settings = ClientSettings.defaults();
@@ -61,7 +60,6 @@ public final class ClientSettingsManager {
     if (updatedSettings == null) {
       return;
     }
-    updatedSettings.setUiScalePercent(updatedSettings.getUiScalePercent());
     settings = updatedSettings.copy();
     save();
   }

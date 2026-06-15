@@ -6,7 +6,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
-import net.minecraft.item.Item;
 import net.minecraft.util.Identifier;
 
 public final class LootLockProfile {
@@ -65,21 +64,6 @@ public final class LootLockProfile {
 
   public void compileRules() {
     compiledRuleSet = RuleSet.fromRuleEntries(rules);
-  }
-
-  public boolean shouldReject(Item item) {
-    return shouldReject(compiledRuleSet.contains(item));
-  }
-
-  public boolean shouldReject(boolean matched) {
-    if (!enabled) {
-      return false;
-    }
-
-    return switch (mode) {
-      case DENYLIST -> matched;
-      case ALLOWLIST -> !matched;
-    };
   }
 
   public PickupDecision evaluate(Identifier itemId) {

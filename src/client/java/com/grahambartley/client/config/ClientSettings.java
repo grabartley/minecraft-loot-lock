@@ -5,7 +5,6 @@ public final class ClientSettings {
   private boolean confirmBeforeEnablingDelete = true;
   private boolean enableProfileCycleToast = false;
   private boolean enableToggleToast = false;
-  private int uiScalePercent = 100;
 
   public static ClientSettings defaults() {
     return new ClientSettings();
@@ -17,7 +16,6 @@ public final class ClientSettings {
     copy.confirmBeforeEnablingDelete = confirmBeforeEnablingDelete;
     copy.enableProfileCycleToast = enableProfileCycleToast;
     copy.enableToggleToast = enableToggleToast;
-    copy.uiScalePercent = uiScalePercent;
     return copy;
   }
 
@@ -51,13 +49,5 @@ public final class ClientSettings {
 
   public void setEnableToggleToast(boolean enableToggleToast) {
     this.enableToggleToast = enableToggleToast;
-  }
-
-  public int getUiScalePercent() {
-    return uiScalePercent;
-  }
-
-  public void setUiScalePercent(int uiScalePercent) {
-    this.uiScalePercent = Math.max(80, Math.min(140, uiScalePercent));
   }
 }

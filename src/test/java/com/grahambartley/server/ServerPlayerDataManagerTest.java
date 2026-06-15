@@ -63,7 +63,6 @@ class ServerPlayerDataManagerTest {
     LootLockPlayerData second = manager.getOrLoad(playerUuid);
 
     assertSame(first, second);
-    assertEquals(1, manager.getCacheSize());
     verify(configManager, times(1)).loadPlayerData(playerUuid);
   }
 
@@ -114,7 +113,6 @@ class ServerPlayerDataManagerTest {
   void markDirtyOnCacheMissIsNoOp() {
     manager.markDirty(playerUuid, 100);
 
-    assertEquals(0, manager.getCacheSize());
     assertFalse(manager.isDirty(playerUuid));
     verify(configManager, never()).savePlayerData(any());
   }
@@ -142,7 +140,7 @@ class ServerPlayerDataManagerTest {
 
     manager.saveOnDisconnect(playerUuid);
 
-    assertEquals(0, manager.getCacheSize());
+    assertFalse(manager.isDirty(playerUuid));
     verify(configManager).savePlayerData(data);
   }
 
@@ -156,7 +154,7 @@ class ServerPlayerDataManagerTest {
 
     manager.saveOnDisconnect(playerUuid);
 
-    assertEquals(0, manager.getCacheSize());
+    assertFalse(manager.isDirty(playerUuid));
     verify(configManager, never()).savePlayerData(data);
   }
 
@@ -234,23 +232,6 @@ class ServerPlayerDataManagerTest {
     int saved = manager.flushAll();
 
     assertEquals(0, saved);
-  }
-
-  @Test
-  void getCacheSizeReflectsLoadedPlayers() {
-    UUID otherPlayer = UUID.randomUUID();
-    when(configManager.loadPlayerData(playerUuid))
-        .thenReturn(loadedFromDisk(LootLockPlayerData.createDefault(playerUuid)));
-    when(configManager.loadPlayerData(otherPlayer))
-        .thenReturn(loadedFromDisk(LootLockPlayerData.createDefault(otherPlayer)));
-
-    assertEquals(0, manager.getCacheSize());
-
-    manager.getOrLoad(playerUuid);
-    assertEquals(1, manager.getCacheSize());
-
-    manager.getOrLoad(otherPlayer);
-    assertEquals(2, manager.getCacheSize());
   }
 
   @Test

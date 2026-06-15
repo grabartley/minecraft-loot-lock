@@ -111,33 +111,6 @@ class ConfigManagerTest {
     }
   }
 
-  @Test
-  void loadRawJsonReturnsContentsAfterSave() {
-    UUID playerUuid = UUID.randomUUID();
-    manager.savePlayerData(LootLockPlayerData.createDefault(playerUuid));
-
-    String rawJson = manager.loadRawJson(playerUuid).orElseThrow();
-    assertFalse(rawJson.isBlank());
-    assertTrue(rawJson.contains("schemaVersion"));
-    assertTrue(rawJson.contains(playerUuid.toString()));
-  }
-
-  @Test
-  void deletePlayerDataRemovesFile() {
-    UUID playerUuid = UUID.randomUUID();
-    manager.savePlayerData(LootLockPlayerData.createDefault(playerUuid));
-    assertTrue(Files.exists(manager.getPaths().getPlayerDataPath(playerUuid)));
-
-    assertTrue(manager.deletePlayerData(playerUuid));
-
-    assertFalse(Files.exists(manager.getPaths().getPlayerDataPath(playerUuid)));
-  }
-
-  @Test
-  void deleteNonExistentDataReturnsFalse() {
-    assertFalse(manager.deletePlayerData(UUID.randomUUID()));
-  }
-
   private static LootLockProfile newProfile(String name, FilterMode mode, String... ruleItemIds) {
     RuleEntry[] rules = new RuleEntry[ruleItemIds.length];
     for (int i = 0; i < ruleItemIds.length; i++) {

@@ -1,6 +1,5 @@
 package com.grahambartley.client.config;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -39,7 +38,7 @@ class ClientSettingsManagerTest {
   }
 
   @Test
-  void loadsOldConfigWithRemovedActionbarField() throws IOException {
+  void loadsOldConfigWithRemovedFields() throws IOException {
     Path configPath = tempDir.resolve("old-loot-lock-client.json");
     String oldJson =
         "{"
@@ -58,6 +57,5 @@ class ClientSettingsManagerTest {
     ClientSettings settings = manager.getSettingsCopy();
     assertFalse(settings.isShowBlockedHudNotification());
     assertTrue(settings.isEnableProfileCycleToast());
-    assertEquals(100, settings.getUiScalePercent());
   }
 }
