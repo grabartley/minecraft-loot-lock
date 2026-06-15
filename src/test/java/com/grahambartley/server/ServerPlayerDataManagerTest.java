@@ -33,11 +33,19 @@ class ServerPlayerDataManagerTest {
     playerUuid = UUID.randomUUID();
   }
 
+  private ConfigManager.LoadResult loadedFromDisk(LootLockPlayerData data) {
+    return new ConfigManager.LoadResult(data, false);
+  }
+
+  private ConfigManager.LoadResult createdDefault(LootLockPlayerData data) {
+    return new ConfigManager.LoadResult(data, true);
+  }
+
   @Test
   void getOrLoadDelegatesToConfigManagerOnCacheMiss() {
     LootLockPlayerData stored = LootLockPlayerData.createDefault(playerUuid);
     stored.setRevision(42);
-    when(configManager.loadPlayerData(playerUuid)).thenReturn(stored);
+    when(configManager.loadPlayerData(playerUuid)).thenReturn(loadedFromDisk(stored));
 
     LootLockPlayerData loaded = manager.getOrLoad(playerUuid);
 
@@ -49,7 +57,7 @@ class ServerPlayerDataManagerTest {
   @Test
   void getOrLoadCachesSubsequentCalls() {
     when(configManager.loadPlayerData(playerUuid))
-        .thenReturn(LootLockPlayerData.createDefault(playerUuid));
+        .thenReturn(loadedFromDisk(LootLockPlayerData.createDefault(playerUuid)));
 
     LootLockPlayerData first = manager.getOrLoad(playerUuid);
     LootLockPlayerData second = manager.getOrLoad(playerUuid);
@@ -60,13 +68,46 @@ class ServerPlayerDataManagerTest {
   }
 
   @Test
-  void getOrLoadMarksDataDirtyOnLoad() {
+  void getOrLoadLeavesExistingPlayerCleanOnLoad() {
     when(configManager.loadPlayerData(playerUuid))
-        .thenReturn(LootLockPlayerData.createDefault(playerUuid));
+        .thenReturn(loadedFromDisk(LootLockPlayerData.createDefault(playerUuid)));
+
+    manager.getOrLoad(playerUuid);
+
+    assertFalse(manager.isDirty(playerUuid));
+  }
+
+  @Test
+  void getOrLoadMarksFirstTimePlayerDirtySoDefaultPersists() {
+    when(configManager.loadPlayerData(playerUuid))
+        .thenReturn(createdDefault(LootLockPlayerData.createDefault(playerUuid)));
 
     manager.getOrLoad(playerUuid);
 
     assertTrue(manager.isDirty(playerUuid));
+  }
+
+  @Test
+  void existingPlayerTickDoesNotWriteWithinDebounceWindow() {
+    when(configManager.loadPlayerData(playerUuid))
+        .thenReturn(loadedFromDisk(LootLockPlayerData.createDefault(playerUuid)));
+    manager.getOrLoad(playerUuid);
+
+    manager.tick(ServerPlayerDataManager.SAVE_DEBOUNCE_TICKS + 100);
+
+    verify(configManager, never()).savePlayerData(any());
+  }
+
+  @Test
+  void firstTimePlayerDebounceTickWritesDefault() {
+    LootLockPlayerData data = LootLockPlayerData.createDefault(playerUuid);
+    when(configManager.loadPlayerData(playerUuid)).thenReturn(createdDefault(data));
+    manager.getOrLoad(playerUuid);
+
+    manager.tick(ServerPlayerDataManager.SAVE_DEBOUNCE_TICKS);
+
+    assertFalse(manager.isDirty(playerUuid));
+    verify(configManager).savePlayerData(data);
   }
 
   @Test
@@ -82,7 +123,7 @@ class ServerPlayerDataManagerTest {
   void markDirtyIncrementsRevisionAndRecordsTick() {
     LootLockPlayerData data = LootLockPlayerData.createDefault(playerUuid);
     long initialRevision = data.getRevision();
-    when(configManager.loadPlayerData(playerUuid)).thenReturn(data);
+    when(configManager.loadPlayerData(playerUuid)).thenReturn(loadedFromDisk(data));
     manager.getOrLoad(playerUuid);
 
     manager.markDirty(playerUuid, 50);
@@ -95,7 +136,7 @@ class ServerPlayerDataManagerTest {
   @Test
   void saveOnDisconnectSavesDirtyDataAndEvictsCache() {
     LootLockPlayerData data = LootLockPlayerData.createDefault(playerUuid);
-    when(configManager.loadPlayerData(playerUuid)).thenReturn(data);
+    when(configManager.loadPlayerData(playerUuid)).thenReturn(loadedFromDisk(data));
     manager.getOrLoad(playerUuid);
     manager.markDirty(playerUuid, 10);
 
@@ -108,20 +149,19 @@ class ServerPlayerDataManagerTest {
   @Test
   void saveOnDisconnectDoesNotSaveCleanData() {
     LootLockPlayerData data = LootLockPlayerData.createDefault(playerUuid);
-    when(configManager.loadPlayerData(playerUuid)).thenReturn(data);
+    when(configManager.loadPlayerData(playerUuid)).thenReturn(loadedFromDisk(data));
     manager.getOrLoad(playerUuid);
-    manager.flushAll();
 
     manager.saveOnDisconnect(playerUuid);
 
     assertEquals(0, manager.getCacheSize());
-    verify(configManager, times(1)).savePlayerData(data);
+    verify(configManager, never()).savePlayerData(data);
   }
 
   @Test
   void tickSkipsSaveBeforeDebounceThreshold() {
     LootLockPlayerData data = LootLockPlayerData.createDefault(playerUuid);
-    when(configManager.loadPlayerData(playerUuid)).thenReturn(data);
+    when(configManager.loadPlayerData(playerUuid)).thenReturn(loadedFromDisk(data));
     manager.getOrLoad(playerUuid);
     manager.markDirty(playerUuid, 0);
 
@@ -134,7 +174,7 @@ class ServerPlayerDataManagerTest {
   @Test
   void tickSavesExactlyAtDebounceThreshold() {
     LootLockPlayerData data = LootLockPlayerData.createDefault(playerUuid);
-    when(configManager.loadPlayerData(playerUuid)).thenReturn(data);
+    when(configManager.loadPlayerData(playerUuid)).thenReturn(loadedFromDisk(data));
     manager.getOrLoad(playerUuid);
     manager.markDirty(playerUuid, 0);
 
@@ -149,8 +189,8 @@ class ServerPlayerDataManagerTest {
     UUID otherPlayer = UUID.randomUUID();
     LootLockPlayerData data1 = LootLockPlayerData.createDefault(playerUuid);
     LootLockPlayerData data2 = LootLockPlayerData.createDefault(otherPlayer);
-    when(configManager.loadPlayerData(playerUuid)).thenReturn(data1);
-    when(configManager.loadPlayerData(otherPlayer)).thenReturn(data2);
+    when(configManager.loadPlayerData(playerUuid)).thenReturn(loadedFromDisk(data1));
+    when(configManager.loadPlayerData(otherPlayer)).thenReturn(loadedFromDisk(data2));
     manager.getOrLoad(playerUuid);
     manager.getOrLoad(otherPlayer);
     manager.markDirty(playerUuid, 0);
@@ -169,8 +209,8 @@ class ServerPlayerDataManagerTest {
     UUID otherPlayer = UUID.randomUUID();
     LootLockPlayerData data1 = LootLockPlayerData.createDefault(playerUuid);
     LootLockPlayerData data2 = LootLockPlayerData.createDefault(otherPlayer);
-    when(configManager.loadPlayerData(playerUuid)).thenReturn(data1);
-    when(configManager.loadPlayerData(otherPlayer)).thenReturn(data2);
+    when(configManager.loadPlayerData(playerUuid)).thenReturn(loadedFromDisk(data1));
+    when(configManager.loadPlayerData(otherPlayer)).thenReturn(loadedFromDisk(data2));
     manager.getOrLoad(playerUuid);
     manager.getOrLoad(otherPlayer);
     manager.markDirty(playerUuid, 0);
@@ -186,9 +226,8 @@ class ServerPlayerDataManagerTest {
   @Test
   void flushAllSkipsCleanEntries() {
     LootLockPlayerData data = LootLockPlayerData.createDefault(playerUuid);
-    when(configManager.loadPlayerData(playerUuid)).thenReturn(data);
+    when(configManager.loadPlayerData(playerUuid)).thenReturn(loadedFromDisk(data));
     manager.getOrLoad(playerUuid);
-    manager.flushAll();
 
     int saved = manager.flushAll();
 
@@ -199,9 +238,9 @@ class ServerPlayerDataManagerTest {
   void getCacheSizeReflectsLoadedPlayers() {
     UUID otherPlayer = UUID.randomUUID();
     when(configManager.loadPlayerData(playerUuid))
-        .thenReturn(LootLockPlayerData.createDefault(playerUuid));
+        .thenReturn(loadedFromDisk(LootLockPlayerData.createDefault(playerUuid)));
     when(configManager.loadPlayerData(otherPlayer))
-        .thenReturn(LootLockPlayerData.createDefault(otherPlayer));
+        .thenReturn(loadedFromDisk(LootLockPlayerData.createDefault(otherPlayer)));
 
     assertEquals(0, manager.getCacheSize());
 
@@ -217,8 +256,8 @@ class ServerPlayerDataManagerTest {
     UUID otherPlayer = UUID.randomUUID();
     LootLockPlayerData data1 = LootLockPlayerData.createDefault(playerUuid);
     LootLockPlayerData data2 = LootLockPlayerData.createDefault(otherPlayer);
-    when(configManager.loadPlayerData(playerUuid)).thenReturn(data1);
-    when(configManager.loadPlayerData(otherPlayer)).thenReturn(data2);
+    when(configManager.loadPlayerData(playerUuid)).thenReturn(loadedFromDisk(data1));
+    when(configManager.loadPlayerData(otherPlayer)).thenReturn(loadedFromDisk(data2));
 
     LootLockPlayerData loaded1 = manager.getOrLoad(playerUuid);
     LootLockPlayerData loaded2 = manager.getOrLoad(otherPlayer);

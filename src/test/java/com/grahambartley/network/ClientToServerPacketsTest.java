@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
 
 import com.grahambartley.data.FilterMode;
 import com.grahambartley.data.LootLockPlayerData;
@@ -14,6 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import net.minecraft.network.PacketByteBuf;
+import net.minecraft.server.network.ServerPlayerEntity;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -229,6 +232,55 @@ class ClientToServerPacketsTest {
 
     assertFalse(result.success());
     assertEquals(ClientToServerPackets.MutationRejectionReason.NOT_EDITABLE, result.reason());
+  }
+
+  @ParameterizedTest(name = "permissionLevel2={0} -> isOperator={1}")
+  @CsvSource({"true, true", "false, false"})
+  void isOperatorReflectsPermissionLevel(boolean hasPermissionLevel2, boolean expected) {
+    ServerPlayerEntity player = mock(ServerPlayerEntity.class);
+    lenient().when(player.hasPermissionLevel(2)).thenReturn(hasPermissionLevel2);
+
+    assertEquals(expected, ClientToServerPackets.isOperator(player));
+  }
+
+  @Test
+  void isOperatorReturnsFalseForNullPlayer() {
+    assertFalse(ClientToServerPackets.isOperator(null));
+  }
+
+  @Test
+  void applyUpdateProfileSucceedsForNonOpSelfEditAtApplyLayer() {
+    LootLockPlayerData data = createDataWithOneProfile();
+    data.setRevision(2L);
+    LootLockProfile replacement =
+        newProfileWithId(
+            data.getProfiles().get(0).getId(),
+            "Self Edit",
+            FilterMode.ALLOWLIST,
+            RejectedItemAction.LEAVE_ON_GROUND,
+            true,
+            "minecraft:wheat");
+
+    ClientToServerPackets.MutationResult result =
+        ClientToServerPackets.applyUpdateProfile(
+            data, new ClientToServerPackets.UpdateProfilePayload(2L, replacement));
+
+    assertTrue(result.success());
+    assertEquals("Self Edit", data.getProfiles().get(0).getName());
+  }
+
+  @Test
+  void applyActivateProfileSucceedsForNonOpSelfEditAtApplyLayer() {
+    LootLockPlayerData data = createDataWithOneProfile();
+    data.setRevision(2L);
+
+    ClientToServerPackets.MutationResult result =
+        ClientToServerPackets.applyActivateProfile(
+            data,
+            new ClientToServerPackets.ActivateProfilePayload(
+                2L, data.getProfiles().get(0).getId()));
+
+    assertTrue(result.success());
   }
 
   private static LootLockProfile newProfile(

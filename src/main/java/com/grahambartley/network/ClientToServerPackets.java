@@ -302,12 +302,6 @@ public final class ClientToServerPackets {
   }
 
   private static void handleUpdateProfile(ServerPlayerEntity player, UpdateProfilePayload payload) {
-    // Defense-in-depth: clientCanEdit already reflects operator status in sync payload,
-    // but we guard explicitly at the packet boundary.
-    if (!isOperator(player)) {
-      ServerToClientPackets.sendAuthoritativeSync(player);
-      return;
-    }
     if (LootLock.PLAYER_DATA_MANAGER == null) {
       return;
     }
@@ -321,10 +315,6 @@ public final class ClientToServerPackets {
 
   private static void handleActivateProfile(
       ServerPlayerEntity player, ActivateProfilePayload payload) {
-    if (!isOperator(player)) {
-      ServerToClientPackets.sendAuthoritativeSync(player);
-      return;
-    }
     if (LootLock.PLAYER_DATA_MANAGER == null) {
       return;
     }
@@ -332,10 +322,6 @@ public final class ClientToServerPackets {
   }
 
   private static void handleCreateProfile(ServerPlayerEntity player, CreateProfilePayload payload) {
-    if (!isOperator(player)) {
-      ServerToClientPackets.sendAuthoritativeSync(player);
-      return;
-    }
     if (LootLock.PLAYER_DATA_MANAGER == null) {
       return;
     }
@@ -343,10 +329,6 @@ public final class ClientToServerPackets {
   }
 
   private static void handleDeleteProfile(ServerPlayerEntity player, DeleteProfilePayload payload) {
-    if (!isOperator(player)) {
-      ServerToClientPackets.sendAuthoritativeSync(player);
-      return;
-    }
     if (LootLock.PLAYER_DATA_MANAGER == null) {
       return;
     }
@@ -355,10 +337,6 @@ public final class ClientToServerPackets {
 
   private static void handleUpdateGlobalEnable(
       ServerPlayerEntity player, UpdateGlobalEnablePayload payload) {
-    if (!isOperator(player)) {
-      ServerToClientPackets.sendAuthoritativeSync(player);
-      return;
-    }
     if (LootLock.PLAYER_DATA_MANAGER == null) {
       return;
     }
@@ -400,7 +378,7 @@ public final class ClientToServerPackets {
     return data != null && data.isClientCanEdit();
   }
 
-  private static boolean isOperator(ServerPlayerEntity player) {
+  static boolean isOperator(ServerPlayerEntity player) {
     return player != null && player.hasPermissionLevel(2);
   }
 

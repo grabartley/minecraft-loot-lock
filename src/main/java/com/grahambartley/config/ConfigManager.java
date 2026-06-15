@@ -29,26 +29,28 @@ public final class ConfigManager {
     }
   }
 
-  public LootLockPlayerData loadPlayerData(UUID playerUuid) {
+  public LoadResult loadPlayerData(UUID playerUuid) {
     Path dataFile = paths.getPlayerDataPath(playerUuid);
 
     if (!Files.exists(dataFile)) {
-      return LootLockPlayerData.createDefault(playerUuid);
+      return new LoadResult(LootLockPlayerData.createDefault(playerUuid), true);
     }
 
     try {
       String json = Files.readString(dataFile);
-      return deserializeAndMigrate(json, playerUuid);
+      return new LoadResult(deserializeAndMigrate(json, playerUuid), false);
     } catch (ConfigDeserializationException e) {
       LOGGER.warn("Failed to deserialize player data for {}: {}", playerUuid, e.getMessage());
       backupCorruptFile(dataFile, playerUuid);
-      return LootLockPlayerData.createDefault(playerUuid);
+      return new LoadResult(LootLockPlayerData.createDefault(playerUuid), true);
     } catch (IOException e) {
       LOGGER.warn("Failed to read player data file for {}: {}", playerUuid, e.getMessage());
       backupCorruptFile(dataFile, playerUuid);
-      return LootLockPlayerData.createDefault(playerUuid);
+      return new LoadResult(LootLockPlayerData.createDefault(playerUuid), true);
     }
   }
+
+  public record LoadResult(LootLockPlayerData data, boolean createdDefault) {}
 
   public void savePlayerData(LootLockPlayerData data) {
     Path dataFile = paths.getPlayerDataPath(data.getPlayerUuid());

@@ -1,10 +1,10 @@
 package com.grahambartley.client.hud;
 
 import com.grahambartley.client.config.ClientSettings;
+import com.grahambartley.client.screen.inventory.LootLockToast;
 import java.util.Optional;
 import java.util.function.Function;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.toast.SystemToast;
 import net.minecraft.item.Item;
 import net.minecraft.registry.Registries;
 import net.minecraft.text.Text;
@@ -19,11 +19,7 @@ public final class BlockedNoticePresenter {
     Text message = formatMessage(resolveItemLabel(itemId), deleted);
 
     if (settings.isShowBlockedHudNotification()) {
-      SystemToast.show(
-          client.getToastManager(),
-          SystemToast.Type.PERIODIC_NOTIFICATION,
-          Text.literal("Loot Lock"),
-          message);
+      LootLockToast.show(client, Text.literal("Loot Lock"), message);
     }
   }
 

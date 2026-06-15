@@ -35,8 +35,10 @@ class ConfigManagerTest {
   void missingFileReturnsDefault() {
     UUID playerUuid = UUID.randomUUID();
 
-    LootLockPlayerData data = manager.loadPlayerData(playerUuid);
+    ConfigManager.LoadResult result = manager.loadPlayerData(playerUuid);
 
+    assertTrue(result.createdDefault());
+    LootLockPlayerData data = result.data();
     assertEquals(playerUuid, data.getPlayerUuid());
     assertEquals(1, data.getProfiles().size());
     assertEquals(0, data.getRevision());
@@ -49,8 +51,10 @@ class ConfigManagerTest {
     original.setRevision(7);
     manager.savePlayerData(original);
 
-    LootLockPlayerData loaded = manager.loadPlayerData(playerUuid);
+    ConfigManager.LoadResult result = manager.loadPlayerData(playerUuid);
 
+    assertFalse(result.createdDefault());
+    LootLockPlayerData loaded = result.data();
     assertEquals(playerUuid, loaded.getPlayerUuid());
     assertEquals(7, loaded.getRevision());
     assertEquals(1, loaded.getProfiles().size());
@@ -63,8 +67,10 @@ class ConfigManagerTest {
     Files.createDirectories(dataPath.getParent());
     Files.writeString(dataPath, "garbage not json");
 
-    LootLockPlayerData loaded = manager.loadPlayerData(playerUuid);
+    ConfigManager.LoadResult result = manager.loadPlayerData(playerUuid);
 
+    assertTrue(result.createdDefault());
+    LootLockPlayerData loaded = result.data();
     assertEquals(playerUuid, loaded.getPlayerUuid());
     assertEquals(1, loaded.getProfiles().size());
 
@@ -85,7 +91,7 @@ class ConfigManagerTest {
     original.setProfiles(List.of(mining, farming));
     manager.savePlayerData(original);
 
-    LootLockPlayerData loaded = manager.loadPlayerData(playerUuid);
+    LootLockPlayerData loaded = manager.loadPlayerData(playerUuid).data();
 
     assertEquals(2, loaded.getProfiles().size());
     assertEquals("Mining", loaded.getProfiles().get(0).getName());
