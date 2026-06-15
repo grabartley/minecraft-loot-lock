@@ -131,40 +131,16 @@ All commands are rooted at `/lootlock`. The in-game UI covers everything below, 
 
 Requires operator permission level `2`.
 
+Server policy lives under `/lootlock policy`. Every command in the Common and Profiles and rules tables also has an operator form prefixed with `/lootlock player <target>` that runs the same subcommand against another player's data instead of the caller's.
+
 | Command | What it does |
 | --- | --- |
 | `/lootlock policy` | Shows current server policy values. |
 | `/lootlock policy allowDeleteRejectedItems true` | Allows players to use delete mode for rejected items. |
 | `/lootlock policy allowDeleteRejectedItems false` | Blocks delete mode and forces leave-mode behaviour. |
+| `/lootlock player <target> <subcommand>` | Runs any self-targeted subcommand against `<target>` instead of the caller. |
 
-### Operator targeting
-
-Operators can manage any other player's Loot Lock data with the `player <target>` prefix. Every common, profile, and rule subcommand has a `player <target>` variant that mirrors the self-targeted form.
-
-`<target>` accepts:
-
-- An online player name (tab-completes against currently online players).
-- An offline player name that the server has seen before (resolved through the user cache).
-- A raw UUID literal, for pre-staging profiles for a player who has never joined the server.
-
-Online targets receive an authoritative sync after every mutation, so their client picks up the change without rejoining. Offline targets are persisted through the existing debounced save path and survive restarts.
-
-| Command | What it does |
-| --- | --- |
-| `/lootlock player <target> status` | Shows the target's active profile, enabled state, mode, action, and rule count. |
-| `/lootlock player <target> enable` | Enables Loot Lock across every profile the target owns. |
-| `/lootlock player <target> disable` | Disables Loot Lock across every profile the target owns. |
-| `/lootlock player <target> mode denylist\|allowlist` | Sets the target's active profile filter mode. |
-| `/lootlock player <target> action leave` | Leaves rejected drops on the ground for the target's active profile. |
-| `/lootlock player <target> action delete confirm` | Permanently deletes rejected drops for the target's active profile, subject to server policy. |
-| `/lootlock player <target> profile list` | Lists the target's profiles and marks the active one. |
-| `/lootlock player <target> profile create <name>` | Creates a new profile for the target. |
-| `/lootlock player <target> profile delete <name>` | Deletes a named profile from the target. |
-| `/lootlock player <target> profile activate <name>` | Activates a named profile for the target. |
-| `/lootlock player <target> rule add <namespace:item>` | Adds an item rule to the target's active profile. |
-| `/lootlock player <target> rule remove <namespace:item>` | Removes an item rule from the target's active profile. |
-| `/lootlock player <target> rule list` | Lists rules in the target's active profile. |
-| `/lootlock player <target> rule clear confirm` | Removes all rules from the target's active profile. |
+`<target>` accepts an online player name (tab-completes), an offline name the server has cached, or a raw UUID literal for pre-staging a profile for a player who has never joined. Online targets receive an authoritative sync after every mutation so their client reflects the change without rejoining. Offline edits persist through the debounced save path keyed by UUID and survive restarts.
 
 ## FAQ
 
