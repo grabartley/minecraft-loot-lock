@@ -6,6 +6,7 @@ import com.grahambartley.client.config.ClientSettings;
 import com.grahambartley.client.state.ClientLootLockState;
 import com.grahambartley.data.LootLockPlayerData;
 import com.grahambartley.network.ClientMutationSync;
+import com.grahambartley.text.LootLockLang;
 import java.util.Optional;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.text.Text;
@@ -51,8 +52,8 @@ public final class GlobalEnableController {
     }
     LootLockToast.show(
         client,
-        Text.literal("Loot Lock"),
-        Text.literal(nextEnabled ? "Enabled" : "Disabled")
+        Text.translatable(LootLockLang.BRAND),
+        Text.translatable(nextEnabled ? LootLockLang.TOAST_ENABLED : LootLockLang.TOAST_DISABLED)
             .formatted(nextEnabled ? Formatting.GREEN : Formatting.RED));
   }
 

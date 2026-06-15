@@ -23,6 +23,7 @@ class LootLockSummaryTextTest {
   static void bootstrapMinecraft() {
     SharedConstants.createGameVersion();
     Bootstrap.initialize();
+    com.grahambartley.text.LootLockTestLanguage.install();
   }
 
   static Stream<Arguments> summaryCases() {

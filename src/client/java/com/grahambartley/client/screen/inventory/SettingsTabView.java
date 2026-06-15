@@ -5,6 +5,7 @@ import com.grahambartley.client.config.ClientSettings;
 import com.grahambartley.client.config.ClientSettingsManager;
 import com.grahambartley.client.keybind.LootLockKeybinds;
 import com.grahambartley.network.ClientMutationSync;
+import com.grahambartley.text.LootLockLang;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BooleanSupplier;
@@ -53,13 +54,9 @@ public final class SettingsTabView {
   /** Operator permission level required to see and use the SERVER POLICY OPERATOR section. */
   static final int OPERATOR_PERMISSION_LEVEL = 2;
 
-  static final String IN_WORLD_ABOUT_BODY =
-      "Rules are stored per player and synced from the server. Operators can manage any"
-          + " player's rules with /lootlock commands, even for vanilla clients.";
+  static final String IN_WORLD_ABOUT_BODY = LootLockLang.SETTINGS_ABOUT_IN_WORLD;
 
-  static final String CLIENT_PREFS_ABOUT_BODY =
-      "These preferences apply across all worlds. Profiles, rules, and server policy live"
-          + " per world, open the Loot Lock panel from your inventory to edit them in-game.";
+  static final String CLIENT_PREFS_ABOUT_BODY = LootLockLang.SETTINGS_ABOUT_CLIENT_PREFS;
 
   private final List<ClickableWidget> widgets = new ArrayList<>();
   private final List<Row> rows = new ArrayList<>();
@@ -232,14 +229,14 @@ public final class SettingsTabView {
 
     int cursorY = viewY - scrollOffset;
 
-    cursorY = addSectionHeader(cursorY, "NOTIFICATIONS");
+    cursorY = addSectionHeader(cursorY, LootLockLang.SETTINGS_SECTION_NOTIFICATIONS);
     cursorY =
         addToggleRow(
             cursorY,
             viewX,
             viewWidth,
-            "Blocked-item toast",
-            "Pop a small toast in-world when an item is filtered out.",
+            LootLockLang.SETTINGS_BLOCKED_TOAST_NAME,
+            LootLockLang.SETTINGS_BLOCKED_TOAST_DESC,
             blockedHudSwitch);
     cursorY = addDivider(cursorY);
     cursorY =
@@ -247,8 +244,8 @@ public final class SettingsTabView {
             cursorY,
             viewX,
             viewWidth,
-            "Profile-switch toast",
-            "Confirm with a toast each time you change profile (also when cycling with P).",
+            LootLockLang.SETTINGS_PROFILE_SWITCH_TOAST_NAME,
+            LootLockLang.SETTINGS_PROFILE_SWITCH_TOAST_DESC,
             profileCycleToastSwitch);
     cursorY = addDivider(cursorY);
     cursorY =
@@ -256,49 +253,55 @@ public final class SettingsTabView {
             cursorY,
             viewX,
             viewWidth,
-            "Loot Lock toggle toast",
-            "Pop a toast each time Loot Lock is turned on or off.",
+            LootLockLang.SETTINGS_TOGGLE_TOAST_NAME,
+            LootLockLang.SETTINGS_TOGGLE_TOAST_DESC,
             toggleToastSwitch);
 
-    cursorY = addSectionHeader(cursorY, "SAFETY");
+    cursorY = addSectionHeader(cursorY, LootLockLang.SETTINGS_SECTION_SAFETY);
     cursorY =
         addToggleRow(
             cursorY,
             viewX,
             viewWidth,
-            "Confirm before deleting",
-            "Require a confirmation before turning on Delete mode, so loot is never destroyed by"
-                + " accident.",
+            LootLockLang.SETTINGS_CONFIRM_DELETE_NAME,
+            LootLockLang.SETTINGS_CONFIRM_DELETE_DESC,
             confirmBeforeDeleteSwitch);
 
     if (showServerPolicy) {
       policySwitch.setReadOnly(isPolicySwitchReadOnly(MinecraftClient.getInstance()));
-      cursorY = addSectionHeader(cursorY, "SERVER POLICY");
+      cursorY = addSectionHeader(cursorY, LootLockLang.SETTINGS_SECTION_SERVER_POLICY);
       cursorY =
           addToggleRow(
               cursorY,
               viewX,
               viewWidth,
-              "Allow delete mode",
-              "Set for everyone with /lootlock policy allowDeleteRejectedItems. When off, Delete is"
-                  + " blocked and every profile leaves rejected items on the ground.",
+              LootLockLang.SETTINGS_ALLOW_DELETE_NAME,
+              LootLockLang.SETTINGS_ALLOW_DELETE_DESC,
               policySwitch);
     }
 
-    cursorY = addSectionHeader(cursorY, "CONTROLS");
+    cursorY = addSectionHeader(cursorY, LootLockLang.SETTINGS_SECTION_CONTROLS);
     cursorY =
         addKeybindRow(
-            cursorY, viewX, viewWidth, "Toggle Loot Lock", LootLockKeybinds.getToggleEnabled());
+            cursorY,
+            viewX,
+            viewWidth,
+            LootLockLang.SETTINGS_CONTROLS_TOGGLE_ENABLED,
+            LootLockKeybinds.getToggleEnabled());
     cursorY = addDivider(cursorY);
     cursorY =
         addKeybindRow(
-            cursorY, viewX, viewWidth, "Cycle Loot Profile", LootLockKeybinds.getCycleProfile());
+            cursorY,
+            viewX,
+            viewWidth,
+            LootLockLang.SETTINGS_CONTROLS_CYCLE_PROFILE,
+            LootLockKeybinds.getCycleProfile());
 
-    cursorY = addSectionHeader(cursorY, "ABOUT");
+    cursorY = addSectionHeader(cursorY, LootLockLang.SETTINGS_SECTION_ABOUT);
     addAboutRow(cursorY, viewX, viewWidth);
   }
 
-  private int addSectionHeader(int cursorY, String label) {
+  private int addSectionHeader(int cursorY, String labelKey) {
     int top = cursorY + SECTION_HEADER_TOP_PADDING;
     int totalH = SECTION_HEADER_TOP_PADDING + SECTION_HEADER_HEIGHT + SECTION_HEADER_BOTTOM_PADDING;
     rows.add(
@@ -308,7 +311,7 @@ public final class SettingsTabView {
             (context, client, rowY, viewX, viewWidth) ->
                 context.drawText(
                     client.textRenderer,
-                    Text.literal(label),
+                    Text.translatable(labelKey),
                     viewX,
                     rowY + SECTION_HEADER_TOP_PADDING,
                     Palette.GOLD,
@@ -317,8 +320,14 @@ public final class SettingsTabView {
   }
 
   private int addToggleRow(
-      int cursorY, int viewX, int viewWidth, String name, String desc, VanillaSwitch switchWidget) {
+      int cursorY,
+      int viewX,
+      int viewWidth,
+      String nameKey,
+      String descKey,
+      VanillaSwitch switchWidget) {
     int textWidth = viewWidth - SWITCH_WIDTH - LABEL_GAP;
+    Text desc = Text.translatable(descKey);
     int descLines = wrappedLineCount(desc, textWidth);
     int height =
         TOGGLE_ROW_TOP_PADDING
@@ -339,14 +348,14 @@ public final class SettingsTabView {
             (context, client, y, vx, vw) -> {
               context.drawText(
                   client.textRenderer,
-                  Text.literal(name),
+                  Text.translatable(nameKey),
                   vx,
                   y + TOGGLE_ROW_TOP_PADDING,
                   Palette.ON_WELL,
                   false);
               context.drawTextWrapped(
                   client.textRenderer,
-                  Text.literal(desc),
+                  desc,
                   vx,
                   y + TOGGLE_ROW_TOP_PADDING + LINE_HEIGHT + TOGGLE_ROW_NAME_GAP,
                   textWidth,
@@ -368,19 +377,19 @@ public final class SettingsTabView {
     widget.visible = fullyVisible;
   }
 
-  private int wrappedLineCount(String text, int maxWidth) {
+  private int wrappedLineCount(Text text, int maxWidth) {
     TextRenderer renderer =
         MinecraftClient.getInstance() == null ? null : MinecraftClient.getInstance().textRenderer;
     if (renderer == null || maxWidth <= 0) {
       return 1;
     }
-    List<OrderedText> lines = renderer.wrapLines(Text.literal(text), maxWidth);
+    List<OrderedText> lines = renderer.wrapLines(text, maxWidth);
     return Math.max(1, lines.size());
   }
 
   private int addKeybindRow(
-      int cursorY, int viewX, int viewWidth, String label, KeyBinding binding) {
-    String keyLabel = keyLabel(binding);
+      int cursorY, int viewX, int viewWidth, String labelKey, KeyBinding binding) {
+    Text keyLabel = keyLabel(binding);
     int height = KEYBIND_ROW_HEIGHT;
     rows.add(
         new Row(
@@ -388,7 +397,12 @@ public final class SettingsTabView {
             height,
             (context, client, y, vx, vw) -> {
               context.drawText(
-                  client.textRenderer, Text.literal(label), vx, y + 3, Palette.ON_WELL, false);
+                  client.textRenderer,
+                  Text.translatable(labelKey),
+                  vx,
+                  y + 3,
+                  Palette.ON_WELL,
+                  false);
               int kbdWidth = client.textRenderer.getWidth(keyLabel) + KBD_PADDING_X * 2;
               int kbdX = vx + vw - kbdWidth;
               int kbdY = y + 2;
@@ -409,7 +423,8 @@ public final class SettingsTabView {
   }
 
   private void addAboutRow(int cursorY, int viewX, int viewWidth) {
-    String body = aboutBody(showServerPolicy);
+    String bodyKey = aboutBody(showServerPolicy);
+    Text body = Text.translatable(bodyKey);
     int lines = wrappedLineCount(body, viewWidth);
     int height = NOTE_PADDING * 2 + lines * LINE_HEIGHT;
     rows.add(
@@ -418,27 +433,20 @@ public final class SettingsTabView {
             height,
             (context, client, y, vx, vw) ->
                 context.drawTextWrapped(
-                    client.textRenderer,
-                    Text.literal(body),
-                    vx,
-                    y + NOTE_PADDING,
-                    vw,
-                    Palette.ON_WELL_DIM)));
+                    client.textRenderer, body, vx, y + NOTE_PADDING, vw, Palette.ON_WELL_DIM)));
   }
 
   private static void paintKbd(
-      DrawContext context, MinecraftClient client, String text, int x, int y, int width) {
+      DrawContext context, MinecraftClient client, Text text, int x, int y, int width) {
     context.fill(x, y, x + width, y + KBD_HEIGHT, Palette.KBD_FILL);
-    context.drawText(
-        client.textRenderer, Text.literal(text), x + KBD_PADDING_X, y + 1, Palette.ON_WELL, false);
+    context.drawText(client.textRenderer, text, x + KBD_PADDING_X, y + 1, Palette.ON_WELL, false);
   }
 
-  /** Returns "Unbound" when the binding is unset, otherwise the key's localized name. */
-  static String keyLabel(KeyBinding binding) {
+  static Text keyLabel(KeyBinding binding) {
     if (binding == null || binding.isUnbound()) {
-      return "Unbound";
+      return Text.translatable(LootLockLang.SETTINGS_CONTROLS_UNBOUND);
     }
-    return binding.getBoundKeyLocalizedText().getString();
+    return binding.getBoundKeyLocalizedText();
   }
 
   /** True when the local player has permission level >= 2. */
@@ -477,9 +485,18 @@ public final class SettingsTabView {
    */
   static List<String> sectionLabels(boolean showServerPolicy) {
     if (showServerPolicy) {
-      return List.of("NOTIFICATIONS", "SAFETY", "SERVER POLICY", "CONTROLS", "ABOUT");
+      return List.of(
+          LootLockLang.SETTINGS_SECTION_NOTIFICATIONS,
+          LootLockLang.SETTINGS_SECTION_SAFETY,
+          LootLockLang.SETTINGS_SECTION_SERVER_POLICY,
+          LootLockLang.SETTINGS_SECTION_CONTROLS,
+          LootLockLang.SETTINGS_SECTION_ABOUT);
     }
-    return List.of("NOTIFICATIONS", "SAFETY", "CONTROLS", "ABOUT");
+    return List.of(
+        LootLockLang.SETTINGS_SECTION_NOTIFICATIONS,
+        LootLockLang.SETTINGS_SECTION_SAFETY,
+        LootLockLang.SETTINGS_SECTION_CONTROLS,
+        LootLockLang.SETTINGS_SECTION_ABOUT);
   }
 
   /** Returns the ABOUT section body text appropriate for the current visibility mode. */

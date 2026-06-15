@@ -1,5 +1,6 @@
 package com.grahambartley.client.screen.inventory;
 
+import com.grahambartley.text.LootLockLang;
 import java.util.function.BooleanSupplier;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.widget.ButtonWidget;
@@ -23,7 +24,7 @@ public final class LootLockIconButton extends ButtonWidget {
       PressAction onPress) {
     super(x, y, width, height, Text.empty(), onPress, ButtonWidget.DEFAULT_NARRATION_SUPPLIER);
     this.highlightedSupplier = highlightedSupplier;
-    setTooltip(net.minecraft.client.gui.tooltip.Tooltip.of(Text.literal("Loot Lock")));
+    setTooltip(net.minecraft.client.gui.tooltip.Tooltip.of(Text.translatable(LootLockLang.BRAND)));
   }
 
   @Override

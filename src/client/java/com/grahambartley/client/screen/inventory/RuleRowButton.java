@@ -1,5 +1,6 @@
 package com.grahambartley.client.screen.inventory;
 
+import com.grahambartley.text.LootLockLang;
 import java.util.function.BooleanSupplier;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
@@ -105,14 +106,14 @@ public final class RuleRowButton extends PressableWidget {
 
     int pillWidth = 0;
     if (inList) {
-      String pillText = "in list";
+      Text pillText = Text.translatable(LootLockLang.RULES_ROW_IN_LIST);
       pillWidth = client.textRenderer.getWidth(pillText) + 6;
       int pillX = getX() + getWidth() - pillWidth - 3;
       int pillY = getY() + (getHeight() - 10) / 2;
       context.fill(pillX, pillY, pillX + pillWidth, pillY + 10, 0xFF3A3A42);
       context.drawText(
           client.textRenderer,
-          Text.literal(pillText).formatted(Formatting.GRAY),
+          pillText.copy().formatted(Formatting.GRAY),
           pillX + 3,
           pillY + 1,
           0xFF9A9AA4,

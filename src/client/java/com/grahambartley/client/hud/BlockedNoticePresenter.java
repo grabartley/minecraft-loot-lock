@@ -2,6 +2,7 @@ package com.grahambartley.client.hud;
 
 import com.grahambartley.client.config.ClientSettings;
 import com.grahambartley.client.screen.inventory.LootLockToast;
+import com.grahambartley.text.LootLockLang;
 import java.util.Optional;
 import java.util.function.Function;
 import net.minecraft.client.MinecraftClient;
@@ -19,18 +20,22 @@ public final class BlockedNoticePresenter {
     Text message = formatMessage(resolveItemLabel(itemId), deleted);
 
     if (settings.isShowBlockedHudNotification()) {
-      LootLockToast.show(client, Text.literal("Loot Lock"), message);
+      LootLockToast.show(client, Text.translatable(LootLockLang.BRAND), message);
     }
   }
 
   static Text formatMessage(String itemLabel, boolean deleted) {
-    String prefix = deleted ? "Deleted" : "Blocked";
-    return Text.literal(prefix + " ").append(Text.literal(itemLabel).formatted(Formatting.YELLOW));
+    Text prefix =
+        Text.translatable(deleted ? LootLockLang.BLOCKED_DELETED : LootLockLang.BLOCKED_BLOCKED);
+    return prefix
+        .copy()
+        .append(Text.literal(" "))
+        .append(Text.literal(itemLabel).formatted(Formatting.YELLOW));
   }
 
   static String resolveItemLabel(Identifier itemId) {
     if (itemId == null) {
-      return "unknown item";
+      return Text.translatable(LootLockLang.BLOCKED_UNKNOWN_ITEM).getString();
     }
     return resolveItemLabel(itemId, Registries.ITEM::getOrEmpty);
   }
@@ -38,7 +43,7 @@ public final class BlockedNoticePresenter {
   static String resolveItemLabel(
       Identifier itemId, Function<Identifier, Optional<Item>> itemLookup) {
     if (itemId == null) {
-      return "unknown item";
+      return Text.translatable(LootLockLang.BLOCKED_UNKNOWN_ITEM).getString();
     }
     Optional<Item> itemOptional = itemLookup.apply(itemId);
     if (itemOptional.isEmpty()) {

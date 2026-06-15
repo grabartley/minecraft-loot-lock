@@ -7,6 +7,7 @@ import com.grahambartley.client.screen.RuleListController;
 import com.grahambartley.data.LootLockPlayerData;
 import com.grahambartley.data.LootLockProfile;
 import com.grahambartley.data.RuleEntry;
+import com.grahambartley.text.LootLockLang;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -86,9 +87,9 @@ public final class RulesTabView {
             0,
             10,
             SEARCH_HEIGHT,
-            Text.literal("Loot Lock search"));
+            Text.translatable(LootLockLang.RULES_SEARCH_FIELD));
     searchField.setMaxLength(64);
-    searchField.setPlaceholder(Text.literal("Search items to add..."));
+    searchField.setPlaceholder(Text.translatable(LootLockLang.RULES_SEARCH_PLACEHOLDER));
     searchField.setChangedListener(this::onSearchChanged);
     addDrawableChild.accept(searchField);
     widgets.add(searchField);
@@ -118,7 +119,8 @@ public final class RulesTabView {
     }
 
     addSelectedButton =
-        ButtonWidget.builder(Text.literal("Add selected"), button -> addSelected())
+        ButtonWidget.builder(
+                Text.translatable(LootLockLang.RULES_ADD_SELECTED), button -> addSelected())
             .dimensions(0, 0, 10, FOOTER_HEIGHT)
             .build();
     addDrawableChild.accept(addSelectedButton);
@@ -126,7 +128,7 @@ public final class RulesTabView {
 
     clearAllButton =
         ButtonWidget.builder(
-                Text.literal("Clear all"),
+                Text.translatable(LootLockLang.RULES_CLEAR_ALL),
                 button -> {
                   if (showingSearch) {
                     if (searchField != null) {
@@ -294,15 +296,17 @@ public final class RulesTabView {
       addSelectedButton.active = showingSearch && selection.size() > 0;
       int n = selection.size();
       addSelectedButton.setMessage(
-          n == 0 ? Text.literal("Add selected") : Text.literal("Add selected (" + n + ")"));
+          n == 0
+              ? Text.translatable(LootLockLang.RULES_ADD_SELECTED)
+              : Text.translatable(LootLockLang.RULES_ADD_SELECTED_COUNT, n));
     }
     if (clearAllButton != null) {
       if (showingSearch) {
         clearAllButton.visible = true;
-        clearAllButton.setMessage(Text.literal("Clear search"));
+        clearAllButton.setMessage(Text.translatable(LootLockLang.RULES_CLEAR_SEARCH));
       } else {
         clearAllButton.visible = !visibleResults.isEmpty();
-        clearAllButton.setMessage(Text.literal("Clear all"));
+        clearAllButton.setMessage(Text.translatable(LootLockLang.RULES_CLEAR_ALL));
       }
     }
   }
@@ -403,8 +407,8 @@ public final class RulesTabView {
               }
               client.setScreen(current);
             },
-            Text.literal("Clear every rule from this profile?"),
-            Text.literal("This removes all of the active profile's rules. Cannot be undone.")));
+            Text.translatable(LootLockLang.RULES_CLEAR_CONFIRM_TITLE),
+            Text.translatable(LootLockLang.RULES_CLEAR_CONFIRM_BODY)));
   }
 
   public void render(DrawContext context, int mouseX, int mouseY, float delta) {
@@ -418,17 +422,20 @@ public final class RulesTabView {
 
     // Bulk bar above the rows: "N results" on left, modifier hint with kbd pills on right.
     int bulkY = viewY + bulkOffsetY;
-    String leftText;
+    int bulkCount = visibleResults.size();
+    String bulkKey;
     if (showingSearch) {
-      int n = visibleResults.size();
-      leftText = n + " result" + (n == 1 ? "" : "s");
+      bulkKey =
+          bulkCount == 1
+              ? LootLockLang.RULES_BULK_RESULTS_ONE
+              : LootLockLang.RULES_BULK_RESULTS_MANY;
     } else {
-      int n = visibleResults.size();
-      leftText = n + (n == 1 ? " rule in profile" : " rules in profile");
+      bulkKey =
+          bulkCount == 1 ? LootLockLang.RULES_BULK_RULES_ONE : LootLockLang.RULES_BULK_RULES_MANY;
     }
     context.drawText(
         client.textRenderer,
-        Text.literal(leftText).formatted(Formatting.GRAY),
+        Text.translatable(bulkKey, bulkCount).formatted(Formatting.GRAY),
         viewX,
         bulkY,
         0xFF9A9AA4,
@@ -437,30 +444,35 @@ public final class RulesTabView {
       drawHintWithKbds(context, client, viewX + viewWidth, bulkY);
     }
 
-    // Empty state placed centered in the rows area.
     if (visibleResults.isEmpty()) {
-      String big = showingSearch ? "No items match" : "No items here yet";
-      List<String> subLines =
+      Text big =
+          Text.translatable(
+              showingSearch
+                  ? LootLockLang.RULES_EMPTY_SEARCH_TITLE
+                  : LootLockLang.RULES_EMPTY_PROFILE_TITLE);
+      List<Text> subLines =
           showingSearch
-              ? List.of("Try a different name or id.")
-              : List.of("Search above or Alt+click", "an item in your inventory.");
+              ? List.of(Text.translatable(LootLockLang.RULES_EMPTY_SEARCH_SUBTITLE))
+              : List.of(
+                  Text.translatable(LootLockLang.RULES_EMPTY_PROFILE_SUBTITLE_1),
+                  Text.translatable(LootLockLang.RULES_EMPTY_PROFILE_SUBTITLE_2));
       int areaHeight = rowsBottomY() - rowsTopY();
       int centerY = rowsTopY() + areaHeight / 2;
       int bigWidth = client.textRenderer.getWidth(big);
       context.drawText(
           client.textRenderer,
-          Text.literal(big).formatted(Formatting.GRAY),
+          big.copy().formatted(Formatting.GRAY),
           viewX + (viewWidth - bigWidth) / 2,
           centerY - 6,
           0xFFCFCFD6,
           false);
       int subY = centerY + 4;
       int lineHeight = 10;
-      for (String sub : subLines) {
+      for (Text sub : subLines) {
         int subWidth = client.textRenderer.getWidth(sub);
         context.drawText(
             client.textRenderer,
-            Text.literal(sub).formatted(Formatting.GRAY),
+            sub.copy().formatted(Formatting.GRAY),
             viewX + (viewWidth - subWidth) / 2,
             subY,
             0xFF9A9AA4,
@@ -472,30 +484,29 @@ public final class RulesTabView {
 
   private static void drawHintWithKbds(
       DrawContext context, MinecraftClient client, int rightX, int y) {
-    String shift = "Shift";
-    String range = " range ";
-    String cmd = "Ctrl";
-    String pick = " pick";
+    Text shift = Text.translatable(LootLockLang.RULES_HINT_SHIFT);
+    Text range = Text.translatable(LootLockLang.RULES_HINT_RANGE);
+    Text cmd = Text.translatable(LootLockLang.RULES_HINT_CTRL);
+    Text pick = Text.translatable(LootLockLang.RULES_HINT_PICK);
     int cmdW = client.textRenderer.getWidth(cmd) + 4;
     int shiftW = client.textRenderer.getWidth(shift) + 4;
     int rangeW = client.textRenderer.getWidth(range);
     int pickW = client.textRenderer.getWidth(pick);
     int totalW = shiftW + rangeW + cmdW + pickW;
     int cursorX = rightX - totalW;
-    // Shift pill.
     paintKbd(context, client, shift, cursorX, y, shiftW);
     cursorX += shiftW;
-    context.drawText(client.textRenderer, Text.literal(range), cursorX, y, 0xFF9A9AA4, false);
+    context.drawText(client.textRenderer, range, cursorX, y, 0xFF9A9AA4, false);
     cursorX += rangeW;
     paintKbd(context, client, cmd, cursorX, y, cmdW);
     cursorX += cmdW;
-    context.drawText(client.textRenderer, Text.literal(pick), cursorX, y, 0xFF9A9AA4, false);
+    context.drawText(client.textRenderer, pick, cursorX, y, 0xFF9A9AA4, false);
   }
 
   private static void paintKbd(
-      DrawContext context, MinecraftClient client, String text, int x, int y, int width) {
+      DrawContext context, MinecraftClient client, Text text, int x, int y, int width) {
     context.fill(x, y - 1, x + width, y + 9, Palette.KBD_FILL);
-    context.drawText(client.textRenderer, Text.literal(text), x + 2, y, 0xFFDCDCE2, false);
+    context.drawText(client.textRenderer, text, x + 2, y, 0xFFDCDCE2, false);
   }
 
   Set<String> ownedItemIds() {

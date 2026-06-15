@@ -1,5 +1,6 @@
 package com.grahambartley.client.screen.inventory;
 
+import com.grahambartley.text.LootLockLang;
 import java.util.function.BooleanSupplier;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
@@ -83,11 +84,16 @@ public final class VanillaSwitch extends PressableWidget {
     int textY = getY() + (getHeight() - 8) / 2;
     if (on) {
       context.drawText(
-          client.textRenderer, Text.literal("ON"), getX() + 4, textY, 0xFF11320C, false);
+          client.textRenderer,
+          Text.translatable(LootLockLang.SWITCH_ON),
+          getX() + 4,
+          textY,
+          0xFF11320C,
+          false);
     } else {
       context.drawText(
           client.textRenderer,
-          Text.literal("OFF"),
+          Text.translatable(LootLockLang.SWITCH_OFF),
           getX() + getWidth() - 18,
           textY,
           0xFF2C2C2C,
