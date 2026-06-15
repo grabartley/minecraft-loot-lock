@@ -11,6 +11,7 @@ import com.grahambartley.data.LootLockProfile;
 import com.grahambartley.data.RejectedItemAction;
 import com.grahambartley.network.ClientMutationSync;
 import com.grahambartley.network.PacketLimits;
+import com.grahambartley.text.LootLockLang;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -369,7 +370,11 @@ public final class LootLockInventoryPanel {
               PROFILE_ROW_HEIGHT,
               () ->
                   activeProfile().map(LootLockInventoryPanel::colorForProfile).orElse(Palette.SLOT),
-              () -> activeProfile().map(LootLockProfile::getName).orElse("--"),
+              () ->
+                  activeProfile()
+                      .map(LootLockProfile::getName)
+                      .orElseGet(
+                          () -> Text.translatable(LootLockLang.PROFILE_PLACEHOLDER).getString()),
               () -> activeProfile().map(LootLockInventoryPanel::ruleCountLabel).orElse(""),
               this::toggleDropdown);
       addDrawableChild.accept(profilePill);
@@ -400,7 +405,7 @@ public final class LootLockInventoryPanel {
               cursorY,
               segWidth,
               CONTROL_ROW_HEIGHT,
-              Text.literal("Allowlist"),
+              Text.translatable(LootLockLang.MODE_ALLOWLIST),
               Palette.ALLOW,
               () -> activeProfile().map(p -> p.getMode() == FilterMode.ALLOWLIST).orElse(false),
               () -> setMode(FilterMode.ALLOWLIST));
@@ -413,7 +418,7 @@ public final class LootLockInventoryPanel {
               cursorY,
               segWidth,
               CONTROL_ROW_HEIGHT,
-              Text.literal("Denylist"),
+              Text.translatable(LootLockLang.MODE_DENYLIST),
               Palette.DENY,
               () -> activeProfile().map(p -> p.getMode() == FilterMode.DENYLIST).orElse(false),
               () -> setMode(FilterMode.DENYLIST));
@@ -430,7 +435,7 @@ public final class LootLockInventoryPanel {
               cursorY,
               segWidth,
               CONTROL_ROW_HEIGHT,
-              Text.literal("Leave"),
+              Text.translatable(LootLockLang.ACTION_LEAVE),
               Palette.LEAVE,
               () ->
                   activeProfile()
@@ -446,7 +451,7 @@ public final class LootLockInventoryPanel {
               cursorY,
               segWidth,
               CONTROL_ROW_HEIGHT,
-              Text.literal("Delete"),
+              Text.translatable(LootLockLang.ACTION_DELETE),
               Palette.DENY,
               () ->
                   activeProfile()
@@ -471,7 +476,7 @@ public final class LootLockInventoryPanel {
               cursorY,
               tabWidth,
               TAB_HEIGHT,
-              Text.literal("Rules"),
+              Text.translatable(LootLockLang.TAB_RULES),
               () -> activeTab == PanelTab.RULES,
               () -> setTab(PanelTab.RULES));
       addDrawableChild.accept(rulesTabButton);
@@ -483,7 +488,7 @@ public final class LootLockInventoryPanel {
               cursorY,
               tabWidth,
               TAB_HEIGHT,
-              Text.literal("Settings"),
+              Text.translatable(LootLockLang.TAB_SETTINGS),
               () -> activeTab == PanelTab.SETTINGS,
               () -> setTab(PanelTab.SETTINGS));
       addDrawableChild.accept(settingsTabButton);
@@ -532,7 +537,7 @@ public final class LootLockInventoryPanel {
               panelY,
               16,
               12,
-              Text.literal("rename"));
+              Text.translatable(LootLockLang.PROFILE_RENAME_FIELD));
       renameField.setMaxLength(32);
       renameField.setDrawsBackground(true);
       renameField.visible = false;
@@ -814,7 +819,7 @@ public final class LootLockInventoryPanel {
     context.drawTexture(ICON_TEXTURE, iconX, iconY, 0f, 0f, iconSize, iconSize, iconSize, iconSize);
     context.drawText(
         client.textRenderer,
-        Text.literal("Loot Lock"),
+        Text.translatable(LootLockLang.BRAND),
         iconX + iconSize + 4,
         headerY + (HEADER_HEIGHT - 8) / 2,
         0xFF2F2F2F,
@@ -830,7 +835,7 @@ public final class LootLockInventoryPanel {
     if (showServer) {
       context.drawText(
           client.textRenderer,
-          Text.literal("Server"),
+          Text.translatable(LootLockLang.PANEL_HEADER_SERVER),
           serverSwitch.getX() - 36,
           switchY,
           0xFF2F2F2F,
@@ -839,7 +844,7 @@ public final class LootLockInventoryPanel {
     if (clientSwitch != null) {
       context.drawText(
           client.textRenderer,
-          Text.literal("Player"),
+          Text.translatable(LootLockLang.PANEL_HEADER_PLAYER),
           clientSwitch.getX() - 36,
           switchY,
           0xFF2F2F2F,
@@ -849,14 +854,14 @@ public final class LootLockInventoryPanel {
     // Mode + Action labels in light text on the dark controls well.
     context.drawText(
         client.textRenderer,
-        Text.literal("Mode"),
+        Text.translatable(LootLockLang.PANEL_LABEL_MODE),
         panelX + SIDE_PADDING + 4,
         modeY + (CONTROL_ROW_HEIGHT - 8) / 2,
         0xFFD2D2D8,
         false);
     context.drawText(
         client.textRenderer,
-        Text.literal("Action"),
+        Text.translatable(LootLockLang.PANEL_LABEL_ACTION),
         panelX + SIDE_PADDING + 4,
         actionY + (CONTROL_ROW_HEIGHT - 8) / 2,
         0xFFD2D2D8,
@@ -972,7 +977,7 @@ public final class LootLockInventoryPanel {
     int headerY = dropdownFrameY + 4;
     context.drawText(
         client.textRenderer,
-        Text.literal("Switch profile"),
+        Text.translatable(LootLockLang.DROPDOWN_SWITCH_PROFILE),
         dropdownFrameX + 8,
         headerY,
         Palette.GOLD,
@@ -1010,7 +1015,10 @@ public final class LootLockInventoryPanel {
       }
       if (row.isMouseOverChip(mouseX, mouseY)) {
         context.drawTooltip(
-            client.textRenderer, List.of(Text.literal("Change colour")), mouseX, mouseY);
+            client.textRenderer,
+            List.of(Text.translatable(LootLockLang.DROPDOWN_CHANGE_COLOR)),
+            mouseX,
+            mouseY);
         return;
       }
     }
@@ -1042,7 +1050,7 @@ public final class LootLockInventoryPanel {
     if (rulesTabButton != null) {
       int ruleCount =
           activeProfile().map(p -> p.getRules() == null ? 0 : p.getRules().size()).orElse(0);
-      rulesTabButton.setMessage(Text.literal("Rules (" + ruleCount + ")"));
+      rulesTabButton.setMessage(Text.translatable(LootLockLang.TAB_RULES_COUNT, ruleCount));
     }
     // Hide the Server toggle when on an integrated single-player server — there's no real peer to
     // mirror, and the toggle just adds visual noise. When hidden, slide the Client switch right so
@@ -1134,8 +1142,13 @@ public final class LootLockInventoryPanel {
 
   static String ruleCountLabel(LootLockProfile profile) {
     int n = profile.getRules() == null ? 0 : profile.getRules().size();
-    String mode = profile.getMode() == FilterMode.DENYLIST ? "deny" : "allow";
-    return mode + " . " + n + (n == 1 ? " item" : " items");
+    String key;
+    if (profile.getMode() == FilterMode.DENYLIST) {
+      key = n == 1 ? LootLockLang.PROFILE_META_DENY_ONE : LootLockLang.PROFILE_META_DENY_MANY;
+    } else {
+      key = n == 1 ? LootLockLang.PROFILE_META_ALLOW_ONE : LootLockLang.PROFILE_META_ALLOW_MANY;
+    }
+    return Text.translatable(key, n).getString();
   }
 
   boolean currentGloballyEnabled() {
@@ -1259,9 +1272,7 @@ public final class LootLockInventoryPanel {
 
     boolean canCreate = ProfileUiController.canCreateProfile(profiles);
     Tooltip atCapacityTooltip =
-        Tooltip.of(
-            Text.literal(
-                "Profile limit reached (" + PacketLimits.MAX_PROFILES + "). Delete one first."));
+        Tooltip.of(Text.translatable(LootLockLang.DROPDOWN_AT_CAPACITY, PacketLimits.MAX_PROFILES));
 
     int headerStripHeight = 14;
     int rowHeight = ProfileDropdownRow.ROW_HEIGHT;
@@ -1286,12 +1297,17 @@ public final class LootLockInventoryPanel {
       int actionsX = dropdownAnchorX + rowMainWidth + 2;
       int gap = (actionsWidth - MiniActionButton.SIZE * 3) / 4;
       MiniActionButton renameButton =
-          new MiniActionButton(actionsX + gap, y + 2, "R", false, () -> renameProfile(profile));
+          new MiniActionButton(
+              actionsX + gap,
+              y + 2,
+              Text.translatable(LootLockLang.BUTTON_MINI_RENAME),
+              false,
+              () -> renameProfile(profile));
       MiniActionButton duplicateButton =
           new MiniActionButton(
               actionsX + gap * 2 + MiniActionButton.SIZE,
               y + 2,
-              "D",
+              Text.translatable(LootLockLang.BUTTON_MINI_DUPLICATE),
               false,
               () -> duplicateProfile(profile));
       duplicateButton.active = canCreate;
@@ -1302,7 +1318,7 @@ public final class LootLockInventoryPanel {
           new MiniActionButton(
               actionsX + gap * 3 + MiniActionButton.SIZE * 2,
               y + 2,
-              "X",
+              Text.translatable(LootLockLang.BUTTON_MINI_DELETE),
               true,
               () -> deleteProfile(profile));
       deleteButton.active = ProfileUiController.canDelete(profiles);
@@ -1315,7 +1331,8 @@ public final class LootLockInventoryPanel {
     }
     newProfileButton =
         ButtonWidget.builder(
-                Text.literal("+ New profile").formatted(Formatting.GREEN), b -> createProfile())
+                Text.translatable(LootLockLang.DROPDOWN_NEW_PROFILE).formatted(Formatting.GREEN),
+                b -> createProfile())
             .dimensions(dropdownAnchorX, y + 3, dropdownAnchorWidth, 16)
             .build();
     newProfileButton.active = canCreate;
@@ -1415,10 +1432,8 @@ public final class LootLockInventoryPanel {
               }
               client.setScreen(current);
             },
-            Text.literal("Enable Delete mode?"),
-            Text.literal(
-                "Rejected items will be permanently destroyed and won't drop on the ground."
-                    + " This can't be undone.")));
+            Text.translatable(LootLockLang.CONFIRM_ENABLE_DELETE_TITLE),
+            Text.translatable(LootLockLang.CONFIRM_ENABLE_DELETE_BODY)));
   }
 
   private boolean shouldConfirmEnableDelete() {

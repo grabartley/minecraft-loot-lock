@@ -10,6 +10,7 @@ import com.grahambartley.network.PacketLimits;
 import com.grahambartley.network.ServerToClientPackets;
 import com.grahambartley.server.ServerPlayerDataManager;
 import com.grahambartley.server.ServerPolicyService;
+import com.grahambartley.text.LootLockLang;
 import com.mojang.authlib.GameProfile;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
@@ -28,6 +29,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 
@@ -323,42 +325,37 @@ public final class LootLockCommand {
 
   private static int help(CommandContext<ServerCommandSource> context) {
     ServerCommandSource source = context.getSource();
-    source.sendFeedback(() -> Text.literal("Loot Lock commands:"), false);
-    source.sendFeedback(() -> Text.literal("- /lootlock status"), false);
-    source.sendFeedback(() -> Text.literal("- /lootlock enable"), false);
-    source.sendFeedback(() -> Text.literal("- /lootlock disable"), false);
-    source.sendFeedback(() -> Text.literal("- /lootlock profile list"), false);
-    source.sendFeedback(
-        () -> Text.literal("- /lootlock profile create <name|\"name with spaces\">"), false);
-    source.sendFeedback(
-        () -> Text.literal("- /lootlock profile delete <name|\"name with spaces\">"), false);
-    source.sendFeedback(
-        () -> Text.literal("- /lootlock profile activate <name|\"name with spaces\">"), false);
-    source.sendFeedback(() -> Text.literal("- /lootlock mode denylist|allowlist"), false);
-    source.sendFeedback(() -> Text.literal("- /lootlock action leave"), false);
-    source.sendFeedback(() -> Text.literal("- /lootlock action delete confirm"), false);
-    source.sendFeedback(() -> Text.literal("- /lootlock rule add <item>"), false);
-    source.sendFeedback(() -> Text.literal("- /lootlock rule remove <item>"), false);
-    source.sendFeedback(() -> Text.literal("- /lootlock rule list"), false);
-    source.sendFeedback(() -> Text.literal("- /lootlock rule clear confirm"), false);
+    sendKey(source, LootLockLang.COMMAND_HELP_HEADER);
+    sendKey(source, LootLockLang.COMMAND_HELP_LINE_STATUS);
+    sendKey(source, LootLockLang.COMMAND_HELP_LINE_ENABLE);
+    sendKey(source, LootLockLang.COMMAND_HELP_LINE_DISABLE);
+    sendKey(source, LootLockLang.COMMAND_HELP_LINE_PROFILE_LIST);
+    sendKey(source, LootLockLang.COMMAND_HELP_LINE_PROFILE_CREATE);
+    sendKey(source, LootLockLang.COMMAND_HELP_LINE_PROFILE_DELETE);
+    sendKey(source, LootLockLang.COMMAND_HELP_LINE_PROFILE_ACTIVATE);
+    sendKey(source, LootLockLang.COMMAND_HELP_LINE_MODE);
+    sendKey(source, LootLockLang.COMMAND_HELP_LINE_ACTION_LEAVE);
+    sendKey(source, LootLockLang.COMMAND_HELP_LINE_ACTION_DELETE);
+    sendKey(source, LootLockLang.COMMAND_HELP_LINE_RULE_ADD);
+    sendKey(source, LootLockLang.COMMAND_HELP_LINE_RULE_REMOVE);
+    sendKey(source, LootLockLang.COMMAND_HELP_LINE_RULE_LIST);
+    sendKey(source, LootLockLang.COMMAND_HELP_LINE_RULE_CLEAR);
     if (source.hasPermissionLevel(2)) {
-      source.sendFeedback(
-          () -> Text.literal("- /lootlock player <name|uuid> <subcommand> (operator)"), false);
-      source.sendFeedback(
-          () -> Text.literal("- /lootlock policy allowDeleteRejectedItems true|false"), false);
+      sendKey(source, LootLockLang.COMMAND_HELP_LINE_PLAYER);
+      sendKey(source, LootLockLang.COMMAND_HELP_LINE_POLICY);
     }
     return 1;
   }
 
+  private static void sendKey(ServerCommandSource source, String key) {
+    source.sendFeedback(() -> Text.translatable(key), false);
+  }
+
   private static int policyStatus(CommandContext<ServerCommandSource> context) {
+    boolean current = LootLock.SERVER_CONFIG.allowDeleteRejectedItems();
     context
         .getSource()
-        .sendFeedback(
-            () ->
-                Text.literal(
-                    "allowDeleteRejectedItems="
-                        + LootLock.SERVER_CONFIG.allowDeleteRejectedItems()),
-            false);
+        .sendFeedback(() -> Text.translatable(LootLockLang.COMMAND_POLICY_STATUS, current), false);
     return 1;
   }
 
@@ -368,7 +365,7 @@ public final class LootLockCommand {
         ServerPolicyService.updateAllowDeleteRejectedItems(
             context.getSource().getServer(), allowDeleteRejectedItems);
     if (!updated) {
-      context.getSource().sendError(Text.literal("Failed to persist server policy update."));
+      context.getSource().sendError(Text.translatable(LootLockLang.COMMAND_POLICY_ERROR_PERSIST));
       return 0;
     }
     for (ServerPlayerEntity player :
@@ -378,19 +375,15 @@ public final class LootLockCommand {
     context
         .getSource()
         .sendFeedback(
-            () -> Text.literal("allowDeleteRejectedItems set to " + allowDeleteRejectedItems),
+            () ->
+                Text.translatable(
+                    LootLockLang.COMMAND_POLICY_FEEDBACK_SET, allowDeleteRejectedItems),
             true);
     return 1;
   }
 
   private static int deleteConfirmHelp(CommandContext<ServerCommandSource> context) {
-    context
-        .getSource()
-        .sendFeedback(
-            () ->
-                Text.literal(
-                    "Delete mode permanently removes rejected dropped items. Add 'confirm' to proceed."),
-            false);
+    sendKey(context.getSource(), LootLockLang.COMMAND_DELETE_CONFIRM_HELP);
     return 1;
   }
 
@@ -400,17 +393,22 @@ public final class LootLockCommand {
   }
 
   private static int handleProfileList(ServerCommandSource source, StateContext state) {
-    String header =
+    Text header =
         state.isSelfTargeted()
-            ? "Loot Lock profiles:"
-            : "Loot Lock profiles for " + state.displayName() + ":";
-    source.sendFeedback(() -> Text.literal(header), false);
+            ? Text.translatable(LootLockLang.COMMAND_PROFILE_LIST_HEADER_SELF)
+            : Text.translatable(
+                LootLockLang.COMMAND_PROFILE_LIST_HEADER_TARGET, state.displayName());
+    source.sendFeedback(() -> header, false);
     for (LootLockProfile profile : state.data().getProfiles()) {
       if (profile == null) {
         continue;
       }
-      String marker = profile.getId().equals(state.data().getActiveProfileId()) ? "* " : "- ";
-      source.sendFeedback(() -> Text.literal(marker + profile.getName()), false);
+      String rowKey =
+          profile.getId().equals(state.data().getActiveProfileId())
+              ? LootLockLang.COMMAND_PROFILE_LIST_ROW_ACTIVE
+              : LootLockLang.COMMAND_PROFILE_LIST_ROW_INACTIVE;
+      String name = profile.getName();
+      source.sendFeedback(() -> Text.translatable(rowKey, name), false);
     }
     return 1;
   }
@@ -419,34 +417,37 @@ public final class LootLockCommand {
       ServerCommandSource source, StateContext state, String requestedName) {
     String profileName = normalizeProfileName(requestedName);
     if (profileName == null) {
-      source.sendError(Text.literal("Profile name must be between 1 and 32 characters."));
+      source.sendError(Text.translatable(LootLockLang.COMMAND_ERROR_PROFILE_NAME_LENGTH));
       return 0;
     }
 
     if (!canCreateProfile(state.data())) {
-      String subject =
-          state.isSelfTargeted() ? "You already have " : state.displayName() + " already has ";
-      source.sendError(
-          Text.literal(
-              subject
-                  + PacketLimits.MAX_PROFILES
-                  + " profiles, which is the maximum. Delete one before creating another."));
+      Text error =
+          state.isSelfTargeted()
+              ? Text.translatable(
+                  LootLockLang.COMMAND_ERROR_PROFILE_MAX_SELF, PacketLimits.MAX_PROFILES)
+              : Text.translatable(
+                  LootLockLang.COMMAND_ERROR_PROFILE_MAX_TARGET,
+                  state.displayName(),
+                  PacketLimits.MAX_PROFILES);
+      source.sendError(error);
       return 0;
     }
 
     if (findProfileByName(state.data(), profileName).isPresent()) {
-      source.sendError(Text.literal("A profile with that name already exists."));
+      source.sendError(Text.translatable(LootLockLang.COMMAND_ERROR_PROFILE_DUPLICATE));
       return 0;
     }
 
     LootLockProfile created = createProfileWithDefaults(profileName);
     appendProfile(state.data(), created);
     markDirty(source, state);
-    String message =
+    Text message =
         state.isSelfTargeted()
-            ? "Created profile '" + profileName + "'."
-            : "Created profile '" + profileName + "' for " + state.displayName() + ".";
-    source.sendFeedback(() -> Text.literal(message), false);
+            ? Text.translatable(LootLockLang.COMMAND_PROFILE_CREATE_SELF, profileName)
+            : Text.translatable(
+                LootLockLang.COMMAND_PROFILE_CREATE_TARGET, profileName, state.displayName());
+    source.sendFeedback(() -> message, false);
     syncIfOnline(state);
     return 1;
   }
@@ -454,28 +455,32 @@ public final class LootLockCommand {
   private static int handleProfileDelete(
       ServerCommandSource source, StateContext state, String requestedName) {
     if (state.data().getProfiles().size() <= 1) {
-      String message =
+      Text error =
           state.isSelfTargeted()
-              ? "You cannot delete your last profile."
-              : "Cannot delete " + state.displayName() + "'s last profile.";
-      source.sendError(Text.literal(message));
+              ? Text.translatable(LootLockLang.COMMAND_ERROR_PROFILE_LAST_SELF)
+              : Text.translatable(
+                  LootLockLang.COMMAND_ERROR_PROFILE_LAST_TARGET, state.displayName());
+      source.sendError(error);
       return 0;
     }
 
     Optional<LootLockProfile> found = findProfileByName(state.data(), requestedName);
     if (found.isEmpty()) {
-      source.sendError(Text.literal("Profile not found: " + requestedName));
+      source.sendError(
+          Text.translatable(LootLockLang.COMMAND_ERROR_PROFILE_NOT_FOUND, requestedName));
       return 0;
     }
 
     LootLockProfile target = found.get();
+    String targetName = target.getName();
     removeProfileById(state.data(), target.getId());
     markDirty(source, state);
-    String message =
+    Text message =
         state.isSelfTargeted()
-            ? "Deleted profile '" + target.getName() + "'."
-            : "Deleted profile '" + target.getName() + "' for " + state.displayName() + ".";
-    source.sendFeedback(() -> Text.literal(message), false);
+            ? Text.translatable(LootLockLang.COMMAND_PROFILE_DELETE_SELF, targetName)
+            : Text.translatable(
+                LootLockLang.COMMAND_PROFILE_DELETE_TARGET, targetName, state.displayName());
+    source.sendFeedback(() -> message, false);
     syncIfOnline(state);
     return 1;
   }
@@ -484,18 +489,21 @@ public final class LootLockCommand {
       ServerCommandSource source, StateContext state, String requestedName) {
     Optional<LootLockProfile> found = findProfileByName(state.data(), requestedName);
     if (found.isEmpty()) {
-      source.sendError(Text.literal("Profile not found: " + requestedName));
+      source.sendError(
+          Text.translatable(LootLockLang.COMMAND_ERROR_PROFILE_NOT_FOUND, requestedName));
       return 0;
     }
 
     LootLockProfile target = found.get();
+    String targetName = target.getName();
     state.data().setActiveProfileId(target.getId());
     markDirty(source, state);
-    String message =
+    Text message =
         state.isSelfTargeted()
-            ? "Activated profile '" + target.getName() + "'."
-            : "Activated profile '" + target.getName() + "' for " + state.displayName() + ".";
-    source.sendFeedback(() -> Text.literal(message), false);
+            ? Text.translatable(LootLockLang.COMMAND_PROFILE_ACTIVATE_SELF, targetName)
+            : Text.translatable(
+                LootLockLang.COMMAND_PROFILE_ACTIVATE_TARGET, targetName, state.displayName());
+    source.sendFeedback(() -> message, false);
     sendStatus(source, state.withProfile(target));
     syncIfOnline(state);
     return 1;
@@ -504,22 +512,22 @@ public final class LootLockCommand {
   private static int handleRuleAdd(
       ServerCommandSource source, StateContext state, Identifier itemId) {
     if (!Registries.ITEM.containsId(itemId)) {
-      source.sendError(Text.literal("Unknown item id: " + itemId));
+      source.sendError(Text.translatable(LootLockLang.COMMAND_ERROR_UNKNOWN_ITEM, itemId));
       return 0;
     }
 
     String token = itemId.toString();
     if (!addRuleToProfile(state.profile(), token)) {
-      source.sendError(Text.literal("Rule already exists for: " + token));
+      source.sendError(Text.translatable(LootLockLang.COMMAND_ERROR_RULE_EXISTS, token));
       return 0;
     }
 
     markDirty(source, state);
-    String message =
+    Text message =
         state.isSelfTargeted()
-            ? "Added rule: " + token
-            : "Added rule: " + token + " for " + state.displayName();
-    source.sendFeedback(() -> Text.literal(message), false);
+            ? Text.translatable(LootLockLang.COMMAND_RULE_ADD_SELF, token)
+            : Text.translatable(LootLockLang.COMMAND_RULE_ADD_TARGET, token, state.displayName());
+    source.sendFeedback(() -> message, false);
     syncIfOnline(state);
     return 1;
   }
@@ -528,70 +536,69 @@ public final class LootLockCommand {
       ServerCommandSource source, StateContext state, Identifier itemId) {
     String token = itemId.toString();
     if (!removeRuleFromProfile(state.profile(), token)) {
-      source.sendError(Text.literal("Rule not found for: " + token));
+      source.sendError(Text.translatable(LootLockLang.COMMAND_ERROR_RULE_NOT_FOUND, token));
       return 0;
     }
 
     markDirty(source, state);
-    String message =
+    Text message =
         state.isSelfTargeted()
-            ? "Removed rule: " + token
-            : "Removed rule: " + token + " for " + state.displayName();
-    source.sendFeedback(() -> Text.literal(message), false);
+            ? Text.translatable(LootLockLang.COMMAND_RULE_REMOVE_SELF, token)
+            : Text.translatable(
+                LootLockLang.COMMAND_RULE_REMOVE_TARGET, token, state.displayName());
+    source.sendFeedback(() -> message, false);
     syncIfOnline(state);
     return 1;
   }
 
   private static int handleRuleList(ServerCommandSource source, StateContext state) {
     if (state.profile().getRules().isEmpty()) {
-      String message =
+      Text message =
           state.isSelfTargeted()
-              ? "No rules in active profile."
-              : "No rules in " + state.displayName() + "'s active profile.";
-      source.sendFeedback(() -> Text.literal(message), false);
+              ? Text.translatable(LootLockLang.COMMAND_RULE_LIST_EMPTY_SELF)
+              : Text.translatable(LootLockLang.COMMAND_RULE_LIST_EMPTY_TARGET, state.displayName());
+      source.sendFeedback(() -> message, false);
       return 1;
     }
 
-    String header =
+    String profileName = state.profile().getName();
+    Text header =
         state.isSelfTargeted()
-            ? "Rules for '" + state.profile().getName() + "':"
-            : "Rules for "
-                + state.displayName()
-                + "'s profile '"
-                + state.profile().getName()
-                + "':";
-    source.sendFeedback(() -> Text.literal(header), false);
+            ? Text.translatable(LootLockLang.COMMAND_RULE_LIST_HEADER_SELF, profileName)
+            : Text.translatable(
+                LootLockLang.COMMAND_RULE_LIST_HEADER_TARGET, state.displayName(), profileName);
+    source.sendFeedback(() -> header, false);
     int invalidRules = 0;
     for (RuleEntry rule : state.profile().getRules()) {
       if (rule == null || rule.itemId() == null || rule.itemId().isBlank()) {
         invalidRules++;
         continue;
       }
-      source.sendFeedback(() -> Text.literal("- " + rule.itemId()), false);
+      String ruleId = rule.itemId();
+      source.sendFeedback(
+          () -> Text.translatable(LootLockLang.COMMAND_RULE_LIST_ROW, ruleId), false);
     }
     if (invalidRules > 0) {
       int invalidRuleCount = invalidRules;
       source.sendFeedback(
-          () -> Text.literal("- <" + invalidRuleCount + " invalid rule entries hidden>"), false);
+          () -> Text.translatable(LootLockLang.COMMAND_RULE_LIST_INVALID, invalidRuleCount), false);
     }
     return 1;
   }
 
   private static int ruleClearConfirmHelp(CommandContext<ServerCommandSource> context) {
-    context
-        .getSource()
-        .sendFeedback(() -> Text.literal("Add 'confirm' to clear all rules."), false);
+    sendKey(context.getSource(), LootLockLang.COMMAND_RULE_CLEAR_HINT);
     return 1;
   }
 
   private static int handleRuleClear(ServerCommandSource source, StateContext state) {
     clearRulesOnProfile(state.profile());
     markDirty(source, state);
-    String message =
+    Text message =
         state.isSelfTargeted()
-            ? "Cleared all rules from active profile."
-            : "Cleared all rules from " + state.displayName() + "'s active profile.";
-    source.sendFeedback(() -> Text.literal(message), false);
+            ? Text.translatable(LootLockLang.COMMAND_RULE_CLEAR_SELF)
+            : Text.translatable(LootLockLang.COMMAND_RULE_CLEAR_TARGET, state.displayName());
+    source.sendFeedback(() -> message, false);
     syncIfOnline(state);
     return 1;
   }
@@ -599,15 +606,18 @@ public final class LootLockCommand {
   private static int handleEnable(ServerCommandSource source, StateContext state, boolean enabled) {
     applyGlobalEnable(state.data(), enabled);
     markDirty(source, state);
-    String message =
-        state.isSelfTargeted()
-            ? "Loot Lock " + (enabled ? "enabled" : "disabled") + "."
-            : "Loot Lock "
-                + (enabled ? "enabled" : "disabled")
-                + " for "
-                + state.displayName()
-                + ".";
-    source.sendFeedback(() -> Text.literal(message), false);
+    Text message;
+    if (state.isSelfTargeted()) {
+      message =
+          Text.translatable(
+              enabled ? LootLockLang.COMMAND_ENABLE_SELF : LootLockLang.COMMAND_DISABLE_SELF);
+    } else {
+      message =
+          Text.translatable(
+              enabled ? LootLockLang.COMMAND_ENABLE_TARGET : LootLockLang.COMMAND_DISABLE_TARGET,
+              state.displayName());
+    }
+    source.sendFeedback(() -> message, false);
     sendStatus(source, state);
     syncIfOnline(state);
     return 1;
@@ -616,21 +626,14 @@ public final class LootLockCommand {
   private static int handleMode(ServerCommandSource source, StateContext state, FilterMode mode) {
     state.profile().setMode(mode);
     markDirty(source, state);
-    String message =
+    Text modeLabel = modeLabel(mode);
+    String profileName = state.profile().getName();
+    Text message =
         state.isSelfTargeted()
-            ? "Loot Lock mode set to "
-                + modeToken(mode)
-                + " for profile '"
-                + state.profile().getName()
-                + "'."
-            : "Loot Lock mode set to "
-                + modeToken(mode)
-                + " for "
-                + state.displayName()
-                + "'s profile '"
-                + state.profile().getName()
-                + "'.";
-    source.sendFeedback(() -> Text.literal(message), false);
+            ? Text.translatable(LootLockLang.COMMAND_MODE_SELF, modeLabel, profileName)
+            : Text.translatable(
+                LootLockLang.COMMAND_MODE_TARGET, modeLabel, state.displayName(), profileName);
+    source.sendFeedback(() -> message, false);
     sendStatus(source, state);
     syncIfOnline(state);
     return 1;
@@ -641,33 +644,22 @@ public final class LootLockCommand {
     RejectedItemAction normalizedAction =
         normalizeRejectedItemAction(action, LootLock.SERVER_CONFIG.allowDeleteRejectedItems());
     if (action == RejectedItemAction.DELETE && normalizedAction != RejectedItemAction.DELETE) {
-      source.sendError(
-          Text.literal(
-              "Server policy blocks delete mode for rejected items. Use 'leave' instead."));
+      source.sendError(Text.translatable(LootLockLang.COMMAND_ERROR_DELETE_POLICY_BLOCKED));
       return 0;
     }
 
     state.profile().setRejectedItemAction(normalizedAction);
     markDirty(source, state);
-    String message =
+    Text actionLabel = actionLabel(normalizedAction);
+    String profileName = state.profile().getName();
+    Text message =
         state.isSelfTargeted()
-            ? "Loot Lock rejected-item action set to "
-                + actionToken(normalizedAction)
-                + " for profile '"
-                + state.profile().getName()
-                + "'."
-            : "Loot Lock rejected-item action set to "
-                + actionToken(normalizedAction)
-                + " for "
-                + state.displayName()
-                + "'s profile '"
-                + state.profile().getName()
-                + "'.";
-    source.sendFeedback(() -> Text.literal(message), false);
+            ? Text.translatable(LootLockLang.COMMAND_ACTION_SELF, actionLabel, profileName)
+            : Text.translatable(
+                LootLockLang.COMMAND_ACTION_TARGET, actionLabel, state.displayName(), profileName);
+    source.sendFeedback(() -> message, false);
     if (normalizedAction == RejectedItemAction.DELETE) {
-      source.sendFeedback(
-          () -> Text.literal("Warning: delete mode permanently destroys rejected dropped items."),
-          false);
+      sendKey(source, LootLockLang.COMMAND_ACTION_DELETE_WARNING);
     }
     sendStatus(source, state);
     syncIfOnline(state);
@@ -675,18 +667,39 @@ public final class LootLockCommand {
   }
 
   private static void sendStatus(ServerCommandSource source, StateContext state) {
-    String header =
+    Text header =
         state.isSelfTargeted()
-            ? "Loot Lock status:"
-            : "Loot Lock status for " + state.displayName() + ":";
+            ? Text.translatable(LootLockLang.COMMAND_STATUS_HEADER_SELF)
+            : Text.translatable(LootLockLang.COMMAND_STATUS_HEADER_TARGET, state.displayName());
     LootLockProfile profile = state.profile();
-    source.sendFeedback(() -> Text.literal(header), false);
-    source.sendFeedback(() -> Text.literal("- Active profile: " + profile.getName()), false);
-    source.sendFeedback(() -> Text.literal("- Enabled: " + profile.isEnabled()), false);
-    source.sendFeedback(() -> Text.literal("- Mode: " + modeToken(profile.getMode())), false);
+    source.sendFeedback(() -> header, false);
+    String profileName = profile.getName();
     source.sendFeedback(
-        () -> Text.literal("- Action: " + actionToken(profile.getRejectedItemAction())), false);
-    source.sendFeedback(() -> Text.literal("- Rule count: " + profile.getRules().size()), false);
+        () -> Text.translatable(LootLockLang.COMMAND_STATUS_LINE_ACTIVE, profileName), false);
+    boolean enabled = profile.isEnabled();
+    source.sendFeedback(
+        () -> Text.translatable(LootLockLang.COMMAND_STATUS_LINE_ENABLED, enabled), false);
+    Text modeLabel = modeLabel(profile.getMode());
+    source.sendFeedback(
+        () -> Text.translatable(LootLockLang.COMMAND_STATUS_LINE_MODE, modeLabel), false);
+    Text actionLabel = actionLabel(profile.getRejectedItemAction());
+    source.sendFeedback(
+        () -> Text.translatable(LootLockLang.COMMAND_STATUS_LINE_ACTION, actionLabel), false);
+    int ruleCount = profile.getRules().size();
+    source.sendFeedback(
+        () -> Text.translatable(LootLockLang.COMMAND_STATUS_LINE_RULE_COUNT, ruleCount), false);
+  }
+
+  static MutableText modeLabel(FilterMode mode) {
+    return Text.translatable(
+        mode == FilterMode.ALLOWLIST ? LootLockLang.MODE_ALLOWLIST : LootLockLang.MODE_DENYLIST);
+  }
+
+  static MutableText actionLabel(RejectedItemAction action) {
+    return Text.translatable(
+        action == RejectedItemAction.DELETE
+            ? LootLockLang.ACTION_DELETE
+            : LootLockLang.ACTION_LEAVE);
   }
 
   private static int withSelfState(CommandContext<ServerCommandSource> context, StateAction action)
@@ -713,7 +726,7 @@ public final class LootLockCommand {
     try {
       player = source.getPlayerOrThrow();
     } catch (CommandSyntaxException ex) {
-      source.sendError(Text.literal("This command can only be used by a player."));
+      source.sendError(Text.translatable(LootLockLang.COMMAND_ERROR_PLAYER_ONLY));
       return null;
     }
     return buildState(source, player.getUuid(), player.getGameProfile().getName(), player, true);
@@ -737,14 +750,14 @@ public final class LootLockCommand {
       boolean isSelfTargeted) {
     ServerPlayerDataManager dataManager = LootLock.PLAYER_DATA_MANAGER;
     if (dataManager == null) {
-      source.sendError(Text.literal("Loot Lock is not ready yet."));
+      source.sendError(Text.translatable(LootLockLang.COMMAND_ERROR_NOT_READY));
       return null;
     }
 
     LootLockPlayerData data = dataManager.getOrLoad(uuid);
     LootLockProfile profile = data.getActiveProfile().orElse(null);
     if (profile == null) {
-      source.sendError(Text.literal("No active Loot Lock profile found."));
+      source.sendError(Text.translatable(LootLockLang.COMMAND_ERROR_NO_ACTIVE_PROFILE));
       return null;
     }
 
@@ -754,7 +767,7 @@ public final class LootLockCommand {
   static TargetContext resolveTarget(ServerCommandSource source, String input) {
     MinecraftServer server = source.getServer();
     if (server == null) {
-      source.sendError(Text.literal("Server not ready."));
+      source.sendError(Text.translatable(LootLockLang.COMMAND_ERROR_SERVER_NOT_READY));
       return null;
     }
 
@@ -780,7 +793,7 @@ public final class LootLockCommand {
       return new TargetContext(uuid, displayName, onlineByUuid);
     }
 
-    source.sendError(Text.literal("Unknown player: " + input));
+    source.sendError(Text.translatable(LootLockLang.COMMAND_ERROR_UNKNOWN_PLAYER, input));
     return null;
   }
 

@@ -1,6 +1,7 @@
 package com.grahambartley.client.screen;
 
 import com.grahambartley.client.screen.inventory.LootLockInventoryPanel;
+import com.grahambartley.text.LootLockLang;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
@@ -21,7 +22,7 @@ public final class LootLockScreen extends Screen {
   private LootLockInventoryPanel panel;
 
   public LootLockScreen(Screen returnTo) {
-    super(Text.literal("Loot Lock"));
+    super(Text.translatable(LootLockLang.BRAND));
     this.returnTo = returnTo;
   }
 

@@ -9,6 +9,7 @@ import com.grahambartley.client.state.ClientLootLockState;
 import com.grahambartley.data.LootLockPlayerData;
 import com.grahambartley.data.LootLockProfile;
 import com.grahambartley.network.ClientMutationSync;
+import com.grahambartley.text.LootLockLang;
 import java.util.Optional;
 import java.util.UUID;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -21,7 +22,7 @@ import net.minecraft.text.TextColor;
 import org.lwjgl.glfw.GLFW;
 
 public final class LootLockKeybinds {
-  private static final String CATEGORY = "key.categories.loot-lock";
+  private static final String CATEGORY = LootLockLang.KEY_CATEGORY;
   private static KeyBinding TOGGLE_ENABLED;
   private static KeyBinding CYCLE_PROFILE;
 
@@ -64,10 +65,10 @@ public final class LootLockKeybinds {
   public static void register() {
     TOGGLE_ENABLED =
         KeyBindingHelper.registerKeyBinding(
-            new KeyBinding("key.loot-lock.toggle_enabled", GLFW.GLFW_KEY_UNKNOWN, CATEGORY));
+            new KeyBinding(LootLockLang.KEY_TOGGLE_ENABLED, GLFW.GLFW_KEY_UNKNOWN, CATEGORY));
     CYCLE_PROFILE =
         KeyBindingHelper.registerKeyBinding(
-            new KeyBinding("key.loot-lock.cycle_profile", GLFW.GLFW_KEY_UNKNOWN, CATEGORY));
+            new KeyBinding(LootLockLang.KEY_CYCLE_PROFILE, GLFW.GLFW_KEY_UNKNOWN, CATEGORY));
     ClientTickEvents.END_CLIENT_TICK.register(LootLockKeybinds::onEndClientTick);
   }
 
@@ -113,7 +114,7 @@ public final class LootLockKeybinds {
     int rgb = LootLockInventoryPanel.colorForProfile(nextProfile) & 0xFFFFFF;
     LootLockToast.show(
         client,
-        Text.literal("Profile switched"),
+        Text.translatable(LootLockLang.TOAST_PROFILE_SWITCHED),
         Text.literal(nextProfile.getName())
             .setStyle(Style.EMPTY.withColor(TextColor.fromRgb(rgb))));
   }

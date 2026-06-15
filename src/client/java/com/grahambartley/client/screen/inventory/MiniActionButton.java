@@ -5,19 +5,15 @@ import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.widget.PressableWidget;
 import net.minecraft.text.Text;
 
-/**
- * Compact dark-themed action button used inside the profile dropdown for rename / duplicate /
- * delete affordances. Visually mirrors the prototype's {@code .pf-act} CSS class.
- */
 public final class MiniActionButton extends PressableWidget {
   public static final int SIZE = 18;
 
   private final Runnable onPressAction;
   private final boolean danger;
-  private final String glyph;
+  private final Text glyph;
 
-  public MiniActionButton(int x, int y, String glyph, boolean danger, Runnable onPressAction) {
-    super(x, y, SIZE, SIZE, Text.literal(glyph));
+  public MiniActionButton(int x, int y, Text glyph, boolean danger, Runnable onPressAction) {
+    super(x, y, SIZE, SIZE, glyph);
     this.glyph = glyph;
     this.danger = danger;
     this.onPressAction = onPressAction;
@@ -52,7 +48,7 @@ public final class MiniActionButton extends PressableWidget {
     MinecraftClient client = MinecraftClient.getInstance();
     int textX = getX() + (getWidth() - client.textRenderer.getWidth(glyph)) / 2;
     int textY = getY() + (getHeight() - 8) / 2;
-    context.drawText(client.textRenderer, Text.literal(glyph), textX, textY, textColor, false);
+    context.drawText(client.textRenderer, glyph, textX, textY, textColor, false);
   }
 
   @Override

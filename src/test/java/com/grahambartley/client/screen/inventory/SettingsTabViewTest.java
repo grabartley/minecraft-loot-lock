@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 
 import com.grahambartley.client.config.ClientSettings;
 import com.grahambartley.client.config.ClientSettingsManager;
+import com.grahambartley.text.LootLockLang;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.function.Consumer;
@@ -18,6 +19,8 @@ import net.minecraft.SharedConstants;
 import net.minecraft.client.gui.widget.ClickableWidget;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
+import net.minecraft.text.Text;
+import net.minecraft.text.TranslatableTextContent;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -34,23 +37,30 @@ class SettingsTabViewTest {
   static void bootstrap() {
     SharedConstants.createGameVersion();
     Bootstrap.initialize();
+    com.grahambartley.text.LootLockTestLanguage.install();
   }
 
   @Test
   void keyLabelReturnsUnboundForUnknownKey() {
     KeyBinding binding = newBinding("test_unbound", GLFW.GLFW_KEY_UNKNOWN);
 
-    assertEquals("Unbound", SettingsTabView.keyLabel(binding));
+    Text label = SettingsTabView.keyLabel(binding);
+
+    assertEquals(
+        LootLockLang.SETTINGS_CONTROLS_UNBOUND,
+        ((TranslatableTextContent) label.getContent()).getKey());
   }
 
   @Test
   void keyLabelReturnsLocalizedNameForBoundKey() {
     KeyBinding binding = newBinding("test_bound", GLFW.GLFW_KEY_P);
 
-    String label = SettingsTabView.keyLabel(binding);
+    Text label = SettingsTabView.keyLabel(binding);
 
-    assertFalse(label.isEmpty());
-    assertNotEquals("Unbound", label);
+    if (label.getContent() instanceof TranslatableTextContent translatable) {
+      assertNotEquals(LootLockLang.SETTINGS_CONTROLS_UNBOUND, translatable.getKey());
+    }
+    assertFalse(label.getString().isEmpty());
   }
 
   @Test
@@ -112,10 +122,19 @@ class SettingsTabViewTest {
   @Test
   void sectionLabelsIncludeServerPolicyOnlyWhenFlagIsTrue() {
     assertEquals(
-        List.of("NOTIFICATIONS", "SAFETY", "SERVER POLICY", "CONTROLS", "ABOUT"),
+        List.of(
+            LootLockLang.SETTINGS_SECTION_NOTIFICATIONS,
+            LootLockLang.SETTINGS_SECTION_SAFETY,
+            LootLockLang.SETTINGS_SECTION_SERVER_POLICY,
+            LootLockLang.SETTINGS_SECTION_CONTROLS,
+            LootLockLang.SETTINGS_SECTION_ABOUT),
         SettingsTabView.sectionLabels(true));
     assertEquals(
-        List.of("NOTIFICATIONS", "SAFETY", "CONTROLS", "ABOUT"),
+        List.of(
+            LootLockLang.SETTINGS_SECTION_NOTIFICATIONS,
+            LootLockLang.SETTINGS_SECTION_SAFETY,
+            LootLockLang.SETTINGS_SECTION_CONTROLS,
+            LootLockLang.SETTINGS_SECTION_ABOUT),
         SettingsTabView.sectionLabels(false));
   }
 

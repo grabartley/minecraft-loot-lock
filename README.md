@@ -179,6 +179,10 @@ Profile data is server-authoritative and saved per player UUID alongside other w
 
 Operator permission level `2` is required for the `policy` command path and for managing other players' profiles. Players without operator permissions can still fully manage their own profile through the UI or commands.
 
+## Contributing translations
+
+Every player-visible string is wired through Minecraft's translation pipeline. To ship a new locale, copy `src/client/resources/assets/loot-lock/lang/en_us.json` to a new file named after your locale code (for example `de_de.json`, `es_es.json`, `ja_jp.json`) and translate the values. Keys must stay byte-for-byte identical, and `%s` placeholders must remain in the translated string. Submit your file as a PR. The build's translation-key coverage test enforces that every key referenced in code has a value in `en_us.json`, so the English bundle stays the source of truth for what needs translating.
+
 ## Open Source
 
 Loot Lock is open source under the MIT license.

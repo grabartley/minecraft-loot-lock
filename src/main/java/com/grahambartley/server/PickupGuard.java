@@ -5,6 +5,7 @@ import com.grahambartley.api.PickupDecision;
 import com.grahambartley.data.LootLockPlayerData;
 import com.grahambartley.data.LootLockProfile;
 import com.grahambartley.network.ServerToClientPackets;
+import com.grahambartley.text.LootLockLang;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -73,9 +74,11 @@ public final class PickupGuard {
     for (BlockedNotice notice : notices) {
       if (!ServerToClientPackets.sendBlockedNotice(
           player, notice.itemId(), notice.count(), notice.deleted())) {
-        String verb = notice.deleted() ? "Deleted" : "Blocked";
-        String itemName = stack.getItem().getName().getString();
-        player.sendMessage(Text.literal(String.format("[LootLock] %s %s", verb, itemName)), true);
+        Text verb =
+            Text.translatable(
+                notice.deleted() ? LootLockLang.BLOCKED_DELETED : LootLockLang.BLOCKED_BLOCKED);
+        Text itemName = stack.getItem().getName();
+        player.sendMessage(Text.translatable(LootLockLang.BLOCKED_CHAT, verb, itemName), true);
       }
       LOGGER.debug(
           "{} {}x{} for player {}",
