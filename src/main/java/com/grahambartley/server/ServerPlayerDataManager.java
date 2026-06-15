@@ -64,7 +64,7 @@ public final class ServerPlayerDataManager {
     tick(server.getTicks());
   }
 
-  LootLockPlayerData getOrLoad(UUID playerUuid) {
+  public LootLockPlayerData getOrLoad(UUID playerUuid) {
     CachedEntry entry = cache.get(playerUuid);
     if (entry == null) {
       ConfigManager.LoadResult loaded = configManager.loadPlayerData(playerUuid);
@@ -83,7 +83,7 @@ public final class ServerPlayerDataManager {
     return entry.data;
   }
 
-  void markDirty(UUID playerUuid, long currentTick) {
+  public void markDirty(UUID playerUuid, long currentTick) {
     CachedEntry entry = cache.get(playerUuid);
     if (entry != null) {
       entry.data.incrementRevision();

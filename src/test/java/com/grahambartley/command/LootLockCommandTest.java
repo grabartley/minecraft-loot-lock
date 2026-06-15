@@ -2,6 +2,7 @@ package com.grahambartley.command;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -12,6 +13,7 @@ import com.grahambartley.data.RejectedItemAction;
 import com.grahambartley.data.RuleEntry;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -130,6 +132,145 @@ class LootLockCommandTest {
       assertEquals(targetState, profile.isEnabled());
     }
     assertEquals(targetState, data.isGloballyEnabled());
+  }
+
+  @ParameterizedTest(name = "tryParseUuid(\"{0}\") -> present={1}")
+  @CsvSource({
+    "069a79f4-44e9-4726-a5be-fca90e38aaf5, true",
+    "00000000-0000-0000-0000-000000000000, true",
+    "069A79F4-44E9-4726-A5BE-FCA90E38AAF5, true",
+    "Steve,                                false",
+    "069a79f4-44e9-4726-a5be,              false",
+    "'',                                   false",
+  })
+  void tryParseUuidParsesOnlyValidLiterals(String input, boolean expectedPresent) {
+    assertEquals(expectedPresent, LootLockCommand.tryParseUuid(input).isPresent());
+  }
+
+  @Test
+  void tryParseUuidReturnsEmptyForNull() {
+    assertFalse(LootLockCommand.tryParseUuid(null).isPresent());
+  }
+
+  @Test
+  void appendProfileAddsToTargetWithoutTouchingOthers() {
+    LootLockPlayerData targetData = LootLockPlayerData.createDefault(UUID.randomUUID());
+    LootLockPlayerData otherData = LootLockPlayerData.createDefault(UUID.randomUUID());
+    int otherSizeBefore = otherData.getProfiles().size();
+    int targetSizeBefore = targetData.getProfiles().size();
+
+    LootLockProfile created = LootLockCommand.createProfileWithDefaults("Mining");
+    LootLockCommand.appendProfile(targetData, created);
+
+    assertEquals(targetSizeBefore + 1, targetData.getProfiles().size());
+    assertEquals(otherSizeBefore, otherData.getProfiles().size());
+    assertTrue(LootLockCommand.findProfileByName(targetData, "Mining").isPresent());
+    assertFalse(LootLockCommand.findProfileByName(otherData, "Mining").isPresent());
+  }
+
+  @Test
+  void removeProfileByIdRebindsActiveWhenActiveDeleted() {
+    LootLockPlayerData data = LootLockPlayerData.createDefault(UUID.randomUUID());
+    LootLockProfile second = LootLockCommand.createProfileWithDefaults("Second");
+    LootLockCommand.appendProfile(data, second);
+    data.setActiveProfileId(second.getId());
+
+    LootLockCommand.removeProfileById(data, second.getId());
+
+    assertFalse(LootLockCommand.findProfileByName(data, "Second").isPresent());
+    assertNotEquals(second.getId(), data.getActiveProfileId());
+    assertEquals(data.getProfiles().get(0).getId(), data.getActiveProfileId());
+  }
+
+  @Test
+  void removeProfileByIdLeavesActiveAloneWhenAnotherDeleted() {
+    LootLockPlayerData data = LootLockPlayerData.createDefault(UUID.randomUUID());
+    UUID originallyActive = data.getActiveProfileId();
+    LootLockProfile other = LootLockCommand.createProfileWithDefaults("Other");
+    LootLockCommand.appendProfile(data, other);
+
+    LootLockCommand.removeProfileById(data, other.getId());
+
+    assertEquals(originallyActive, data.getActiveProfileId());
+  }
+
+  @Test
+  void appendProfileDoesNotTouchOtherPlayerData() {
+    LootLockPlayerData target = LootLockPlayerData.createDefault(UUID.randomUUID());
+    LootLockPlayerData other = LootLockPlayerData.createDefault(UUID.randomUUID());
+    UUID otherActiveBefore = other.getActiveProfileId();
+
+    LootLockProfile created = LootLockCommand.createProfileWithDefaults("Mining");
+    LootLockCommand.appendProfile(target, created);
+
+    assertEquals(otherActiveBefore, other.getActiveProfileId());
+    assertFalse(LootLockCommand.findProfileByName(other, "Mining").isPresent());
+  }
+
+  @ParameterizedTest(name = "addRuleToProfile(\"{0}\") -> added={1}")
+  @CsvSource({
+    "minecraft:cobblestone, true",
+    "minecraft:stone,       false",
+  })
+  void addRuleToProfileSkipsDuplicates(String itemId, boolean expectedAdded) {
+    LootLockProfile profile = LootLockProfile.createDefault();
+    profile.setRules(List.of(new RuleEntry("minecraft:stone")));
+
+    assertEquals(expectedAdded, LootLockCommand.addRuleToProfile(profile, itemId));
+    assertTrue(LootLockCommand.containsRule(profile, itemId));
+  }
+
+  @ParameterizedTest(name = "removeRuleFromProfile(\"{0}\") -> removed={1}")
+  @CsvSource({
+    "minecraft:stone,   true",
+    "minecraft:diamond, false",
+  })
+  void removeRuleFromProfileTouchesOnlyMatchingEntries(String itemId, boolean expectedRemoved) {
+    LootLockProfile profile = LootLockProfile.createDefault();
+    profile.setRules(List.of(new RuleEntry("minecraft:stone"), new RuleEntry("minecraft:dirt")));
+
+    boolean removed = LootLockCommand.removeRuleFromProfile(profile, itemId);
+
+    assertEquals(expectedRemoved, removed);
+    assertTrue(LootLockCommand.containsRule(profile, "minecraft:dirt"));
+  }
+
+  @Test
+  void clearRulesOnProfileEmptiesList() {
+    LootLockProfile profile = LootLockProfile.createDefault();
+    profile.setRules(List.of(new RuleEntry("minecraft:stone"), new RuleEntry("minecraft:dirt")));
+
+    LootLockCommand.clearRulesOnProfile(profile);
+
+    assertTrue(profile.getRules().isEmpty());
+  }
+
+  @Test
+  void mutationsOnTargetDoNotLeakIntoUnrelatedPlayerData() {
+    LootLockPlayerData target = LootLockPlayerData.createDefault(UUID.randomUUID());
+    LootLockPlayerData unrelated = LootLockPlayerData.createDefault(UUID.randomUUID());
+
+    LootLockProfile targetActive = target.getActiveProfile().orElseThrow();
+    LootLockProfile unrelatedActive = unrelated.getActiveProfile().orElseThrow();
+    Optional<LootLockProfile> unrelatedSnapshot =
+        Optional.of(unrelatedActive).map(p -> copyProfile(p));
+
+    LootLockCommand.addRuleToProfile(targetActive, "minecraft:stone");
+    LootLockCommand.applyGlobalEnable(target, false);
+
+    assertEquals(0, unrelatedActive.getRules().size());
+    assertEquals(unrelatedSnapshot.orElseThrow().isEnabled(), unrelatedActive.isEnabled());
+    assertTrue(unrelated.isGloballyEnabled());
+  }
+
+  private static LootLockProfile copyProfile(LootLockProfile profile) {
+    return new LootLockProfile(
+        profile.getId(),
+        profile.getName(),
+        profile.getMode(),
+        profile.getRejectedItemAction(),
+        profile.isEnabled(),
+        new ArrayList<>(profile.getRules()));
   }
 
   private static LootLockPlayerData newMixedEnabledData() {

@@ -10,16 +10,21 @@ import com.grahambartley.network.PacketLimits;
 import com.grahambartley.network.ServerToClientPackets;
 import com.grahambartley.server.ServerPlayerDataManager;
 import com.grahambartley.server.ServerPolicyService;
+import com.mojang.authlib.GameProfile;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import com.mojang.brigadier.suggestion.SuggestionProvider;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import net.minecraft.command.CommandSource;
 import net.minecraft.command.argument.IdentifierArgumentType;
 import net.minecraft.registry.Registries;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -29,6 +34,10 @@ import net.minecraft.util.Identifier;
 public final class LootLockCommand {
   private LootLockCommand() {}
 
+  private static final SuggestionProvider<ServerCommandSource> PLAYER_NAME_SUGGESTIONS =
+      (context, builder) ->
+          CommandSource.suggestMatching(context.getSource().getPlayerNames(), builder);
+
   public static void register(CommandDispatcher<ServerCommandSource> dispatcher) {
     dispatcher.register(
         CommandManager.literal("lootlock")
@@ -36,57 +45,98 @@ public final class LootLockCommand {
             .then(
                 CommandManager.literal("status")
                     .requires(ServerCommandSource::isExecutedByPlayer)
-                    .executes(LootLockCommand::status))
+                    .executes(ctx -> withSelfState(ctx, LootLockCommand::handleStatus)))
             .then(
                 CommandManager.literal("enable")
                     .requires(ServerCommandSource::isExecutedByPlayer)
-                    .executes(context -> setEnabled(context, true)))
+                    .executes(
+                        ctx -> withSelfState(ctx, (s, state) -> handleEnable(s, state, true))))
             .then(
                 CommandManager.literal("disable")
                     .requires(ServerCommandSource::isExecutedByPlayer)
-                    .executes(context -> setEnabled(context, false)))
+                    .executes(
+                        ctx -> withSelfState(ctx, (s, state) -> handleEnable(s, state, false))))
             .then(
                 CommandManager.literal("mode")
                     .requires(ServerCommandSource::isExecutedByPlayer)
                     .then(
                         CommandManager.literal("denylist")
-                            .executes(context -> setMode(context, FilterMode.DENYLIST)))
+                            .executes(
+                                ctx ->
+                                    withSelfState(
+                                        ctx,
+                                        (s, state) -> handleMode(s, state, FilterMode.DENYLIST))))
                     .then(
                         CommandManager.literal("allowlist")
-                            .executes(context -> setMode(context, FilterMode.ALLOWLIST))))
+                            .executes(
+                                ctx ->
+                                    withSelfState(
+                                        ctx,
+                                        (s, state) -> handleMode(s, state, FilterMode.ALLOWLIST)))))
             .then(
                 CommandManager.literal("action")
                     .requires(ServerCommandSource::isExecutedByPlayer)
                     .then(
                         CommandManager.literal("leave")
                             .executes(
-                                context -> setAction(context, RejectedItemAction.LEAVE_ON_GROUND)))
+                                ctx ->
+                                    withSelfState(
+                                        ctx,
+                                        (s, state) ->
+                                            handleAction(
+                                                s, state, RejectedItemAction.LEAVE_ON_GROUND))))
                     .then(
                         CommandManager.literal("delete")
                             .executes(LootLockCommand::deleteConfirmHelp)
                             .then(
                                 CommandManager.literal("confirm")
                                     .executes(
-                                        context -> setAction(context, RejectedItemAction.DELETE)))))
+                                        ctx ->
+                                            withSelfState(
+                                                ctx,
+                                                (s, state) ->
+                                                    handleAction(
+                                                        s, state, RejectedItemAction.DELETE))))))
             .then(
                 CommandManager.literal("profile")
                     .requires(ServerCommandSource::isExecutedByPlayer)
-                    .then(CommandManager.literal("list").executes(LootLockCommand::profileList))
+                    .then(
+                        CommandManager.literal("list")
+                            .executes(
+                                ctx -> withSelfState(ctx, LootLockCommand::handleProfileList)))
                     .then(
                         CommandManager.literal("create")
                             .then(
                                 CommandManager.argument("name", StringArgumentType.string())
-                                    .executes(LootLockCommand::profileCreate)))
+                                    .executes(
+                                        ctx ->
+                                            withSelfState(
+                                                ctx,
+                                                (s, state) ->
+                                                    handleProfileCreate(
+                                                        s, state, profileName(ctx))))))
                     .then(
                         CommandManager.literal("delete")
                             .then(
                                 CommandManager.argument("name", StringArgumentType.string())
-                                    .executes(LootLockCommand::profileDelete)))
+                                    .executes(
+                                        ctx ->
+                                            withSelfState(
+                                                ctx,
+                                                (s, state) ->
+                                                    handleProfileDelete(
+                                                        s, state, profileName(ctx))))))
                     .then(
                         CommandManager.literal("activate")
                             .then(
                                 CommandManager.argument("name", StringArgumentType.string())
-                                    .executes(LootLockCommand::profileActivate))))
+                                    .executes(
+                                        ctx ->
+                                            withSelfState(
+                                                ctx,
+                                                (s, state) ->
+                                                    handleProfileActivate(
+                                                        s, state, profileName(ctx)))))))
             .then(
                 CommandManager.literal("rule")
                     .requires(ServerCommandSource::isExecutedByPlayer)
@@ -94,19 +144,38 @@ public final class LootLockCommand {
                         CommandManager.literal("add")
                             .then(
                                 CommandManager.argument("item", IdentifierArgumentType.identifier())
-                                    .executes(LootLockCommand::ruleAdd)))
+                                    .executes(
+                                        ctx ->
+                                            withSelfState(
+                                                ctx,
+                                                (s, state) ->
+                                                    handleRuleAdd(s, state, ruleIdentifier(ctx))))))
                     .then(
                         CommandManager.literal("remove")
                             .then(
                                 CommandManager.argument("item", IdentifierArgumentType.identifier())
-                                    .executes(LootLockCommand::ruleRemove)))
-                    .then(CommandManager.literal("list").executes(LootLockCommand::ruleList))
+                                    .executes(
+                                        ctx ->
+                                            withSelfState(
+                                                ctx,
+                                                (s, state) ->
+                                                    handleRuleRemove(
+                                                        s, state, ruleIdentifier(ctx))))))
+                    .then(
+                        CommandManager.literal("list")
+                            .executes(ctx -> withSelfState(ctx, LootLockCommand::handleRuleList)))
                     .then(
                         CommandManager.literal("clear")
                             .executes(LootLockCommand::ruleClearConfirmHelp)
                             .then(
                                 CommandManager.literal("confirm")
-                                    .executes(LootLockCommand::ruleClearConfirm))))
+                                    .executes(
+                                        ctx ->
+                                            withSelfState(ctx, LootLockCommand::handleRuleClear)))))
+            .then(
+                CommandManager.literal("player")
+                    .requires(source -> source.hasPermissionLevel(2))
+                    .then(playerTargetSubtree()))
             .then(
                 CommandManager.literal("policy")
                     .requires(source -> source.hasPermissionLevel(2))
@@ -123,6 +192,127 @@ public final class LootLockCommand {
                                         context -> setAllowDeleteRejectedItems(context, false))))));
   }
 
+  private static RequiredArgumentBuilder<ServerCommandSource, String> playerTargetSubtree() {
+    return CommandManager.argument("target", StringArgumentType.word())
+        .suggests(PLAYER_NAME_SUGGESTIONS)
+        .then(
+            CommandManager.literal("status")
+                .executes(ctx -> withTargetState(ctx, LootLockCommand::handleStatus)))
+        .then(
+            CommandManager.literal("enable")
+                .executes(ctx -> withTargetState(ctx, (s, state) -> handleEnable(s, state, true))))
+        .then(
+            CommandManager.literal("disable")
+                .executes(ctx -> withTargetState(ctx, (s, state) -> handleEnable(s, state, false))))
+        .then(
+            CommandManager.literal("mode")
+                .then(
+                    CommandManager.literal("denylist")
+                        .executes(
+                            ctx ->
+                                withTargetState(
+                                    ctx, (s, state) -> handleMode(s, state, FilterMode.DENYLIST))))
+                .then(
+                    CommandManager.literal("allowlist")
+                        .executes(
+                            ctx ->
+                                withTargetState(
+                                    ctx,
+                                    (s, state) -> handleMode(s, state, FilterMode.ALLOWLIST)))))
+        .then(
+            CommandManager.literal("action")
+                .then(
+                    CommandManager.literal("leave")
+                        .executes(
+                            ctx ->
+                                withTargetState(
+                                    ctx,
+                                    (s, state) ->
+                                        handleAction(
+                                            s, state, RejectedItemAction.LEAVE_ON_GROUND))))
+                .then(
+                    CommandManager.literal("delete")
+                        .executes(LootLockCommand::deleteConfirmHelp)
+                        .then(
+                            CommandManager.literal("confirm")
+                                .executes(
+                                    ctx ->
+                                        withTargetState(
+                                            ctx,
+                                            (s, state) ->
+                                                handleAction(
+                                                    s, state, RejectedItemAction.DELETE))))))
+        .then(
+            CommandManager.literal("profile")
+                .then(
+                    CommandManager.literal("list")
+                        .executes(ctx -> withTargetState(ctx, LootLockCommand::handleProfileList)))
+                .then(
+                    CommandManager.literal("create")
+                        .then(
+                            CommandManager.argument("name", StringArgumentType.string())
+                                .executes(
+                                    ctx ->
+                                        withTargetState(
+                                            ctx,
+                                            (s, state) ->
+                                                handleProfileCreate(s, state, profileName(ctx))))))
+                .then(
+                    CommandManager.literal("delete")
+                        .then(
+                            CommandManager.argument("name", StringArgumentType.string())
+                                .executes(
+                                    ctx ->
+                                        withTargetState(
+                                            ctx,
+                                            (s, state) ->
+                                                handleProfileDelete(s, state, profileName(ctx))))))
+                .then(
+                    CommandManager.literal("activate")
+                        .then(
+                            CommandManager.argument("name", StringArgumentType.string())
+                                .executes(
+                                    ctx ->
+                                        withTargetState(
+                                            ctx,
+                                            (s, state) ->
+                                                handleProfileActivate(
+                                                    s, state, profileName(ctx)))))))
+        .then(
+            CommandManager.literal("rule")
+                .then(
+                    CommandManager.literal("add")
+                        .then(
+                            CommandManager.argument("item", IdentifierArgumentType.identifier())
+                                .executes(
+                                    ctx ->
+                                        withTargetState(
+                                            ctx,
+                                            (s, state) ->
+                                                handleRuleAdd(s, state, ruleIdentifier(ctx))))))
+                .then(
+                    CommandManager.literal("remove")
+                        .then(
+                            CommandManager.argument("item", IdentifierArgumentType.identifier())
+                                .executes(
+                                    ctx ->
+                                        withTargetState(
+                                            ctx,
+                                            (s, state) ->
+                                                handleRuleRemove(s, state, ruleIdentifier(ctx))))))
+                .then(
+                    CommandManager.literal("list")
+                        .executes(ctx -> withTargetState(ctx, LootLockCommand::handleRuleList)))
+                .then(
+                    CommandManager.literal("clear")
+                        .executes(LootLockCommand::ruleClearConfirmHelp)
+                        .then(
+                            CommandManager.literal("confirm")
+                                .executes(
+                                    ctx ->
+                                        withTargetState(ctx, LootLockCommand::handleRuleClear)))));
+  }
+
   static String modeToken(FilterMode mode) {
     return mode == FilterMode.ALLOWLIST ? "allowlist" : "denylist";
   }
@@ -132,38 +322,31 @@ public final class LootLockCommand {
   }
 
   private static int help(CommandContext<ServerCommandSource> context) {
-    context.getSource().sendFeedback(() -> Text.literal("Loot Lock commands:"), false);
-    context.getSource().sendFeedback(() -> Text.literal("- /lootlock status"), false);
-    context.getSource().sendFeedback(() -> Text.literal("- /lootlock enable"), false);
-    context.getSource().sendFeedback(() -> Text.literal("- /lootlock disable"), false);
-    context.getSource().sendFeedback(() -> Text.literal("- /lootlock profile list"), false);
-    context
-        .getSource()
-        .sendFeedback(
-            () -> Text.literal("- /lootlock profile create <name|\"name with spaces\">"), false);
-    context
-        .getSource()
-        .sendFeedback(
-            () -> Text.literal("- /lootlock profile delete <name|\"name with spaces\">"), false);
-    context
-        .getSource()
-        .sendFeedback(
-            () -> Text.literal("- /lootlock profile activate <name|\"name with spaces\">"), false);
-    context
-        .getSource()
-        .sendFeedback(() -> Text.literal("- /lootlock mode denylist|allowlist"), false);
-    context.getSource().sendFeedback(() -> Text.literal("- /lootlock action leave"), false);
-    context
-        .getSource()
-        .sendFeedback(() -> Text.literal("- /lootlock action delete confirm"), false);
-    context.getSource().sendFeedback(() -> Text.literal("- /lootlock rule add <item>"), false);
-    context.getSource().sendFeedback(() -> Text.literal("- /lootlock rule remove <item>"), false);
-    context.getSource().sendFeedback(() -> Text.literal("- /lootlock rule list"), false);
-    context.getSource().sendFeedback(() -> Text.literal("- /lootlock rule clear confirm"), false);
-    context
-        .getSource()
-        .sendFeedback(
-            () -> Text.literal("- /lootlock policy allowDeleteRejectedItems true|false"), false);
+    ServerCommandSource source = context.getSource();
+    source.sendFeedback(() -> Text.literal("Loot Lock commands:"), false);
+    source.sendFeedback(() -> Text.literal("- /lootlock status"), false);
+    source.sendFeedback(() -> Text.literal("- /lootlock enable"), false);
+    source.sendFeedback(() -> Text.literal("- /lootlock disable"), false);
+    source.sendFeedback(() -> Text.literal("- /lootlock profile list"), false);
+    source.sendFeedback(
+        () -> Text.literal("- /lootlock profile create <name|\"name with spaces\">"), false);
+    source.sendFeedback(
+        () -> Text.literal("- /lootlock profile delete <name|\"name with spaces\">"), false);
+    source.sendFeedback(
+        () -> Text.literal("- /lootlock profile activate <name|\"name with spaces\">"), false);
+    source.sendFeedback(() -> Text.literal("- /lootlock mode denylist|allowlist"), false);
+    source.sendFeedback(() -> Text.literal("- /lootlock action leave"), false);
+    source.sendFeedback(() -> Text.literal("- /lootlock action delete confirm"), false);
+    source.sendFeedback(() -> Text.literal("- /lootlock rule add <item>"), false);
+    source.sendFeedback(() -> Text.literal("- /lootlock rule remove <item>"), false);
+    source.sendFeedback(() -> Text.literal("- /lootlock rule list"), false);
+    source.sendFeedback(() -> Text.literal("- /lootlock rule clear confirm"), false);
+    if (source.hasPermissionLevel(2)) {
+      source.sendFeedback(
+          () -> Text.literal("- /lootlock player <name|uuid> <subcommand> (operator)"), false);
+      source.sendFeedback(
+          () -> Text.literal("- /lootlock policy allowDeleteRejectedItems true|false"), false);
+    }
     return 1;
   }
 
@@ -206,223 +389,190 @@ public final class LootLockCommand {
         .sendFeedback(
             () ->
                 Text.literal(
-                    "Delete mode permanently removes rejected dropped items. Run '/lootlock action delete confirm' to proceed."),
+                    "Delete mode permanently removes rejected dropped items. Add 'confirm' to proceed."),
             false);
     return 1;
   }
 
-  private static int status(CommandContext<ServerCommandSource> context) {
-    StateContext state = resolveStateContext(context.getSource());
-    if (state == null) {
-      return 0;
-    }
-
-    sendStatus(context.getSource(), state.profile);
+  private static int handleStatus(ServerCommandSource source, StateContext state) {
+    sendStatus(source, state);
     return 1;
   }
 
-  private static int profileList(CommandContext<ServerCommandSource> context) {
-    StateContext state = resolveStateContext(context.getSource());
-    if (state == null) {
-      return 0;
-    }
-
-    context.getSource().sendFeedback(() -> Text.literal("Loot Lock profiles:"), false);
-    for (LootLockProfile profile : state.data.getProfiles()) {
+  private static int handleProfileList(ServerCommandSource source, StateContext state) {
+    String header =
+        state.isSelfTargeted()
+            ? "Loot Lock profiles:"
+            : "Loot Lock profiles for " + state.displayName() + ":";
+    source.sendFeedback(() -> Text.literal(header), false);
+    for (LootLockProfile profile : state.data().getProfiles()) {
       if (profile == null) {
         continue;
       }
-
-      String marker = profile.getId().equals(state.data.getActiveProfileId()) ? "* " : "- ";
-      context.getSource().sendFeedback(() -> Text.literal(marker + profile.getName()), false);
+      String marker = profile.getId().equals(state.data().getActiveProfileId()) ? "* " : "- ";
+      source.sendFeedback(() -> Text.literal(marker + profile.getName()), false);
     }
     return 1;
   }
 
-  private static int profileCreate(CommandContext<ServerCommandSource> context) {
-    StateContext state = resolveStateContext(context.getSource());
-    if (state == null) {
-      return 0;
-    }
-
-    String requestedName = StringArgumentType.getString(context, "name");
+  private static int handleProfileCreate(
+      ServerCommandSource source, StateContext state, String requestedName) {
     String profileName = normalizeProfileName(requestedName);
     if (profileName == null) {
-      context
-          .getSource()
-          .sendError(Text.literal("Profile name must be between 1 and 32 characters."));
+      source.sendError(Text.literal("Profile name must be between 1 and 32 characters."));
       return 0;
     }
 
-    if (!canCreateProfile(state.data)) {
-      context
-          .getSource()
-          .sendError(
-              Text.literal(
-                  "You already have "
-                      + PacketLimits.MAX_PROFILES
-                      + " profiles, which is the maximum. Delete one before creating another."));
+    if (!canCreateProfile(state.data())) {
+      String subject =
+          state.isSelfTargeted() ? "You already have " : state.displayName() + " already has ";
+      source.sendError(
+          Text.literal(
+              subject
+                  + PacketLimits.MAX_PROFILES
+                  + " profiles, which is the maximum. Delete one before creating another."));
       return 0;
     }
 
-    if (findProfileByName(state.data, profileName).isPresent()) {
-      context.getSource().sendError(Text.literal("A profile with that name already exists."));
+    if (findProfileByName(state.data(), profileName).isPresent()) {
+      source.sendError(Text.literal("A profile with that name already exists."));
       return 0;
     }
 
-    LootLockProfile created =
-        new LootLockProfile(
-            UUID.randomUUID(),
-            profileName,
-            FilterMode.DENYLIST,
-            RejectedItemAction.LEAVE_ON_GROUND,
-            true,
-            List.of());
-    List<LootLockProfile> profiles = new ArrayList<>(state.data.getProfiles());
-    profiles.add(created);
-    state.data.setProfiles(profiles);
-    state.dataManager.markDirty(state.player);
-    context
-        .getSource()
-        .sendFeedback(() -> Text.literal("Created profile '" + profileName + "'."), false);
+    LootLockProfile created = createProfileWithDefaults(profileName);
+    appendProfile(state.data(), created);
+    markDirty(source, state);
+    String message =
+        state.isSelfTargeted()
+            ? "Created profile '" + profileName + "'."
+            : "Created profile '" + profileName + "' for " + state.displayName() + ".";
+    source.sendFeedback(() -> Text.literal(message), false);
+    syncIfOnline(state);
     return 1;
   }
 
-  private static int profileDelete(CommandContext<ServerCommandSource> context) {
-    StateContext state = resolveStateContext(context.getSource());
-    if (state == null) {
+  private static int handleProfileDelete(
+      ServerCommandSource source, StateContext state, String requestedName) {
+    if (state.data().getProfiles().size() <= 1) {
+      String message =
+          state.isSelfTargeted()
+              ? "You cannot delete your last profile."
+              : "Cannot delete " + state.displayName() + "'s last profile.";
+      source.sendError(Text.literal(message));
       return 0;
     }
 
-    if (state.data.getProfiles().size() <= 1) {
-      context.getSource().sendError(Text.literal("You cannot delete your last profile."));
-      return 0;
-    }
-
-    String requestedName = StringArgumentType.getString(context, "name");
-    Optional<LootLockProfile> found = findProfileByName(state.data, requestedName);
+    Optional<LootLockProfile> found = findProfileByName(state.data(), requestedName);
     if (found.isEmpty()) {
-      context.getSource().sendError(Text.literal("Profile not found: " + requestedName));
+      source.sendError(Text.literal("Profile not found: " + requestedName));
       return 0;
     }
 
     LootLockProfile target = found.get();
-    List<LootLockProfile> profiles = new ArrayList<>(state.data.getProfiles());
-    profiles.removeIf(profile -> profile != null && profile.getId().equals(target.getId()));
-    state.data.setProfiles(profiles);
-
-    if (target.getId().equals(state.data.getActiveProfileId()) && !profiles.isEmpty()) {
-      state.data.setActiveProfileId(profiles.get(0).getId());
-    }
-
-    state.dataManager.markDirty(state.player);
-    context
-        .getSource()
-        .sendFeedback(() -> Text.literal("Deleted profile '" + target.getName() + "'."), false);
+    removeProfileById(state.data(), target.getId());
+    markDirty(source, state);
+    String message =
+        state.isSelfTargeted()
+            ? "Deleted profile '" + target.getName() + "'."
+            : "Deleted profile '" + target.getName() + "' for " + state.displayName() + ".";
+    source.sendFeedback(() -> Text.literal(message), false);
+    syncIfOnline(state);
     return 1;
   }
 
-  private static int profileActivate(CommandContext<ServerCommandSource> context) {
-    StateContext state = resolveStateContext(context.getSource());
-    if (state == null) {
-      return 0;
-    }
-
-    String requestedName = StringArgumentType.getString(context, "name");
-    Optional<LootLockProfile> found = findProfileByName(state.data, requestedName);
+  private static int handleProfileActivate(
+      ServerCommandSource source, StateContext state, String requestedName) {
+    Optional<LootLockProfile> found = findProfileByName(state.data(), requestedName);
     if (found.isEmpty()) {
-      context.getSource().sendError(Text.literal("Profile not found: " + requestedName));
+      source.sendError(Text.literal("Profile not found: " + requestedName));
       return 0;
     }
 
     LootLockProfile target = found.get();
-    state.data.setActiveProfileId(target.getId());
-    state.dataManager.markDirty(state.player);
-    context
-        .getSource()
-        .sendFeedback(() -> Text.literal("Activated profile '" + target.getName() + "'."), false);
-    sendStatus(context.getSource(), target);
+    state.data().setActiveProfileId(target.getId());
+    markDirty(source, state);
+    String message =
+        state.isSelfTargeted()
+            ? "Activated profile '" + target.getName() + "'."
+            : "Activated profile '" + target.getName() + "' for " + state.displayName() + ".";
+    source.sendFeedback(() -> Text.literal(message), false);
+    sendStatus(source, state.withProfile(target));
+    syncIfOnline(state);
     return 1;
   }
 
-  private static int ruleAdd(CommandContext<ServerCommandSource> context)
-      throws CommandSyntaxException {
-    StateContext state = resolveStateContext(context.getSource());
-    if (state == null) {
-      return 0;
-    }
-
-    Identifier itemId = IdentifierArgumentType.getIdentifier(context, "item");
+  private static int handleRuleAdd(
+      ServerCommandSource source, StateContext state, Identifier itemId) {
     if (!Registries.ITEM.containsId(itemId)) {
-      context.getSource().sendError(Text.literal("Unknown item id: " + itemId));
+      source.sendError(Text.literal("Unknown item id: " + itemId));
       return 0;
     }
 
     String token = itemId.toString();
-    if (containsRule(state.profile, token)) {
-      context.getSource().sendError(Text.literal("Rule already exists for: " + token));
+    if (!addRuleToProfile(state.profile(), token)) {
+      source.sendError(Text.literal("Rule already exists for: " + token));
       return 0;
     }
 
-    List<RuleEntry> rules = new ArrayList<>(state.profile.getRules());
-    rules.add(new RuleEntry(token));
-    state.profile.setRules(rules);
-    state.dataManager.markDirty(state.player);
-    context.getSource().sendFeedback(() -> Text.literal("Added rule: " + token), false);
+    markDirty(source, state);
+    String message =
+        state.isSelfTargeted()
+            ? "Added rule: " + token
+            : "Added rule: " + token + " for " + state.displayName();
+    source.sendFeedback(() -> Text.literal(message), false);
+    syncIfOnline(state);
     return 1;
   }
 
-  private static int ruleRemove(CommandContext<ServerCommandSource> context)
-      throws CommandSyntaxException {
-    StateContext state = resolveStateContext(context.getSource());
-    if (state == null) {
-      return 0;
-    }
-
-    Identifier itemId = IdentifierArgumentType.getIdentifier(context, "item");
+  private static int handleRuleRemove(
+      ServerCommandSource source, StateContext state, Identifier itemId) {
     String token = itemId.toString();
-    List<RuleEntry> rules = new ArrayList<>(state.profile.getRules());
-    boolean removed = rules.removeIf(rule -> rule != null && token.equals(rule.itemId()));
-    if (!removed) {
-      context.getSource().sendError(Text.literal("Rule not found for: " + token));
+    if (!removeRuleFromProfile(state.profile(), token)) {
+      source.sendError(Text.literal("Rule not found for: " + token));
       return 0;
     }
 
-    state.profile.setRules(rules);
-    state.dataManager.markDirty(state.player);
-    context.getSource().sendFeedback(() -> Text.literal("Removed rule: " + token), false);
+    markDirty(source, state);
+    String message =
+        state.isSelfTargeted()
+            ? "Removed rule: " + token
+            : "Removed rule: " + token + " for " + state.displayName();
+    source.sendFeedback(() -> Text.literal(message), false);
+    syncIfOnline(state);
     return 1;
   }
 
-  private static int ruleList(CommandContext<ServerCommandSource> context) {
-    StateContext state = resolveStateContext(context.getSource());
-    if (state == null) {
-      return 0;
-    }
-
-    if (state.profile.getRules().isEmpty()) {
-      context.getSource().sendFeedback(() -> Text.literal("No rules in active profile."), false);
+  private static int handleRuleList(ServerCommandSource source, StateContext state) {
+    if (state.profile().getRules().isEmpty()) {
+      String message =
+          state.isSelfTargeted()
+              ? "No rules in active profile."
+              : "No rules in " + state.displayName() + "'s active profile.";
+      source.sendFeedback(() -> Text.literal(message), false);
       return 1;
     }
 
-    context
-        .getSource()
-        .sendFeedback(() -> Text.literal("Rules for '" + state.profile.getName() + "':"), false);
+    String header =
+        state.isSelfTargeted()
+            ? "Rules for '" + state.profile().getName() + "':"
+            : "Rules for "
+                + state.displayName()
+                + "'s profile '"
+                + state.profile().getName()
+                + "':";
+    source.sendFeedback(() -> Text.literal(header), false);
     int invalidRules = 0;
-    for (RuleEntry rule : state.profile.getRules()) {
+    for (RuleEntry rule : state.profile().getRules()) {
       if (rule == null || rule.itemId() == null || rule.itemId().isBlank()) {
         invalidRules++;
         continue;
       }
-      context.getSource().sendFeedback(() -> Text.literal("- " + rule.itemId()), false);
+      source.sendFeedback(() -> Text.literal("- " + rule.itemId()), false);
     }
     if (invalidRules > 0) {
       int invalidRuleCount = invalidRules;
-      context
-          .getSource()
-          .sendFeedback(
-              () -> Text.literal("- <" + invalidRuleCount + " invalid rule entries hidden>"),
-              false);
+      source.sendFeedback(
+          () -> Text.literal("- <" + invalidRuleCount + " invalid rule entries hidden>"), false);
     }
     return 1;
   }
@@ -434,108 +584,103 @@ public final class LootLockCommand {
     return 1;
   }
 
-  private static int ruleClearConfirm(CommandContext<ServerCommandSource> context) {
-    StateContext state = resolveStateContext(context.getSource());
-    if (state == null) {
-      return 0;
-    }
-
-    state.profile.setRules(List.of());
-    state.dataManager.markDirty(state.player);
-    context
-        .getSource()
-        .sendFeedback(() -> Text.literal("Cleared all rules from active profile."), false);
+  private static int handleRuleClear(ServerCommandSource source, StateContext state) {
+    clearRulesOnProfile(state.profile());
+    markDirty(source, state);
+    String message =
+        state.isSelfTargeted()
+            ? "Cleared all rules from active profile."
+            : "Cleared all rules from " + state.displayName() + "'s active profile.";
+    source.sendFeedback(() -> Text.literal(message), false);
+    syncIfOnline(state);
     return 1;
   }
 
-  private static int setEnabled(CommandContext<ServerCommandSource> context, boolean enabled) {
-    StateContext state = resolveStateContext(context.getSource());
-    if (state == null) {
-      return 0;
-    }
-
-    applyGlobalEnable(state.data, enabled);
-    state.dataManager.markDirty(state.player);
-    context
-        .getSource()
-        .sendFeedback(
-            () -> Text.literal("Loot Lock " + (enabled ? "enabled" : "disabled") + "."), false);
-    sendStatus(context.getSource(), state.profile);
+  private static int handleEnable(ServerCommandSource source, StateContext state, boolean enabled) {
+    applyGlobalEnable(state.data(), enabled);
+    markDirty(source, state);
+    String message =
+        state.isSelfTargeted()
+            ? "Loot Lock " + (enabled ? "enabled" : "disabled") + "."
+            : "Loot Lock "
+                + (enabled ? "enabled" : "disabled")
+                + " for "
+                + state.displayName()
+                + ".";
+    source.sendFeedback(() -> Text.literal(message), false);
+    sendStatus(source, state);
+    syncIfOnline(state);
     return 1;
   }
 
-  static void applyGlobalEnable(LootLockPlayerData data, boolean enabled) {
-    data.setEnabledForAll(enabled);
-  }
-
-  private static int setMode(CommandContext<ServerCommandSource> context, FilterMode mode) {
-    StateContext state = resolveStateContext(context.getSource());
-    if (state == null) {
-      return 0;
-    }
-
-    state.profile.setMode(mode);
-    state.dataManager.markDirty(state.player);
-    context
-        .getSource()
-        .sendFeedback(
-            () ->
-                Text.literal(
-                    "Loot Lock mode set to "
-                        + modeToken(mode)
-                        + " for profile '"
-                        + state.profile.getName()
-                        + "'."),
-            false);
-    sendStatus(context.getSource(), state.profile);
+  private static int handleMode(ServerCommandSource source, StateContext state, FilterMode mode) {
+    state.profile().setMode(mode);
+    markDirty(source, state);
+    String message =
+        state.isSelfTargeted()
+            ? "Loot Lock mode set to "
+                + modeToken(mode)
+                + " for profile '"
+                + state.profile().getName()
+                + "'."
+            : "Loot Lock mode set to "
+                + modeToken(mode)
+                + " for "
+                + state.displayName()
+                + "'s profile '"
+                + state.profile().getName()
+                + "'.";
+    source.sendFeedback(() -> Text.literal(message), false);
+    sendStatus(source, state);
+    syncIfOnline(state);
     return 1;
   }
 
-  private static int setAction(
-      CommandContext<ServerCommandSource> context, RejectedItemAction action) {
-    StateContext state = resolveStateContext(context.getSource());
-    if (state == null) {
-      return 0;
-    }
-
+  private static int handleAction(
+      ServerCommandSource source, StateContext state, RejectedItemAction action) {
     RejectedItemAction normalizedAction =
         normalizeRejectedItemAction(action, LootLock.SERVER_CONFIG.allowDeleteRejectedItems());
     if (action == RejectedItemAction.DELETE && normalizedAction != RejectedItemAction.DELETE) {
-      context
-          .getSource()
-          .sendError(
-              Text.literal(
-                  "Server policy blocks delete mode for rejected items. Use 'leave' instead."));
+      source.sendError(
+          Text.literal(
+              "Server policy blocks delete mode for rejected items. Use 'leave' instead."));
       return 0;
     }
 
-    state.profile.setRejectedItemAction(normalizedAction);
-    state.dataManager.markDirty(state.player);
-    context
-        .getSource()
-        .sendFeedback(
-            () ->
-                Text.literal(
-                    "Loot Lock rejected-item action set to "
-                        + actionToken(normalizedAction)
-                        + " for profile '"
-                        + state.profile.getName()
-                        + "'."),
-            false);
+    state.profile().setRejectedItemAction(normalizedAction);
+    markDirty(source, state);
+    String message =
+        state.isSelfTargeted()
+            ? "Loot Lock rejected-item action set to "
+                + actionToken(normalizedAction)
+                + " for profile '"
+                + state.profile().getName()
+                + "'."
+            : "Loot Lock rejected-item action set to "
+                + actionToken(normalizedAction)
+                + " for "
+                + state.displayName()
+                + "'s profile '"
+                + state.profile().getName()
+                + "'.";
+    source.sendFeedback(() -> Text.literal(message), false);
     if (normalizedAction == RejectedItemAction.DELETE) {
-      context
-          .getSource()
-          .sendFeedback(
-              () ->
-                  Text.literal("Warning: delete mode permanently destroys rejected dropped items."),
-              false);
+      source.sendFeedback(
+          () -> Text.literal("Warning: delete mode permanently destroys rejected dropped items."),
+          false);
     }
-    sendStatus(context.getSource(), state.profile);
+    sendStatus(source, state);
+    syncIfOnline(state);
     return 1;
   }
 
-  private static void sendStatus(ServerCommandSource source, LootLockProfile profile) {
-    source.sendFeedback(() -> Text.literal("Loot Lock status:"), false);
+  private static void sendStatus(ServerCommandSource source, StateContext state) {
+    String header =
+        state.isSelfTargeted()
+            ? "Loot Lock status:"
+            : "Loot Lock status for " + state.displayName() + ":";
+    LootLockProfile profile = state.profile();
+    source.sendFeedback(() -> Text.literal(header), false);
     source.sendFeedback(() -> Text.literal("- Active profile: " + profile.getName()), false);
     source.sendFeedback(() -> Text.literal("- Enabled: " + profile.isEnabled()), false);
     source.sendFeedback(() -> Text.literal("- Mode: " + modeToken(profile.getMode())), false);
@@ -544,7 +689,26 @@ public final class LootLockCommand {
     source.sendFeedback(() -> Text.literal("- Rule count: " + profile.getRules().size()), false);
   }
 
-  private static StateContext resolveStateContext(ServerCommandSource source) {
+  private static int withSelfState(CommandContext<ServerCommandSource> context, StateAction action)
+      throws CommandSyntaxException {
+    StateContext state = resolveSelfState(context.getSource());
+    if (state == null) {
+      return 0;
+    }
+    return action.apply(context.getSource(), state);
+  }
+
+  private static int withTargetState(
+      CommandContext<ServerCommandSource> context, StateAction action)
+      throws CommandSyntaxException {
+    StateContext state = resolveTargetState(context);
+    if (state == null) {
+      return 0;
+    }
+    return action.apply(context.getSource(), state);
+  }
+
+  private static StateContext resolveSelfState(ServerCommandSource source) {
     ServerPlayerEntity player;
     try {
       player = source.getPlayerOrThrow();
@@ -552,21 +716,99 @@ public final class LootLockCommand {
       source.sendError(Text.literal("This command can only be used by a player."));
       return null;
     }
+    return buildState(source, player.getUuid(), player.getGameProfile().getName(), player, true);
+  }
 
+  private static StateContext resolveTargetState(CommandContext<ServerCommandSource> context) {
+    ServerCommandSource source = context.getSource();
+    String input = StringArgumentType.getString(context, "target");
+    TargetContext target = resolveTarget(source, input);
+    if (target == null) {
+      return null;
+    }
+    return buildState(source, target.uuid(), target.displayName(), target.online(), false);
+  }
+
+  private static StateContext buildState(
+      ServerCommandSource source,
+      UUID uuid,
+      String displayName,
+      ServerPlayerEntity online,
+      boolean isSelfTargeted) {
     ServerPlayerDataManager dataManager = LootLock.PLAYER_DATA_MANAGER;
     if (dataManager == null) {
       source.sendError(Text.literal("Loot Lock is not ready yet."));
       return null;
     }
 
-    LootLockPlayerData playerData = dataManager.get(player);
-    LootLockProfile activeProfile = playerData.getActiveProfile().orElse(null);
-    if (activeProfile == null) {
+    LootLockPlayerData data = dataManager.getOrLoad(uuid);
+    LootLockProfile profile = data.getActiveProfile().orElse(null);
+    if (profile == null) {
       source.sendError(Text.literal("No active Loot Lock profile found."));
       return null;
     }
 
-    return new StateContext(player, dataManager, playerData, activeProfile);
+    return new StateContext(uuid, displayName, online, isSelfTargeted, dataManager, data, profile);
+  }
+
+  static TargetContext resolveTarget(ServerCommandSource source, String input) {
+    MinecraftServer server = source.getServer();
+    if (server == null) {
+      source.sendError(Text.literal("Server not ready."));
+      return null;
+    }
+
+    ServerPlayerEntity online = server.getPlayerManager().getPlayer(input);
+    if (online != null) {
+      return new TargetContext(online.getUuid(), online.getGameProfile().getName(), online);
+    }
+
+    Optional<GameProfile> cached =
+        server.getUserCache() == null ? Optional.empty() : server.getUserCache().findByName(input);
+    if (cached.isPresent() && cached.get().getId() != null) {
+      return new TargetContext(cached.get().getId(), cached.get().getName(), null);
+    }
+
+    Optional<UUID> parsed = tryParseUuid(input);
+    if (parsed.isPresent()) {
+      UUID uuid = parsed.get();
+      String displayName =
+          server.getUserCache() == null
+              ? input
+              : server.getUserCache().getByUuid(uuid).map(GameProfile::getName).orElse(input);
+      ServerPlayerEntity onlineByUuid = server.getPlayerManager().getPlayer(uuid);
+      return new TargetContext(uuid, displayName, onlineByUuid);
+    }
+
+    source.sendError(Text.literal("Unknown player: " + input));
+    return null;
+  }
+
+  static Optional<UUID> tryParseUuid(String input) {
+    if (input == null || input.isBlank()) {
+      return Optional.empty();
+    }
+    try {
+      return Optional.of(UUID.fromString(input));
+    } catch (IllegalArgumentException ex) {
+      return Optional.empty();
+    }
+  }
+
+  private static void markDirty(ServerCommandSource source, StateContext state) {
+    if (state.onlineTarget() != null) {
+      state.dataManager().markDirty(state.onlineTarget());
+    } else {
+      MinecraftServer server = source.getServer();
+      long tick = server != null ? server.getTicks() : 0L;
+      state.dataManager().markDirty(state.targetUuid(), tick);
+    }
+  }
+
+  private static void syncIfOnline(StateContext state) {
+    if (state.onlineTarget() != null) {
+      ServerToClientPackets.sendAuthoritativeSync(state.onlineTarget());
+    }
   }
 
   static boolean canCreateProfile(LootLockPlayerData data) {
@@ -618,9 +860,86 @@ public final class LootLockCommand {
     return action == null ? RejectedItemAction.LEAVE_ON_GROUND : action;
   }
 
-  private record StateContext(
-      ServerPlayerEntity player,
+  static void applyGlobalEnable(LootLockPlayerData data, boolean enabled) {
+    data.setEnabledForAll(enabled);
+  }
+
+  static LootLockProfile createProfileWithDefaults(String profileName) {
+    return new LootLockProfile(
+        UUID.randomUUID(),
+        profileName,
+        FilterMode.DENYLIST,
+        RejectedItemAction.LEAVE_ON_GROUND,
+        true,
+        List.of());
+  }
+
+  static void appendProfile(LootLockPlayerData data, LootLockProfile profile) {
+    List<LootLockProfile> profiles = new ArrayList<>(data.getProfiles());
+    profiles.add(profile);
+    data.setProfiles(profiles);
+  }
+
+  static void removeProfileById(LootLockPlayerData data, UUID profileId) {
+    List<LootLockProfile> profiles = new ArrayList<>(data.getProfiles());
+    profiles.removeIf(profile -> profile != null && profile.getId().equals(profileId));
+    data.setProfiles(profiles);
+    if (profileId.equals(data.getActiveProfileId()) && !profiles.isEmpty()) {
+      data.setActiveProfileId(profiles.get(0).getId());
+    }
+  }
+
+  static boolean addRuleToProfile(LootLockProfile profile, String itemId) {
+    if (containsRule(profile, itemId)) {
+      return false;
+    }
+    List<RuleEntry> rules = new ArrayList<>(profile.getRules());
+    rules.add(new RuleEntry(itemId));
+    profile.setRules(rules);
+    return true;
+  }
+
+  static boolean removeRuleFromProfile(LootLockProfile profile, String itemId) {
+    List<RuleEntry> rules = new ArrayList<>(profile.getRules());
+    boolean removed = rules.removeIf(rule -> rule != null && itemId.equals(rule.itemId()));
+    if (removed) {
+      profile.setRules(rules);
+    }
+    return removed;
+  }
+
+  static void clearRulesOnProfile(LootLockProfile profile) {
+    profile.setRules(List.of());
+  }
+
+  private static String profileName(CommandContext<ServerCommandSource> context) {
+    return StringArgumentType.getString(context, "name");
+  }
+
+  private static Identifier ruleIdentifier(CommandContext<ServerCommandSource> context)
+      throws CommandSyntaxException {
+    return IdentifierArgumentType.getIdentifier(context, "item");
+  }
+
+  @FunctionalInterface
+  private interface StateAction {
+    int apply(ServerCommandSource source, StateContext state) throws CommandSyntaxException;
+  }
+
+  record TargetContext(UUID uuid, String displayName, ServerPlayerEntity online) {}
+
+  record StateContext(
+      UUID targetUuid,
+      String displayName,
+      ServerPlayerEntity onlineTarget,
+      boolean isSelfTargeted,
       ServerPlayerDataManager dataManager,
       LootLockPlayerData data,
-      LootLockProfile profile) {}
+      LootLockProfile profile) {
+
+    StateContext withProfile(LootLockProfile newProfile) {
+      return new StateContext(
+          targetUuid, displayName, onlineTarget, isSelfTargeted, dataManager, data, newProfile);
+    }
+  }
 }

@@ -131,11 +131,16 @@ All commands are rooted at `/lootlock`. The in-game UI covers everything below, 
 
 Requires operator permission level `2`.
 
+Server policy lives under `/lootlock policy`. Every command in the Common and Profiles and rules tables also has an operator form prefixed with `/lootlock player <target>` that runs the same subcommand against another player's data instead of the caller's.
+
 | Command | What it does |
 | --- | --- |
 | `/lootlock policy` | Shows current server policy values. |
 | `/lootlock policy allowDeleteRejectedItems true` | Allows players to use delete mode for rejected items. |
 | `/lootlock policy allowDeleteRejectedItems false` | Blocks delete mode and forces leave-mode behaviour. |
+| `/lootlock player <target> <subcommand>` | Runs any self-targeted subcommand against `<target>` instead of the caller. |
+
+`<target>` accepts an online player name (tab-completes), an offline name the server has cached, or a raw UUID literal for pre-staging a profile for a player who has never joined. Online targets receive an authoritative sync after every mutation so their client reflects the change without rejoining. Offline edits persist through the debounced save path keyed by UUID and survive restarts.
 
 ## FAQ
 
