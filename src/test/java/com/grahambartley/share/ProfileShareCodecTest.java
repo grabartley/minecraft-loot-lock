@@ -17,12 +17,10 @@ import java.util.stream.Stream;
 import net.minecraft.Bootstrap;
 import net.minecraft.SharedConstants;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.jupiter.params.provider.ValueSource;
 
 class ProfileShareCodecTest {
 
@@ -100,88 +98,83 @@ class ProfileShareCodecTest {
     assertEquals(first, second);
   }
 
-  @ParameterizedTest(name = "decode \"{0}\" -> err {1}")
-  @CsvSource({
-    "'',                  empty",
-    "'   ',               empty",
-    "noprefix,            bad_prefix",
-    "ll2.something,       bad_prefix",
-    "ll1.@@@!,            bad_base64",
-  })
-  void decodeMalformedInputsReturnErr(String input, String expectedReason) {
+  static Stream<Arguments> rawInputCases() {
+    String oversizedInput =
+        ProfileShareCodec.PREFIX + "a".repeat(PacketLimits.MAX_SHARE_CODE_LENGTH);
+    return Stream.of(
+        Arguments.of((String) null, "empty"),
+        Arguments.of("", "empty"),
+        Arguments.of("   ", "empty"),
+        Arguments.of(oversizedInput, "too_long"),
+        Arguments.of("noprefix", "bad_prefix"),
+        Arguments.of("ll2.something", "bad_prefix"),
+        Arguments.of("ll1.@@@!", "bad_base64"));
+  }
+
+  @ParameterizedTest(name = "raw input rejected with reason {1}")
+  @MethodSource("rawInputCases")
+  void decodeRejectsRawInput(String input, String expectedReason) {
     ProfileShareCodec.DecodeResult result = ProfileShareCodec.decode(input);
     ProfileShareCodec.DecodeResult.Err err =
         assertInstanceOf(ProfileShareCodec.DecodeResult.Err.class, result);
     assertEquals(expectedReason, err.reason());
   }
 
-  @Test
-  void decodeNullReturnsEmptyErr() {
-    ProfileShareCodec.DecodeResult result = ProfileShareCodec.decode(null);
-    assertInstanceOf(ProfileShareCodec.DecodeResult.Err.class, result);
-    assertEquals("empty", ((ProfileShareCodec.DecodeResult.Err) result).reason());
-  }
-
-  @Test
-  void decodeOversizedInputReturnsTooLongErr() {
-    String big = ProfileShareCodec.PREFIX + "a".repeat(PacketLimits.MAX_SHARE_CODE_LENGTH);
-    ProfileShareCodec.DecodeResult result = ProfileShareCodec.decode(big);
-    assertEquals("too_long", ((ProfileShareCodec.DecodeResult.Err) result).reason());
-  }
-
-  @ParameterizedTest(name = "tweaked payload field {0} -> err")
-  @ValueSource(
-      strings = {
-        "{\"v\":2,\"name\":\"x\",\"mode\":\"DENYLIST\",\"action\":\"LEAVE_ON_GROUND\",\"rules\":[]}",
-        "{\"v\":1,\"name\":\"\",\"mode\":\"DENYLIST\",\"action\":\"LEAVE_ON_GROUND\",\"rules\":[]}",
-        "{\"v\":1,\"name\":\"x\",\"mode\":\"NOPE\",\"action\":\"LEAVE_ON_GROUND\",\"rules\":[]}",
-        "{\"v\":1,\"name\":\"x\",\"mode\":\"DENYLIST\",\"action\":\"NOPE\",\"rules\":[]}",
-        "{\"v\":1,\"name\":\"x\",\"mode\":\"DENYLIST\",\"action\":\"LEAVE_ON_GROUND\",\"rules\":\"oops\"}",
-        "{\"v\":1,\"name\":\"x\",\"mode\":\"DENYLIST\",\"action\":\"LEAVE_ON_GROUND\",\"rules\":[\"\"]}",
-        "{\"v\":1,\"name\":\"x\",\"mode\":\"DENYLIST\",\"action\":\"LEAVE_ON_GROUND\",\"rules\":[\"!!not-an-id\"]}",
-      })
-  void decodeRejectsInvalidPayloads(String json) {
-    String code = encodeRawJson(json);
-    ProfileShareCodec.DecodeResult result = ProfileShareCodec.decode(code);
-    assertInstanceOf(ProfileShareCodec.DecodeResult.Err.class, result);
-  }
-
-  @Test
-  void decodeRejectsOversizedName() {
-    String thirtyThree = "x".repeat(33);
-    String json =
-        "{\"v\":1,\"name\":\""
-            + thirtyThree
-            + "\",\"mode\":\"DENYLIST\",\"action\":\"LEAVE_ON_GROUND\",\"rules\":[]}";
-    ProfileShareCodec.DecodeResult result = ProfileShareCodec.decode(encodeRawJson(json));
-    assertEquals("bad_name", ((ProfileShareCodec.DecodeResult.Err) result).reason());
-  }
-
-  @Test
-  void decodeRejectsTooManyRules() {
-    StringBuilder rules = new StringBuilder("[");
-    for (int i = 0; i < PacketLimits.MAX_RULES_PER_PROFILE + 1; i++) {
-      if (i > 0) rules.append(",");
-      rules.append("\"minecraft:item_").append(i).append("\"");
+  static Stream<Arguments> payloadCases() {
+    String oversizedName = "x".repeat(33);
+    String oversizedRuleId = "minecraft:" + "a".repeat(PacketLimits.MAX_RULE_ID_LENGTH);
+    StringBuilder rulesArray = new StringBuilder("[");
+    for (int i = 0; i <= PacketLimits.MAX_RULES_PER_PROFILE; i++) {
+      if (i > 0) rulesArray.append(",");
+      rulesArray.append("\"minecraft:item_").append(i).append("\"");
     }
-    rules.append("]");
-    String json =
-        "{\"v\":1,\"name\":\"x\",\"mode\":\"DENYLIST\",\"action\":\"LEAVE_ON_GROUND\",\"rules\":"
-            + rules
-            + "}";
-    ProfileShareCodec.DecodeResult result = ProfileShareCodec.decode(encodeRawJson(json));
-    assertEquals("too_many_rules", ((ProfileShareCodec.DecodeResult.Err) result).reason());
+    rulesArray.append("]");
+    return Stream.of(
+        Arguments.of(
+            "{\"v\":2,\"name\":\"x\",\"mode\":\"DENYLIST\",\"action\":\"LEAVE_ON_GROUND\",\"rules\":[]}",
+            "bad_version"),
+        Arguments.of(
+            "{\"v\":1,\"name\":\"\",\"mode\":\"DENYLIST\",\"action\":\"LEAVE_ON_GROUND\",\"rules\":[]}",
+            "bad_name"),
+        Arguments.of(
+            "{\"v\":1,\"name\":\""
+                + oversizedName
+                + "\",\"mode\":\"DENYLIST\",\"action\":\"LEAVE_ON_GROUND\",\"rules\":[]}",
+            "bad_name"),
+        Arguments.of(
+            "{\"v\":1,\"name\":\"x\",\"mode\":\"NOPE\",\"action\":\"LEAVE_ON_GROUND\",\"rules\":[]}",
+            "bad_mode"),
+        Arguments.of(
+            "{\"v\":1,\"name\":\"x\",\"mode\":\"DENYLIST\",\"action\":\"NOPE\",\"rules\":[]}",
+            "bad_action"),
+        Arguments.of(
+            "{\"v\":1,\"name\":\"x\",\"mode\":\"DENYLIST\",\"action\":\"LEAVE_ON_GROUND\",\"rules\":\"oops\"}",
+            "bad_rules"),
+        Arguments.of(
+            "{\"v\":1,\"name\":\"x\",\"mode\":\"DENYLIST\",\"action\":\"LEAVE_ON_GROUND\",\"rules\":[\"\"]}",
+            "bad_rule_entry"),
+        Arguments.of(
+            "{\"v\":1,\"name\":\"x\",\"mode\":\"DENYLIST\",\"action\":\"LEAVE_ON_GROUND\",\"rules\":[\"!!not-an-id\"]}",
+            "bad_rule_entry"),
+        Arguments.of(
+            "{\"v\":1,\"name\":\"x\",\"mode\":\"DENYLIST\",\"action\":\"LEAVE_ON_GROUND\",\"rules\":[\""
+                + oversizedRuleId
+                + "\"]}",
+            "bad_rule_entry"),
+        Arguments.of(
+            "{\"v\":1,\"name\":\"x\",\"mode\":\"DENYLIST\",\"action\":\"LEAVE_ON_GROUND\",\"rules\":"
+                + rulesArray
+                + "}",
+            "too_many_rules"));
   }
 
-  @Test
-  void decodeRejectsRuleIdLongerThanLimit() {
-    String oversize = "minecraft:" + "a".repeat(PacketLimits.MAX_RULE_ID_LENGTH);
-    String json =
-        "{\"v\":1,\"name\":\"x\",\"mode\":\"DENYLIST\",\"action\":\"LEAVE_ON_GROUND\",\"rules\":[\""
-            + oversize
-            + "\"]}";
+  @ParameterizedTest(name = "payload rejected with reason {1}")
+  @MethodSource("payloadCases")
+  void decodeRejectsInvalidPayload(String json, String expectedReason) {
     ProfileShareCodec.DecodeResult result = ProfileShareCodec.decode(encodeRawJson(json));
-    assertEquals("bad_rule_entry", ((ProfileShareCodec.DecodeResult.Err) result).reason());
+    ProfileShareCodec.DecodeResult.Err err =
+        assertInstanceOf(ProfileShareCodec.DecodeResult.Err.class, result);
+    assertEquals(expectedReason, err.reason());
   }
 
   @ParameterizedTest(name = "rule token \"{0}\" valid={1}")
