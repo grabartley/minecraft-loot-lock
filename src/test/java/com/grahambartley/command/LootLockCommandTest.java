@@ -317,4 +317,53 @@ class LootLockCommandTest {
     return new LootLockProfile(
         UUID.randomUUID(), name, mode, RejectedItemAction.LEAVE_ON_GROUND, enabled, List.of());
   }
+
+  @Test
+  void nextAvailableNameReturnsBaseWhenNoCollision() {
+    LootLockPlayerData data = LootLockPlayerData.createDefault(UUID.randomUUID());
+    assertEquals("Mining", LootLockCommand.nextAvailableName(data, "Mining"));
+  }
+
+  @Test
+  void nextAvailableNameAppendsSuffixOnCollision() {
+    LootLockPlayerData data = LootLockPlayerData.createDefault(UUID.randomUUID());
+    LootLockCommand.appendProfile(data, LootLockCommand.createProfileWithDefaults("Mining"));
+    assertEquals("Mining (2)", LootLockCommand.nextAvailableName(data, "Mining"));
+  }
+
+  @Test
+  void nextAvailableNameSkipsTakenSuffixes() {
+    LootLockPlayerData data = LootLockPlayerData.createDefault(UUID.randomUUID());
+    LootLockCommand.appendProfile(data, LootLockCommand.createProfileWithDefaults("Mining"));
+    LootLockCommand.appendProfile(data, LootLockCommand.createProfileWithDefaults("Mining (2)"));
+    assertEquals("Mining (3)", LootLockCommand.nextAvailableName(data, "Mining"));
+  }
+
+  @Test
+  void nextAvailableNameTrimsBaseToFitMaxLength() {
+    LootLockPlayerData data = LootLockPlayerData.createDefault(UUID.randomUUID());
+    String thirtyTwo = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdef";
+    assertEquals(32, thirtyTwo.length());
+    LootLockCommand.appendProfile(data, LootLockCommand.createProfileWithDefaults(thirtyTwo));
+    String result = LootLockCommand.nextAvailableName(data, thirtyTwo);
+    assertTrue(result.length() <= 32, "result was " + result.length() + " chars: " + result);
+    assertTrue(result.endsWith(" (2)"), "result did not end with suffix: " + result);
+  }
+
+  @ParameterizedTest(name = "reason \"{0}\" -> {1}")
+  @CsvSource({
+    "empty,        loot-lock.command.error.share_code.empty",
+    "too_long,     loot-lock.command.error.share_code.too_long",
+    "bad_prefix,   loot-lock.command.error.share_code.bad_prefix",
+    "bad_base64,   loot-lock.command.error.share_code.bad_payload",
+    "bad_deflate,  loot-lock.command.error.share_code.bad_payload",
+    "bad_json,     loot-lock.command.error.share_code.bad_payload",
+    "bad_version,  loot-lock.command.error.share_code.bad_payload",
+    "bad_name,     loot-lock.command.error.share_code.bad_field",
+    "bad_rules,    loot-lock.command.error.share_code.bad_field",
+    "totally_new,  loot-lock.command.error.share_code.bad_field",
+  })
+  void shareCodeErrorKeyMapsReasonToTranslationKey(String reason, String expectedKey) {
+    assertEquals(expectedKey, LootLockCommand.shareCodeErrorKey(reason));
+  }
 }

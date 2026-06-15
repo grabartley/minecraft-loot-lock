@@ -147,6 +147,10 @@ public final class LootLockLang {
       "loot-lock.command.help.line.profile_delete";
   public static final String COMMAND_HELP_LINE_PROFILE_ACTIVATE =
       "loot-lock.command.help.line.profile_activate";
+  public static final String COMMAND_HELP_LINE_PROFILE_EXPORT =
+      "loot-lock.command.help.line.profile_export";
+  public static final String COMMAND_HELP_LINE_PROFILE_IMPORT =
+      "loot-lock.command.help.line.profile_import";
   public static final String COMMAND_HELP_LINE_MODE = "loot-lock.command.help.line.mode";
   public static final String COMMAND_HELP_LINE_ACTION_LEAVE =
       "loot-lock.command.help.line.action_leave";
@@ -200,6 +204,33 @@ public final class LootLockLang {
       "loot-lock.command.profile_activate.feedback.self";
   public static final String COMMAND_PROFILE_ACTIVATE_TARGET =
       "loot-lock.command.profile_activate.feedback.target";
+
+  public static final String COMMAND_PROFILE_EXPORT_HEADER_SELF =
+      "loot-lock.command.profile_export.header.self";
+  public static final String COMMAND_PROFILE_EXPORT_HEADER_TARGET =
+      "loot-lock.command.profile_export.header.target";
+  public static final String COMMAND_PROFILE_EXPORT_SUMMARY_ONE =
+      "loot-lock.command.profile_export.summary.one";
+  public static final String COMMAND_PROFILE_EXPORT_SUMMARY_MANY =
+      "loot-lock.command.profile_export.summary.many";
+  public static final String COMMAND_PROFILE_EXPORT_HOVER =
+      "loot-lock.command.profile_export.hover";
+  public static final String COMMAND_PROFILE_IMPORT_FEEDBACK_SELF =
+      "loot-lock.command.profile_import.feedback.self";
+  public static final String COMMAND_PROFILE_IMPORT_FEEDBACK_TARGET =
+      "loot-lock.command.profile_import.feedback.target";
+  public static final String COMMAND_PROFILE_IMPORT_FEEDBACK_RENAMED =
+      "loot-lock.command.profile_import.feedback.renamed";
+  public static final String COMMAND_ERROR_SHARE_CODE_EMPTY =
+      "loot-lock.command.error.share_code.empty";
+  public static final String COMMAND_ERROR_SHARE_CODE_TOO_LONG =
+      "loot-lock.command.error.share_code.too_long";
+  public static final String COMMAND_ERROR_SHARE_CODE_BAD_PREFIX =
+      "loot-lock.command.error.share_code.bad_prefix";
+  public static final String COMMAND_ERROR_SHARE_CODE_BAD_PAYLOAD =
+      "loot-lock.command.error.share_code.bad_payload";
+  public static final String COMMAND_ERROR_SHARE_CODE_BAD_FIELD =
+      "loot-lock.command.error.share_code.bad_field";
 
   public static final String COMMAND_RULE_ADD_SELF = "loot-lock.command.rule_add.feedback.self";
   public static final String COMMAND_RULE_ADD_TARGET = "loot-lock.command.rule_add.feedback.target";

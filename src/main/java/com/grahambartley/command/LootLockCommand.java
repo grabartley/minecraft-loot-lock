@@ -10,6 +10,7 @@ import com.grahambartley.network.PacketLimits;
 import com.grahambartley.network.ServerToClientPackets;
 import com.grahambartley.server.ServerPlayerDataManager;
 import com.grahambartley.server.ServerPolicyService;
+import com.grahambartley.share.ProfileShareCodec;
 import com.grahambartley.text.LootLockLang;
 import com.mojang.authlib.GameProfile;
 import com.mojang.brigadier.CommandDispatcher;
@@ -30,8 +31,12 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.text.ClickEvent;
+import net.minecraft.text.HoverEvent;
 import net.minecraft.text.MutableText;
+import net.minecraft.text.Style;
 import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 
 public final class LootLockCommand {
@@ -139,7 +144,29 @@ public final class LootLockCommand {
                                                 ctx,
                                                 (s, state) ->
                                                     handleProfileActivate(
-                                                        s, state, profileName(ctx)))))))
+                                                        s, state, profileName(ctx))))))
+                    .then(
+                        CommandManager.literal("export")
+                            .then(
+                                CommandManager.argument("name", StringArgumentType.string())
+                                    .executes(
+                                        ctx ->
+                                            withSelfState(
+                                                ctx,
+                                                (s, state) ->
+                                                    handleProfileExport(
+                                                        s, state, profileName(ctx))))))
+                    .then(
+                        CommandManager.literal("import")
+                            .then(
+                                CommandManager.argument("code", StringArgumentType.greedyString())
+                                    .executes(
+                                        ctx ->
+                                            withSelfState(
+                                                ctx,
+                                                (s, state) ->
+                                                    handleProfileImport(
+                                                        s, state, shareCode(ctx)))))))
             .then(
                 CommandManager.literal("rule")
                     .requires(ServerCommandSource::isExecutedByPlayer)
@@ -304,7 +331,27 @@ public final class LootLockCommand {
                                             ctx,
                                             (s, state) ->
                                                 handleProfileActivate(
-                                                    s, state, profileName(ctx)))))))
+                                                    s, state, profileName(ctx))))))
+                .then(
+                    CommandManager.literal("export")
+                        .then(
+                            CommandManager.argument("name", StringArgumentType.string())
+                                .executes(
+                                    ctx ->
+                                        withTargetState(
+                                            ctx,
+                                            (s, state) ->
+                                                handleProfileExport(s, state, profileName(ctx))))))
+                .then(
+                    CommandManager.literal("import")
+                        .then(
+                            CommandManager.argument("code", StringArgumentType.greedyString())
+                                .executes(
+                                    ctx ->
+                                        withTargetState(
+                                            ctx,
+                                            (s, state) ->
+                                                handleProfileImport(s, state, shareCode(ctx)))))))
         .then(
             CommandManager.literal("rule")
                 .then(
@@ -382,6 +429,8 @@ public final class LootLockCommand {
     sendKey(source, LootLockLang.COMMAND_HELP_LINE_PROFILE_CREATE);
     sendKey(source, LootLockLang.COMMAND_HELP_LINE_PROFILE_DELETE);
     sendKey(source, LootLockLang.COMMAND_HELP_LINE_PROFILE_ACTIVATE);
+    sendKey(source, LootLockLang.COMMAND_HELP_LINE_PROFILE_EXPORT);
+    sendKey(source, LootLockLang.COMMAND_HELP_LINE_PROFILE_IMPORT);
     sendKey(source, LootLockLang.COMMAND_HELP_LINE_MODE);
     sendKey(source, LootLockLang.COMMAND_HELP_LINE_ACTION_LEAVE);
     sendKey(source, LootLockLang.COMMAND_HELP_LINE_ACTION_DELETE);
@@ -501,6 +550,128 @@ public final class LootLockCommand {
     source.sendFeedback(() -> message, false);
     syncIfOnline(state);
     return 1;
+  }
+
+  private static int handleProfileExport(
+      ServerCommandSource source, StateContext state, String requestedName) {
+    Optional<LootLockProfile> found = findProfileByName(state.data(), requestedName);
+    if (found.isEmpty()) {
+      source.sendError(
+          Text.translatable(LootLockLang.COMMAND_ERROR_PROFILE_NOT_FOUND, requestedName));
+      return 0;
+    }
+
+    LootLockProfile target = found.get();
+    String code = ProfileShareCodec.encode(target);
+    String profileNameValue = target.getName();
+    int ruleCount = target.getRules().size();
+    int codeLength = code.length();
+
+    Text header =
+        state.isSelfTargeted()
+            ? Text.translatable(LootLockLang.COMMAND_PROFILE_EXPORT_HEADER_SELF, profileNameValue)
+            : Text.translatable(
+                LootLockLang.COMMAND_PROFILE_EXPORT_HEADER_TARGET,
+                profileNameValue,
+                state.displayName());
+    source.sendFeedback(() -> header, false);
+
+    Style codeStyle =
+        Style.EMPTY
+            .withFormatting(Formatting.YELLOW)
+            .withClickEvent(new ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD, code))
+            .withHoverEvent(
+                new HoverEvent(
+                    HoverEvent.Action.SHOW_TEXT,
+                    Text.translatable(LootLockLang.COMMAND_PROFILE_EXPORT_HOVER)));
+    source.sendFeedback(() -> Text.literal(code).setStyle(codeStyle), false);
+
+    String summaryKey =
+        ruleCount == 1
+            ? LootLockLang.COMMAND_PROFILE_EXPORT_SUMMARY_ONE
+            : LootLockLang.COMMAND_PROFILE_EXPORT_SUMMARY_MANY;
+    source.sendFeedback(() -> Text.translatable(summaryKey, ruleCount, codeLength), false);
+    return 1;
+  }
+
+  private static int handleProfileImport(
+      ServerCommandSource source, StateContext state, String rawCode) {
+    ProfileShareCodec.DecodeResult result = ProfileShareCodec.decode(rawCode);
+    if (result instanceof ProfileShareCodec.DecodeResult.Err err) {
+      source.sendError(Text.translatable(shareCodeErrorKey(err.reason())));
+      return 0;
+    }
+    ProfileShareCodec.DecodeResult.Ok ok = (ProfileShareCodec.DecodeResult.Ok) result;
+    LootLockProfile decoded = ok.profile();
+
+    if (!canCreateProfile(state.data())) {
+      Text error =
+          state.isSelfTargeted()
+              ? Text.translatable(
+                  LootLockLang.COMMAND_ERROR_PROFILE_MAX_SELF, PacketLimits.MAX_PROFILES)
+              : Text.translatable(
+                  LootLockLang.COMMAND_ERROR_PROFILE_MAX_TARGET,
+                  state.displayName(),
+                  PacketLimits.MAX_PROFILES);
+      source.sendError(error);
+      return 0;
+    }
+
+    String requestedName = decoded.getName();
+    boolean renamed = findProfileByName(state.data(), requestedName).isPresent();
+    String finalName = renamed ? nextAvailableName(state.data(), requestedName) : requestedName;
+    String normalizedName = normalizeProfileName(finalName);
+    if (normalizedName == null) {
+      source.sendError(Text.translatable(LootLockLang.COMMAND_ERROR_PROFILE_NAME_LENGTH));
+      return 0;
+    }
+
+    LootLockProfile created =
+        new LootLockProfile(
+            UUID.randomUUID(),
+            normalizedName,
+            decoded.getMode(),
+            decoded.getRejectedItemAction(),
+            true,
+            0,
+            new ArrayList<>(decoded.getRules()));
+    appendProfile(state.data(), created);
+    markDirty(source, state);
+
+    int ruleCount = created.getRules().size();
+    if (renamed) {
+      Text feedback =
+          Text.translatable(
+              LootLockLang.COMMAND_PROFILE_IMPORT_FEEDBACK_RENAMED,
+              normalizedName,
+              ruleCount,
+              requestedName);
+      source.sendFeedback(() -> feedback, false);
+    } else {
+      Text feedback =
+          state.isSelfTargeted()
+              ? Text.translatable(
+                  LootLockLang.COMMAND_PROFILE_IMPORT_FEEDBACK_SELF, normalizedName, ruleCount)
+              : Text.translatable(
+                  LootLockLang.COMMAND_PROFILE_IMPORT_FEEDBACK_TARGET,
+                  normalizedName,
+                  ruleCount,
+                  state.displayName());
+      source.sendFeedback(() -> feedback, false);
+    }
+    syncIfOnline(state);
+    return 1;
+  }
+
+  static String shareCodeErrorKey(String reason) {
+    return switch (reason) {
+      case "empty" -> LootLockLang.COMMAND_ERROR_SHARE_CODE_EMPTY;
+      case "too_long" -> LootLockLang.COMMAND_ERROR_SHARE_CODE_TOO_LONG;
+      case "bad_prefix" -> LootLockLang.COMMAND_ERROR_SHARE_CODE_BAD_PREFIX;
+      case "bad_base64", "bad_deflate", "bad_json", "bad_version" ->
+          LootLockLang.COMMAND_ERROR_SHARE_CODE_BAD_PAYLOAD;
+      default -> LootLockLang.COMMAND_ERROR_SHARE_CODE_BAD_FIELD;
+    };
   }
 
   private static int handleProfileDelete(
@@ -940,6 +1111,29 @@ public final class LootLockCommand {
     return normalized;
   }
 
+  static String nextAvailableName(LootLockPlayerData data, String sourceName) {
+    String base = normalizeProfileName(sourceName);
+    if (base == null) {
+      base = "Profile";
+    }
+    if (findProfileByName(data, base).isEmpty()) {
+      return base;
+    }
+    for (int suffix = 2; suffix <= 999; suffix++) {
+      String tail = " (" + suffix + ")";
+      String prefix =
+          base.length() + tail.length() <= 32 ? base : base.substring(0, 32 - tail.length());
+      String candidate = prefix + tail;
+      if (findProfileByName(data, candidate).isEmpty()) {
+        return candidate;
+      }
+    }
+    String tail = " copy";
+    String prefix =
+        base.length() + tail.length() <= 32 ? base : base.substring(0, 32 - tail.length());
+    return prefix + tail;
+  }
+
   static Optional<LootLockProfile> findProfileByName(LootLockPlayerData data, String name) {
     String normalized = normalizeProfileName(name);
     if (normalized == null) {
@@ -1026,6 +1220,10 @@ public final class LootLockCommand {
 
   private static String profileName(CommandContext<ServerCommandSource> context) {
     return StringArgumentType.getString(context, "name");
+  }
+
+  private static String shareCode(CommandContext<ServerCommandSource> context) {
+    return StringArgumentType.getString(context, "code");
   }
 
   private static Identifier ruleIdentifier(CommandContext<ServerCommandSource> context)

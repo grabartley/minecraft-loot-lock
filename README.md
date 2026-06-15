@@ -117,6 +117,8 @@ All commands are rooted at `/lootlock`. The in-game UI covers everything below, 
 | --- | --- | --- |
 | `/lootlock profile create <name>` | Creates a new profile with default settings. | Names are trimmed and must be 1 to 32 chars. Max 9 profiles per player. |
 | `/lootlock profile delete <name>` | Deletes a profile by name. | Cannot delete your last profile. |
+| `/lootlock profile export <name>` | Encodes the named profile as a clickable, copy-to-clipboard share code. | See the Share profiles section below. |
+| `/lootlock profile import <code>` | Decodes a `ll1.`-prefixed share code and creates a new profile from it. | Name collisions auto-suffix with `(2)`, `(3)`, etc. |
 | `/lootlock mode denylist` | Sets active profile filter mode to denylist. | |
 | `/lootlock mode allowlist` | Sets active profile filter mode to allowlist. | |
 | `/lootlock action leave` | Sets rejected-item behaviour to leave drops on the ground. | |
@@ -181,6 +183,21 @@ Profile data is server-authoritative and saved per player UUID alongside other w
 ## Permissions
 
 Operator permission level `2` is required for the `policy` command path and for managing other players' profiles. Players without operator permissions can still fully manage their own profile through the UI or commands.
+
+## Share profiles
+
+Profiles can be exported as a short pasteable share code and imported back into any world with Loot Lock installed.
+
+Run `/lootlock profile export <name>` to get back a clickable string like `ll1.eJyrViouSU3MS1ezUjI0Mlay8suvtFKK1FFKzEsBigEAyiYItQ`. Click the code in chat and Minecraft copies it to your clipboard. Paste it into Discord, a Reddit comment, a modpack readme, or anywhere else.
+
+To bring a code in, run `/lootlock profile import <code>`. The decoder validates the prefix, payload, and every field before creating a new profile. If the imported name collides with one you already own, the new profile is suffixed with ` (2)`, ` (3)`, and so on. Errors return a clear message rather than crashing.
+
+What does and does not travel inside a code:
+
+- **Travels:** profile name, filter mode, rejected-item action, and the full ordered list of rules (item ids and tag entries prefixed with `#`).
+- **Does not travel:** profile colour, enabled state, profile id. The importer mints a fresh id and leaves color choice to the importer.
+
+Codes are public by definition. Do not encode anything you would not paste into a public channel.
 
 ## Contributing translations
 
