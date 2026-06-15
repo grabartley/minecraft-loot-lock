@@ -64,10 +64,6 @@ public final class ServerPlayerDataManager {
     tick(server.getTicks());
   }
 
-  public int getCacheSize() {
-    return cache.size();
-  }
-
   LootLockPlayerData getOrLoad(UUID playerUuid) {
     CachedEntry entry = cache.get(playerUuid);
     if (entry == null) {
