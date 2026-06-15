@@ -80,6 +80,7 @@ Inside the Rules tab:
 - **Drag a stack** onto the panel to drop it straight into your rules.
 - **Drag a stack** onto the closed Loot Lock button to add it without opening the panel.
 - **Clear all** wipes the active profile, **Clear search** appears in its place while searching.
+- **Search starting with `#`** scopes results to item tags (`#flowers`, `#seeds`, `#minecraft:wool`). Add a tag row the same way you add an item row, and it expands to match every item the tag covers.
 
 ### Pro Tips
 
@@ -122,7 +123,9 @@ All commands are rooted at `/lootlock`. The in-game UI covers everything below, 
 | `/lootlock action delete` | Shows safety warning and confirmation instructions for delete mode. | |
 | `/lootlock action delete confirm` | Sets rejected-item behaviour to permanently delete rejected drops. | Blocked if server policy disallows delete mode. |
 | `/lootlock rule add <namespace:item>` | Adds an item rule to the active profile. | Item id must exist. |
+| `/lootlock rule add tag <namespace:tag_path>` | Adds an item tag rule to the active profile, matching every item the tag resolves to. | Saves even if the tag is not currently loaded; resolves later via datapack reload. |
 | `/lootlock rule remove <namespace:item>` | Removes an item rule from the active profile. | |
+| `/lootlock rule remove tag <namespace:tag_path>` | Removes a tag rule from the active profile. | |
 | `/lootlock rule list` | Lists rules in the active profile. | |
 | `/lootlock rule clear` | Shows confirmation hint before clearing rules. | |
 | `/lootlock rule clear confirm` | Removes all rules from the active profile. | |

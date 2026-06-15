@@ -25,6 +25,7 @@ import java.util.UUID;
 import net.minecraft.command.CommandSource;
 import net.minecraft.command.argument.IdentifierArgumentType;
 import net.minecraft.registry.Registries;
+import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
@@ -151,7 +152,19 @@ public final class LootLockCommand {
                                             withSelfState(
                                                 ctx,
                                                 (s, state) ->
-                                                    handleRuleAdd(s, state, ruleIdentifier(ctx))))))
+                                                    handleRuleAdd(s, state, ruleIdentifier(ctx)))))
+                            .then(
+                                CommandManager.literal("tag")
+                                    .then(
+                                        CommandManager.argument(
+                                                "tag", IdentifierArgumentType.identifier())
+                                            .executes(
+                                                ctx ->
+                                                    withSelfState(
+                                                        ctx,
+                                                        (s, state) ->
+                                                            handleRuleAddTag(
+                                                                s, state, tagIdentifier(ctx)))))))
                     .then(
                         CommandManager.literal("remove")
                             .then(
@@ -162,7 +175,19 @@ public final class LootLockCommand {
                                                 ctx,
                                                 (s, state) ->
                                                     handleRuleRemove(
-                                                        s, state, ruleIdentifier(ctx))))))
+                                                        s, state, ruleIdentifier(ctx)))))
+                            .then(
+                                CommandManager.literal("tag")
+                                    .then(
+                                        CommandManager.argument(
+                                                "tag", IdentifierArgumentType.identifier())
+                                            .executes(
+                                                ctx ->
+                                                    withSelfState(
+                                                        ctx,
+                                                        (s, state) ->
+                                                            handleRuleRemoveTag(
+                                                                s, state, tagIdentifier(ctx)))))))
                     .then(
                         CommandManager.literal("list")
                             .executes(ctx -> withSelfState(ctx, LootLockCommand::handleRuleList)))
@@ -291,7 +316,19 @@ public final class LootLockCommand {
                                         withTargetState(
                                             ctx,
                                             (s, state) ->
-                                                handleRuleAdd(s, state, ruleIdentifier(ctx))))))
+                                                handleRuleAdd(s, state, ruleIdentifier(ctx)))))
+                        .then(
+                            CommandManager.literal("tag")
+                                .then(
+                                    CommandManager.argument(
+                                            "tag", IdentifierArgumentType.identifier())
+                                        .executes(
+                                            ctx ->
+                                                withTargetState(
+                                                    ctx,
+                                                    (s, state) ->
+                                                        handleRuleAddTag(
+                                                            s, state, tagIdentifier(ctx)))))))
                 .then(
                     CommandManager.literal("remove")
                         .then(
@@ -301,7 +338,19 @@ public final class LootLockCommand {
                                         withTargetState(
                                             ctx,
                                             (s, state) ->
-                                                handleRuleRemove(s, state, ruleIdentifier(ctx))))))
+                                                handleRuleRemove(s, state, ruleIdentifier(ctx)))))
+                        .then(
+                            CommandManager.literal("tag")
+                                .then(
+                                    CommandManager.argument(
+                                            "tag", IdentifierArgumentType.identifier())
+                                        .executes(
+                                            ctx ->
+                                                withTargetState(
+                                                    ctx,
+                                                    (s, state) ->
+                                                        handleRuleRemoveTag(
+                                                            s, state, tagIdentifier(ctx)))))))
                 .then(
                     CommandManager.literal("list")
                         .executes(ctx -> withTargetState(ctx, LootLockCommand::handleRuleList)))
@@ -337,7 +386,9 @@ public final class LootLockCommand {
     sendKey(source, LootLockLang.COMMAND_HELP_LINE_ACTION_LEAVE);
     sendKey(source, LootLockLang.COMMAND_HELP_LINE_ACTION_DELETE);
     sendKey(source, LootLockLang.COMMAND_HELP_LINE_RULE_ADD);
+    sendKey(source, LootLockLang.COMMAND_HELP_LINE_RULE_ADD_TAG);
     sendKey(source, LootLockLang.COMMAND_HELP_LINE_RULE_REMOVE);
+    sendKey(source, LootLockLang.COMMAND_HELP_LINE_RULE_REMOVE_TAG);
     sendKey(source, LootLockLang.COMMAND_HELP_LINE_RULE_LIST);
     sendKey(source, LootLockLang.COMMAND_HELP_LINE_RULE_CLEAR);
     if (source.hasPermissionLevel(2)) {
@@ -549,6 +600,54 @@ public final class LootLockCommand {
     source.sendFeedback(() -> message, false);
     syncIfOnline(state);
     return 1;
+  }
+
+  private static int handleRuleAddTag(
+      ServerCommandSource source, StateContext state, Identifier tagId) {
+    String token = RuleEntry.TAG_PREFIX + tagId;
+    if (!addRuleToProfile(state.profile(), token)) {
+      source.sendError(Text.translatable(LootLockLang.COMMAND_ERROR_RULE_EXISTS, token));
+      return 0;
+    }
+    markDirty(source, state);
+    Text message =
+        state.isSelfTargeted()
+            ? Text.translatable(LootLockLang.COMMAND_RULE_ADD_SELF, token)
+            : Text.translatable(LootLockLang.COMMAND_RULE_ADD_TARGET, token, state.displayName());
+    source.sendFeedback(() -> message, false);
+    if (!tagExists(tagId)) {
+      source.sendFeedback(
+          () -> Text.translatable(LootLockLang.COMMAND_RULE_TAG_UNKNOWN_WARNING, token), false);
+    }
+    syncIfOnline(state);
+    return 1;
+  }
+
+  private static int handleRuleRemoveTag(
+      ServerCommandSource source, StateContext state, Identifier tagId) {
+    String token = RuleEntry.TAG_PREFIX + tagId;
+    if (!removeRuleFromProfile(state.profile(), token)) {
+      source.sendError(Text.translatable(LootLockLang.COMMAND_ERROR_RULE_NOT_FOUND, token));
+      return 0;
+    }
+    markDirty(source, state);
+    Text message =
+        state.isSelfTargeted()
+            ? Text.translatable(LootLockLang.COMMAND_RULE_REMOVE_SELF, token)
+            : Text.translatable(
+                LootLockLang.COMMAND_RULE_REMOVE_TARGET, token, state.displayName());
+    source.sendFeedback(() -> message, false);
+    syncIfOnline(state);
+    return 1;
+  }
+
+  static boolean tagExists(Identifier tagId) {
+    if (tagId == null) {
+      return false;
+    }
+    return Registries.ITEM
+        .getEntryList(net.minecraft.registry.tag.TagKey.of(RegistryKeys.ITEM, tagId))
+        .isPresent();
   }
 
   private static int handleRuleList(ServerCommandSource source, StateContext state) {
@@ -932,6 +1031,11 @@ public final class LootLockCommand {
   private static Identifier ruleIdentifier(CommandContext<ServerCommandSource> context)
       throws CommandSyntaxException {
     return IdentifierArgumentType.getIdentifier(context, "item");
+  }
+
+  private static Identifier tagIdentifier(CommandContext<ServerCommandSource> context)
+      throws CommandSyntaxException {
+    return IdentifierArgumentType.getIdentifier(context, "tag");
   }
 
   @FunctionalInterface

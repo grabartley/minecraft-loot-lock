@@ -15,6 +15,7 @@ import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.util.Identifier;
 
 public final class ClientToServerPackets {
   private static final int MAX_CLIENT_VERSION_LENGTH = 64;
@@ -414,6 +415,9 @@ public final class ClientToServerPackets {
       if (itemId.length() > PacketLimits.MAX_RULE_ID_LENGTH) {
         return null;
       }
+      if (!isValidRuleEntryToken(itemId)) {
+        continue;
+      }
       sanitizedRules.add(new RuleEntry(itemId));
     }
 
@@ -443,6 +447,21 @@ public final class ClientToServerPackets {
         true,
         0,
         List.of());
+  }
+
+  static boolean isValidRuleEntryToken(String token) {
+    if (token == null || token.isBlank()) {
+      return false;
+    }
+    String parseTarget =
+        token.startsWith(RuleEntry.TAG_PREFIX)
+            ? token.substring(RuleEntry.TAG_PREFIX.length())
+            : token;
+    if (parseTarget.isBlank()) {
+      return false;
+    }
+    Identifier parsed = Identifier.tryParse(parseTarget);
+    return parsed != null && !parsed.getPath().isEmpty();
   }
 
   private static String sanitizeName(String name) {

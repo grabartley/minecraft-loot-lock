@@ -23,6 +23,7 @@ import net.minecraft.client.gui.widget.ClickableWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
+import net.minecraft.util.Identifier;
 
 /**
  * Rules tab content: inline search field, multi-select results list with Shift / Ctrl modifiers and
@@ -257,6 +258,11 @@ public final class RulesTabView {
     if (query.isBlank()) {
       showingSearch = false;
       visibleResults = currentRulesAsCandidates();
+    } else if (query.startsWith(RuleEntry.TAG_PREFIX)) {
+      showingSearch = true;
+      visibleResults =
+          ItemSearchController.filter(
+              RulesTagCatalog.all(), query.substring(RuleEntry.TAG_PREFIX.length()));
     } else {
       showingSearch = true;
       visibleResults = ItemSearchController.filter(RulesItemCatalog.all(), query);
@@ -288,7 +294,7 @@ public final class RulesTabView {
       row.visible = true;
       boolean inList = showingSearch && ownedItemIds.contains(candidate.itemId());
       row.update(candidate.item(), candidate.displayName(), candidate.itemId(), inList);
-      row.setTooltip(Tooltip.of(Text.literal(candidate.itemId())));
+      row.setTooltip(Tooltip.of(rowTooltip(candidate.itemId())));
     }
 
     if (addSelectedButton != null) {
@@ -560,6 +566,27 @@ public final class RulesTabView {
       out.append(Character.toUpperCase(part.charAt(0))).append(part.substring(1));
     }
     return out.toString();
+  }
+
+  static Text rowTooltip(String entryId) {
+    if (entryId == null) {
+      return Text.empty();
+    }
+    if (!entryId.startsWith(RuleEntry.TAG_PREFIX)) {
+      return Text.literal(entryId);
+    }
+    String tagPath = entryId.substring(RuleEntry.TAG_PREFIX.length());
+    Identifier tagId = Identifier.tryParse(tagPath);
+    if (tagId == null) {
+      return Text.literal(entryId);
+    }
+    int count = RulesTagCatalog.resolvedCount(tagId);
+    if (count < 0) {
+      return Text.translatable(LootLockLang.RULES_TAG_TOOLTIP_UNKNOWN, entryId);
+    }
+    String key =
+        count == 1 ? LootLockLang.RULES_TAG_TOOLTIP_ONE : LootLockLang.RULES_TAG_TOOLTIP_MANY;
+    return Text.translatable(key, entryId, count);
   }
 
   static String prettyName(String itemId) {

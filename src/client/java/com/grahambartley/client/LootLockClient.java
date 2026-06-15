@@ -6,6 +6,7 @@ import com.grahambartley.client.hud.BlockedNoticePresenter;
 import com.grahambartley.client.keybind.LootLockKeybinds;
 import com.grahambartley.client.screen.inventory.LootLockInventoryPanel;
 import com.grahambartley.client.screen.inventory.LootLockPanelHolder;
+import com.grahambartley.client.screen.inventory.RulesTagCatalog;
 import com.grahambartley.client.state.ClientLootLockState;
 import com.grahambartley.network.ClientToServerPackets;
 import com.grahambartley.network.PacketIds;
@@ -15,6 +16,7 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenMouseEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.CommonLifecycleEvents;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.gui.screen.ingame.InventoryScreen;
@@ -48,6 +50,9 @@ public class LootLockClient implements ClientModInitializer {
 
     ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> STATE.clear());
     LootLockKeybinds.register();
+
+    CommonLifecycleEvents.TAGS_LOADED.register(
+        (registries, client) -> RulesTagCatalog.invalidate());
 
     // Hook the survival inventory's mouse scroll so wheeling over the Rules results list paginates
     // through items. Vanilla InventoryScreen does not declare mouseScrolled, so a direct mixin into

@@ -128,6 +128,12 @@
   "loot-lock.command.help.line.rule_remove": "- /lootlock rule remove <item>",
   "loot-lock.command.help.line.rule_list": "- /lootlock rule list",
   "loot-lock.command.help.line.rule_clear": "- /lootlock rule clear confirm",
+  "loot-lock.command.help.line.rule_add_tag": "- /lootlock rule add tag <namespace:tag_path>",
+  "loot-lock.command.help.line.rule_remove_tag": "- /lootlock rule remove tag <namespace:tag_path>",
+  "loot-lock.command.rule_add_tag.unknown_warning": "Tag %s is not currently loaded. Saved anyway; it will resolve when a matching tag is loaded.",
+  "loot-lock.rules.tag_tooltip.one": "Tag %s matches %s item",
+  "loot-lock.rules.tag_tooltip.many": "Tag %s matches %s items",
+  "loot-lock.rules.tag_tooltip.unknown": "Tag %s is not currently loaded",
   "loot-lock.command.help.line.player": "- /lootlock player <name|uuid> <subcommand> (operator)",
   "loot-lock.command.help.line.policy": "- /lootlock policy allowDeleteRejectedItems true|false",
 

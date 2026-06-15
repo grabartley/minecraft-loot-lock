@@ -105,4 +105,72 @@ class RuleSetTest {
   void emptyConstantIsShared() {
     assertTrue(RuleSet.empty().isEmpty());
   }
+
+  @Test
+  void tagRuleResolvesToUnionViaInjectedResolver() {
+    List<RuleEntry> rules =
+        List.of(new RuleEntry("#minecraft:flowers"), new RuleEntry("minecraft:stone"));
+    java.util.function.Function<Identifier, java.util.Collection<Identifier>> resolver =
+        tagId -> {
+          if (Identifier.tryParse("minecraft:flowers").equals(tagId)) {
+            return List.of(
+                Identifier.tryParse("minecraft:poppy"), Identifier.tryParse("minecraft:dandelion"));
+          }
+          return List.of();
+        };
+
+    RuleSet ruleSet = RuleSet.fromRuleEntries(rules, resolver);
+
+    assertEquals(3, ruleSet.itemIds().size());
+    assertTrue(ruleSet.contains(Identifier.tryParse("minecraft:poppy")));
+    assertTrue(ruleSet.contains(Identifier.tryParse("minecraft:dandelion")));
+    assertTrue(ruleSet.contains(Identifier.tryParse("minecraft:stone")));
+  }
+
+  @Test
+  void unknownTagIsSkippedWithoutThrowing() {
+    List<RuleEntry> rules =
+        List.of(new RuleEntry("#unknown:tag"), new RuleEntry("minecraft:stone"));
+    java.util.function.Function<Identifier, java.util.Collection<Identifier>> resolver =
+        tagId -> List.of();
+
+    RuleSet ruleSet = RuleSet.fromRuleEntries(rules, resolver);
+
+    assertEquals(1, ruleSet.itemIds().size());
+    assertTrue(ruleSet.contains(Identifier.tryParse("minecraft:stone")));
+  }
+
+  @Test
+  void overlappingTagRulesDoNotProduceDuplicates() {
+    List<RuleEntry> rules =
+        List.of(new RuleEntry("#minecraft:flowers"), new RuleEntry("#minecraft:wool"));
+    java.util.function.Function<Identifier, java.util.Collection<Identifier>> resolver =
+        tagId -> List.of(Identifier.tryParse("minecraft:poppy"));
+
+    RuleSet ruleSet = RuleSet.fromRuleEntries(rules, resolver);
+
+    assertEquals(1, ruleSet.itemIds().size());
+    assertTrue(ruleSet.contains(Identifier.tryParse("minecraft:poppy")));
+  }
+
+  @Test
+  void tagEntryWithInvalidTagPathIsSkipped() {
+    List<RuleEntry> rules = List.of(new RuleEntry("#not a valid id"));
+    java.util.function.Function<Identifier, java.util.Collection<Identifier>> resolver =
+        tagId -> List.of(Identifier.tryParse("minecraft:stone"));
+
+    RuleSet ruleSet = RuleSet.fromRuleEntries(rules, resolver);
+
+    assertTrue(ruleSet.isEmpty());
+  }
+
+  @ParameterizedTest(name = "isTag(\"{0}\") -> {1}")
+  @org.junit.jupiter.params.provider.CsvSource({
+    "#minecraft:flowers, true",
+    "minecraft:stone,    false",
+    "'',                 false",
+  })
+  void ruleEntryClassifiesByPrefix(String token, boolean expected) {
+    assertEquals(expected, new RuleEntry(token).isTag());
+  }
 }

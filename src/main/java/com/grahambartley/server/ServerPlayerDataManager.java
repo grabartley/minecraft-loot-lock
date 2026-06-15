@@ -44,6 +44,12 @@ public final class ServerPlayerDataManager {
     }
   }
 
+  public void recompileAllProfiles() {
+    for (CachedEntry entry : cache.values()) {
+      entry.data.compileProfiles();
+    }
+  }
+
   public int flushAll() {
     int saved = 0;
     for (Map.Entry<UUID, CachedEntry> entry : cache.entrySet()) {

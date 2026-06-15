@@ -262,4 +262,15 @@ public final class LootLockLang {
       "loot-lock.command.error.rule_not_found";
   public static final String COMMAND_ERROR_DELETE_POLICY_BLOCKED =
       "loot-lock.command.error.delete_policy_blocked";
+
+  public static final String COMMAND_HELP_LINE_RULE_ADD_TAG =
+      "loot-lock.command.help.line.rule_add_tag";
+  public static final String COMMAND_HELP_LINE_RULE_REMOVE_TAG =
+      "loot-lock.command.help.line.rule_remove_tag";
+  public static final String COMMAND_RULE_TAG_UNKNOWN_WARNING =
+      "loot-lock.command.rule_add_tag.unknown_warning";
+
+  public static final String RULES_TAG_TOOLTIP_ONE = "loot-lock.rules.tag_tooltip.one";
+  public static final String RULES_TAG_TOOLTIP_MANY = "loot-lock.rules.tag_tooltip.many";
+  public static final String RULES_TAG_TOOLTIP_UNKNOWN = "loot-lock.rules.tag_tooltip.unknown";
 }
