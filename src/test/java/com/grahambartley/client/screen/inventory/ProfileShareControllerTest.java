@@ -12,6 +12,7 @@ import com.grahambartley.data.LootLockPlayerData;
 import com.grahambartley.data.LootLockProfile;
 import com.grahambartley.data.RejectedItemAction;
 import com.grahambartley.data.RuleEntry;
+import com.grahambartley.network.PacketLimits;
 import com.grahambartley.share.ProfileShareCodec;
 import com.grahambartley.text.LootLockLang;
 import java.util.ArrayList;
@@ -71,7 +72,7 @@ class ProfileShareControllerTest {
   void importSuccessSendsCreateRequestAndExposesProfile() {
     LootLockProfile source = sampleProfile();
     String code = ProfileShareCodec.encode(source);
-    LootLockPlayerData snapshot = snapshotWithRevision(42L);
+    LootLockPlayerData snapshot = snapshotWith(42L, "Other");
     AtomicReference<Long> sentRevision = new AtomicReference<>();
     AtomicReference<String> sentName = new AtomicReference<>();
     AtomicReference<LootLockProfile> sentProfile = new AtomicReference<>();
@@ -104,14 +105,36 @@ class ProfileShareControllerTest {
     assertEquals(LootLockLang.TOAST_IMPORT_SUCCESS, translationKey(toastSubtitle.get()));
   }
 
+  @Test
+  void importResolvesDuplicateNameBeforeSendingCreateRequest() {
+    LootLockProfile source = sampleProfile();
+    String code = ProfileShareCodec.encode(source);
+    LootLockPlayerData snapshot = snapshotWith(0L, source.getName());
+    AtomicReference<String> sentName = new AtomicReference<>();
+
+    ProfileShareController.ImportOutcome outcome =
+        ProfileShareController.importCode(
+            code,
+            snapshot,
+            (revision, name, copyFrom) -> {
+              sentName.set(name);
+              return true;
+            },
+            (title, subtitle) -> {});
+
+    assertTrue(outcome.success());
+    assertEquals(source.getName() + " (2)", sentName.get());
+  }
+
   static Stream<Arguments> importFailureCases() {
     String validCode = ProfileShareCodec.encode(sampleProfile());
     return Stream.of(
         Arguments.of(
-            "decode-failure", "not a share code", snapshotWithRevision(7L), true, "bad_prefix", 0),
+            "decode-failure", "not a share code", snapshotWith(7L, "Other"), true, "bad_prefix", 0),
         Arguments.of("snapshot-null", "ll1.abc", null, true, "not_ready", 0),
+        Arguments.of("at-capacity", validCode, fullSnapshot(50L), true, "at_capacity", 0),
         Arguments.of(
-            "create-rejected", validCode, snapshotWithRevision(99L), false, "not_ready", 1));
+            "create-rejected", validCode, snapshotWith(99L, "Other"), false, "not_ready", 1));
   }
 
   @ParameterizedTest(name = "{0} -> {4}")
@@ -187,9 +210,31 @@ class ProfileShareControllerTest {
         rules);
   }
 
-  private static LootLockPlayerData snapshotWithRevision(long revision) {
+  private static LootLockProfile namedProfile(String name) {
+    return new LootLockProfile(
+        UUID.randomUUID(),
+        name,
+        FilterMode.DENYLIST,
+        RejectedItemAction.LEAVE_ON_GROUND,
+        true,
+        0,
+        new ArrayList<>());
+  }
+
+  private static LootLockPlayerData snapshotWith(long revision, String existingProfileName) {
     LootLockPlayerData data = new LootLockPlayerData();
-    data.setProfiles(new ArrayList<>(List.of(sampleProfile())));
+    data.setProfiles(new ArrayList<>(List.of(namedProfile(existingProfileName))));
+    data.setRevision(revision);
+    return data;
+  }
+
+  private static LootLockPlayerData fullSnapshot(long revision) {
+    LootLockPlayerData data = new LootLockPlayerData();
+    List<LootLockProfile> profiles = new ArrayList<>();
+    for (int i = 0; i < PacketLimits.MAX_PROFILES; i++) {
+      profiles.add(namedProfile("Profile " + i));
+    }
+    data.setProfiles(profiles);
     data.setRevision(revision);
     return data;
   }

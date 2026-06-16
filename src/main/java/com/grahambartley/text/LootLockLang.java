@@ -53,6 +53,7 @@ public final class LootLockLang {
 
   public static final String TOAST_EXPORT_COPIED = "loot-lock.toast.export_copied";
   public static final String TOAST_IMPORT_SUCCESS = "loot-lock.toast.import_success";
+  public static final String TOAST_IMPORT_AT_CAPACITY = "loot-lock.toast.import_at_capacity";
 
   public static final String RULES_SEARCH_FIELD = "loot-lock.rules.search.field";
   public static final String RULES_SEARCH_PLACEHOLDER = "loot-lock.rules.search.placeholder";

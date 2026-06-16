@@ -32,7 +32,7 @@
   "loot-lock.dropdown.switch_profile": "Switch profile",
   "loot-lock.dropdown.change_color": "Change colour",
   "loot-lock.dropdown.new_profile": "+ New profile",
-  "loot-lock.dropdown.import_profile": "<= Import code",
+  "loot-lock.dropdown.import_profile": "Import from code",
   "loot-lock.dropdown.at_capacity": "Profile limit reached (%s). Delete one first.",
 
   "loot-lock.button.mini.rename": "R",
@@ -97,6 +97,7 @@
   "loot-lock.toast.disabled": "Disabled",
   "loot-lock.toast.export_copied": "Share code copied to clipboard",
   "loot-lock.toast.import_success": "Imported profile '%s'",
+  "loot-lock.toast.import_at_capacity": "Profile limit reached. Delete one first.",
 
   "loot-lock.blocked.blocked": "Blocked",
   "loot-lock.blocked.deleted": "Deleted",

@@ -20,12 +20,13 @@ import net.minecraft.util.Formatting;
 import org.lwjgl.glfw.GLFW;
 
 public final class ProfileImportScreen extends Screen {
-  private static final int CARD_WIDTH = 260;
-  private static final int CARD_HEIGHT = 134;
+  private static final int CARD_WIDTH = 300;
+  private static final int CARD_HEIGHT = 148;
   private static final int PADDING = 12;
   private static final int ROW_GAP = 8;
   private static final int TITLE_HEIGHT = 10;
-  private static final int DESCRIPTION_HEIGHT = 9;
+  private static final int DESCRIPTION_LINE_HEIGHT = 10;
+  private static final int DESCRIPTION_MAX_LINES = 2;
   private static final int FIELD_HEIGHT = 18;
   private static final int ERROR_HEIGHT = 9;
   private static final int BUTTON_HEIGHT = 20;
@@ -43,6 +44,8 @@ public final class ProfileImportScreen extends Screen {
   private int descriptionY;
   private int fieldY;
   private int errorY;
+  private int innerLeft;
+  private int innerWidth;
 
   public ProfileImportScreen(Screen returnTo) {
     super(Text.translatable(LootLockLang.IMPORT_MODAL_TITLE));
@@ -54,16 +57,14 @@ public final class ProfileImportScreen extends Screen {
     super.init();
     cardX = (width - CARD_WIDTH) / 2;
     cardY = (height - CARD_HEIGHT) / 2;
-
-    int innerLeft = cardX + PADDING;
-    int innerRight = cardX + CARD_WIDTH - PADDING;
-    int innerWidth = innerRight - innerLeft;
+    innerLeft = cardX + PADDING;
+    innerWidth = CARD_WIDTH - PADDING * 2;
     int cursorY = cardY + PADDING;
 
     titleY = cursorY;
     cursorY += TITLE_HEIGHT + ROW_GAP;
     descriptionY = cursorY;
-    cursorY += DESCRIPTION_HEIGHT + ROW_GAP;
+    cursorY += DESCRIPTION_LINE_HEIGHT * DESCRIPTION_MAX_LINES + ROW_GAP;
 
     fieldY = cursorY;
     codeField =
@@ -82,10 +83,8 @@ public final class ProfileImportScreen extends Screen {
     cursorY += FIELD_HEIGHT + ROW_GAP;
 
     errorY = cursorY;
-    cursorY += ERROR_HEIGHT + ROW_GAP;
 
-    int buttonRowWidth = innerWidth;
-    int buttonWidth = (buttonRowWidth - BUTTON_GAP) / 2;
+    int buttonWidth = (innerWidth - BUTTON_GAP) / 2;
     int buttonY = cardY + CARD_HEIGHT - PADDING - BUTTON_HEIGHT;
     addDrawableChild(
         ButtonWidget.builder(Text.translatable(LootLockLang.IMPORT_MODAL_CANCEL), button -> close())
@@ -102,7 +101,6 @@ public final class ProfileImportScreen extends Screen {
   public void render(DrawContext context, int mouseX, int mouseY, float delta) {
     renderBackground(context);
     Chrome.guiWindow(context, cardX, cardY, CARD_WIDTH, CARD_HEIGHT);
-    int innerLeft = cardX + PADDING;
 
     context.drawText(
         textRenderer,
@@ -111,13 +109,13 @@ public final class ProfileImportScreen extends Screen {
         titleY,
         TITLE_COLOR,
         false);
-    context.drawText(
+    context.drawTextWrapped(
         textRenderer,
         Text.translatable(LootLockLang.IMPORT_MODAL_DESCRIPTION),
         innerLeft,
         descriptionY,
-        DESCRIPTION_COLOR,
-        false);
+        innerWidth,
+        DESCRIPTION_COLOR);
 
     super.render(context, mouseX, mouseY, delta);
 

@@ -1,5 +1,6 @@
 package com.grahambartley.client.screen.inventory;
 
+import com.grahambartley.client.screen.ProfileUiController;
 import com.grahambartley.data.LootLockPlayerData;
 import com.grahambartley.data.LootLockProfile;
 import com.grahambartley.share.ProfileShareCodec;
@@ -50,8 +51,14 @@ public final class ProfileShareController {
       return ImportOutcome.error(err.reason(), errorText);
     }
     LootLockProfile profile = ((ProfileShareCodec.DecodeResult.Ok) result).profile();
-    if (createSink == null
-        || !createSink.send(snapshot.getRevision(), profile.getName(), profile)) {
+    if (!ProfileUiController.canCreateProfile(snapshot.getProfiles())) {
+      Text errorText = Text.translatable(LootLockLang.TOAST_IMPORT_AT_CAPACITY);
+      emitErrorToast(toastSink, errorText);
+      return ImportOutcome.error("at_capacity", errorText);
+    }
+    String resolvedName =
+        ProfileUiController.nextDuplicateName(snapshot.getProfiles(), profile.getName());
+    if (createSink == null || !createSink.send(snapshot.getRevision(), resolvedName, profile)) {
       Text errorText = Text.translatable(LootLockLang.COMMAND_ERROR_NOT_READY);
       emitErrorToast(toastSink, errorText);
       return ImportOutcome.error("not_ready", errorText);
@@ -59,7 +66,7 @@ public final class ProfileShareController {
     if (toastSink != null) {
       toastSink.show(
           Text.translatable(LootLockLang.BRAND),
-          Text.translatable(LootLockLang.TOAST_IMPORT_SUCCESS, profile.getName())
+          Text.translatable(LootLockLang.TOAST_IMPORT_SUCCESS, resolvedName)
               .formatted(Formatting.GREEN));
     }
     return ImportOutcome.success(profile);
