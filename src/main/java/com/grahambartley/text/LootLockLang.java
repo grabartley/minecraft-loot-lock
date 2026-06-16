@@ -36,11 +36,23 @@ public final class LootLockLang {
   public static final String DROPDOWN_SWITCH_PROFILE = "loot-lock.dropdown.switch_profile";
   public static final String DROPDOWN_CHANGE_COLOR = "loot-lock.dropdown.change_color";
   public static final String DROPDOWN_NEW_PROFILE = "loot-lock.dropdown.new_profile";
+  public static final String DROPDOWN_IMPORT_PROFILE = "loot-lock.dropdown.import_profile";
   public static final String DROPDOWN_AT_CAPACITY = "loot-lock.dropdown.at_capacity";
 
   public static final String BUTTON_MINI_RENAME = "loot-lock.button.mini.rename";
   public static final String BUTTON_MINI_DUPLICATE = "loot-lock.button.mini.duplicate";
   public static final String BUTTON_MINI_DELETE = "loot-lock.button.mini.delete";
+  public static final String BUTTON_MINI_EXPORT = "loot-lock.button.mini.export";
+  public static final String BUTTON_MINI_EXPORT_TOOLTIP = "loot-lock.button.mini.export.tooltip";
+
+  public static final String IMPORT_MODAL_TITLE = "loot-lock.import_modal.title";
+  public static final String IMPORT_MODAL_DESCRIPTION = "loot-lock.import_modal.description";
+  public static final String IMPORT_MODAL_PLACEHOLDER = "loot-lock.import_modal.placeholder";
+  public static final String IMPORT_MODAL_CONFIRM = "loot-lock.import_modal.confirm";
+  public static final String IMPORT_MODAL_CANCEL = "loot-lock.import_modal.cancel";
+
+  public static final String TOAST_EXPORT_COPIED = "loot-lock.toast.export_copied";
+  public static final String TOAST_IMPORT_SUCCESS = "loot-lock.toast.import_success";
 
   public static final String RULES_SEARCH_FIELD = "loot-lock.rules.search.field";
   public static final String RULES_SEARCH_PLACEHOLDER = "loot-lock.rules.search.placeholder";

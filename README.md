@@ -190,7 +190,9 @@ Profiles can be exported as a short pasteable share code and imported back into 
 
 Run `/lootlock profile export <name>` to get back a clickable string like `ll1.eJyrViouSU3MS1ezUjI0Mlay8suvtFKK1FFKzEsBigEAyiYItQ`. Click the code in chat and Minecraft copies it to your clipboard. Paste it into Discord, a Reddit comment, a modpack readme, or anywhere else.
 
-To bring a code in, run `/lootlock profile import <code>`. The decoder validates the prefix, payload, and every field before creating a new profile. If the imported name collides with one you already own, the new profile is suffixed with ` (2)`, ` (3)`, and so on. Errors return a clear message rather than crashing.
+You can also export and import without leaving the inventory. Open the Loot Lock panel, click the profile pill to expand the dropdown, hit the `E` mini button on any profile row to copy that profile's share code straight to your clipboard, or click `<= Import code` under `+ New profile` to open a paste prompt that accepts a `ll1.` code and adds it as a new profile.
+
+To bring a code in via chat, run `/lootlock profile import <code>`. The decoder validates the prefix, payload, and every field before creating a new profile. If the imported name collides with one you already own, the new profile is suffixed with ` (2)`, ` (3)`, and so on. Errors return a clear message rather than crashing.
 
 What does and does not travel inside a code:
 

@@ -32,11 +32,20 @@
   "loot-lock.dropdown.switch_profile": "Switch profile",
   "loot-lock.dropdown.change_color": "Change colour",
   "loot-lock.dropdown.new_profile": "+ New profile",
+  "loot-lock.dropdown.import_profile": "<= Import code",
   "loot-lock.dropdown.at_capacity": "Profile limit reached (%s). Delete one first.",
 
   "loot-lock.button.mini.rename": "R",
   "loot-lock.button.mini.duplicate": "D",
   "loot-lock.button.mini.delete": "X",
+  "loot-lock.button.mini.export": "E",
+  "loot-lock.button.mini.export.tooltip": "Copy profile share code",
+
+  "loot-lock.import_modal.title": "Import profile share code",
+  "loot-lock.import_modal.description": "Paste a code starting with 'll1.' to import it as a new profile.",
+  "loot-lock.import_modal.placeholder": "ll1...",
+  "loot-lock.import_modal.confirm": "Import",
+  "loot-lock.import_modal.cancel": "Cancel",
 
   "loot-lock.rules.search.field": "Loot Lock search",
   "loot-lock.rules.search.placeholder": "Search items to add...",
@@ -86,6 +95,8 @@
   "loot-lock.toast.profile_switched": "Profile switched",
   "loot-lock.toast.enabled": "Enabled",
   "loot-lock.toast.disabled": "Disabled",
+  "loot-lock.toast.export_copied": "Share code copied to clipboard",
+  "loot-lock.toast.import_success": "Imported profile '%s'",
 
   "loot-lock.blocked.blocked": "Blocked",
   "loot-lock.blocked.deleted": "Deleted",

@@ -1,6 +1,7 @@
 package com.grahambartley.client.screen.inventory;
 
 import com.grahambartley.client.LootLockClient;
+import com.grahambartley.client.screen.ProfileImportScreen;
 import com.grahambartley.client.screen.ProfileUiController;
 import com.grahambartley.client.state.ClientDraftProfile;
 import com.grahambartley.client.state.ClientLootLockState;
@@ -1295,7 +1296,7 @@ public final class LootLockInventoryPanel {
               () -> activateProfile(profile.getId()),
               () -> cycleProfileColor(profile.getId()));
       int actionsX = dropdownAnchorX + rowMainWidth + 2;
-      int gap = (actionsWidth - MiniActionButton.SIZE * 3) / 4;
+      int gap = (actionsWidth - MiniActionButton.SIZE * 4) / 5;
       MiniActionButton renameButton =
           new MiniActionButton(
               actionsX + gap,
@@ -1314,9 +1315,18 @@ public final class LootLockInventoryPanel {
       if (!canCreate) {
         duplicateButton.setTooltip(atCapacityTooltip);
       }
-      MiniActionButton deleteButton =
+      MiniActionButton exportButton =
           new MiniActionButton(
               actionsX + gap * 3 + MiniActionButton.SIZE * 2,
+              y + 2,
+              Text.translatable(LootLockLang.BUTTON_MINI_EXPORT),
+              false,
+              () -> exportProfile(profile));
+      exportButton.setTooltip(
+          Tooltip.of(Text.translatable(LootLockLang.BUTTON_MINI_EXPORT_TOOLTIP)));
+      MiniActionButton deleteButton =
+          new MiniActionButton(
+              actionsX + gap * 4 + MiniActionButton.SIZE * 3,
               y + 2,
               Text.translatable(LootLockLang.BUTTON_MINI_DELETE),
               true,
@@ -1326,6 +1336,7 @@ public final class LootLockInventoryPanel {
       dropdownWidgets.add(rowMain);
       dropdownWidgets.add(renameButton);
       dropdownWidgets.add(duplicateButton);
+      dropdownWidgets.add(exportButton);
       dropdownWidgets.add(deleteButton);
       y += rowHeight + 1;
     }
@@ -1341,8 +1352,21 @@ public final class LootLockInventoryPanel {
     }
     dropdownWidgets.add(newProfileButton);
 
+    int importButtonY = y + 3 + 16 + 3;
+    ButtonWidget importButton =
+        ButtonWidget.builder(
+                Text.translatable(LootLockLang.DROPDOWN_IMPORT_PROFILE).formatted(Formatting.AQUA),
+                b -> openImportModal())
+            .dimensions(dropdownAnchorX, importButtonY, dropdownAnchorWidth, 16)
+            .build();
+    importButton.active = canCreate;
+    if (!canCreate) {
+      importButton.setTooltip(atCapacityTooltip);
+    }
+    dropdownWidgets.add(importButton);
+
     int frameTop = dropdownAnchorY - DROPDOWN_FRAME_PAD;
-    int frameBottom = y + 3 + 16 + DROPDOWN_FRAME_PAD;
+    int frameBottom = importButtonY + 16 + DROPDOWN_FRAME_PAD;
     dropdownFrameX = dropdownAnchorX - DROPDOWN_FRAME_PAD;
     dropdownFrameY = frameTop;
     dropdownFrameW = dropdownAnchorWidth + DROPDOWN_FRAME_PAD * 2;
@@ -1580,6 +1604,30 @@ public final class LootLockInventoryPanel {
       return false;
     }
     return renameField.charTyped(chr, modifiers);
+  }
+
+  private void exportProfile(LootLockProfile profile) {
+    if (profile == null) {
+      return;
+    }
+    MinecraftClient client = MinecraftClient.getInstance();
+    if (client == null || client.keyboard == null) {
+      return;
+    }
+    ProfileShareController.export(
+        profile,
+        client.keyboard::setClipboard,
+        (title, subtitle) -> LootLockToast.show(client, title, subtitle));
+  }
+
+  private void openImportModal() {
+    MinecraftClient client = MinecraftClient.getInstance();
+    if (client == null) {
+      return;
+    }
+    Screen current = client.currentScreen;
+    closeDropdown();
+    client.setScreen(new ProfileImportScreen(current));
   }
 
   private void duplicateProfile(LootLockProfile profile) {

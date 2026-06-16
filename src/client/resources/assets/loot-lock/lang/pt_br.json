@@ -32,11 +32,20 @@
   "loot-lock.dropdown.switch_profile": "Trocar perfil",
   "loot-lock.dropdown.change_color": "Mudar cor",
   "loot-lock.dropdown.new_profile": "+ Novo perfil",
+  "loot-lock.dropdown.import_profile": "<= Importar código",
   "loot-lock.dropdown.at_capacity": "Limite de perfis atingido (%s). Apague um primeiro.",
 
   "loot-lock.button.mini.rename": "R",
   "loot-lock.button.mini.duplicate": "D",
   "loot-lock.button.mini.delete": "X",
+  "loot-lock.button.mini.export": "E",
+  "loot-lock.button.mini.export.tooltip": "Copiar código de compartilhamento",
+
+  "loot-lock.import_modal.title": "Importar código de compartilhamento",
+  "loot-lock.import_modal.description": "Cole um código começando com 'll1.' para importar como um novo perfil.",
+  "loot-lock.import_modal.placeholder": "ll1...",
+  "loot-lock.import_modal.confirm": "Importar",
+  "loot-lock.import_modal.cancel": "Cancelar",
 
   "loot-lock.rules.search.field": "Pesquisa do Loot Lock",
   "loot-lock.rules.search.placeholder": "Buscar itens para adicionar...",
@@ -86,6 +95,8 @@
   "loot-lock.toast.profile_switched": "Perfil alterado",
   "loot-lock.toast.enabled": "Ativado",
   "loot-lock.toast.disabled": "Desativado",
+  "loot-lock.toast.export_copied": "Código copiado para a área de transferência",
+  "loot-lock.toast.import_success": "Perfil '%s' importado",
 
   "loot-lock.blocked.blocked": "Bloqueado",
   "loot-lock.blocked.deleted": "Excluído",
