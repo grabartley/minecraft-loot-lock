@@ -1,6 +1,7 @@
 package com.grahambartley.client;
 
 import com.grahambartley.LootLock;
+import com.grahambartley.client.command.LootLockClientCommands;
 import com.grahambartley.client.config.ClientSettingsManager;
 import com.grahambartley.client.hud.BlockedNoticePresenter;
 import com.grahambartley.client.keybind.LootLockKeybinds;
@@ -50,6 +51,7 @@ public class LootLockClient implements ClientModInitializer {
 
     ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> STATE.clear());
     LootLockKeybinds.register();
+    LootLockClientCommands.register();
 
     CommonLifecycleEvents.TAGS_LOADED.register(
         (registries, client) -> RulesTagCatalog.invalidate());
