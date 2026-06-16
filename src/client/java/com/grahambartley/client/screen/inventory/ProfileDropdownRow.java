@@ -7,9 +7,9 @@ import net.minecraft.client.gui.widget.PressableWidget;
 import net.minecraft.text.Text;
 
 /**
- * One styled row inside the profile dropdown manager: color chip + profile name + meta line + three
- * mini action buttons (rename / duplicate / delete). Visually aligned with the prototype's {@code
- * .pf-opt} CSS row.
+ * One styled row inside the profile dropdown manager: color chip + profile name + meta line + four
+ * mini action buttons (rename / duplicate / delete / export). Visually aligned with the prototype's
+ * {@code .pf-opt} CSS row.
  *
  * <p>Click areas are split three ways: the colour chip on the left runs {@code onChipPressAction}
  * so the player can cycle the profile colour; the rest of the row's main area selects the profile;
@@ -18,7 +18,7 @@ import net.minecraft.text.Text;
  */
 public final class ProfileDropdownRow extends PressableWidget {
   public static final int ROW_HEIGHT = 22;
-  public static final int ACTIONS_WIDTH = 60;
+  public static final int ACTIONS_WIDTH = 80;
   static final int CHIP_SIZE = 12;
   static final int CHIP_INSET_X = 6;
 
