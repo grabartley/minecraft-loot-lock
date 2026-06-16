@@ -6,10 +6,15 @@ import com.grahambartley.data.LootLockProfile;
 import com.grahambartley.share.ProfileShareCodec;
 import com.grahambartley.text.LootLockLang;
 import java.util.function.Consumer;
+import net.minecraft.text.Style;
 import net.minecraft.text.Text;
+import net.minecraft.text.TextColor;
 import net.minecraft.util.Formatting;
 
 public final class ProfileShareController {
+  private static final Style SUCCESS_STYLE =
+      Style.EMPTY.withColor(TextColor.fromRgb(Palette.PROFILE_COLORS[1] & 0x00FFFFFF));
+
   private ProfileShareController() {}
 
   @FunctionalInterface
@@ -32,7 +37,7 @@ public final class ProfileShareController {
     if (toastSink != null) {
       toastSink.show(
           Text.translatable(LootLockLang.BRAND),
-          Text.translatable(LootLockLang.TOAST_EXPORT_COPIED).formatted(Formatting.GREEN));
+          Text.translatable(LootLockLang.TOAST_EXPORT_COPIED).setStyle(SUCCESS_STYLE));
     }
     return true;
   }
@@ -67,7 +72,7 @@ public final class ProfileShareController {
       toastSink.show(
           Text.translatable(LootLockLang.BRAND),
           Text.translatable(LootLockLang.TOAST_IMPORT_SUCCESS, resolvedName)
-              .formatted(Formatting.GREEN));
+              .setStyle(SUCCESS_STYLE));
     }
     return ImportOutcome.success(profile);
   }
