@@ -2,8 +2,8 @@ package com.grahambartley.client.screen;
 
 import com.grahambartley.client.LootLockClient;
 import com.grahambartley.client.screen.inventory.Chrome;
+import com.grahambartley.client.screen.inventory.LootLockInventoryPanel;
 import com.grahambartley.client.screen.inventory.LootLockToast;
-import com.grahambartley.client.screen.inventory.Palette;
 import com.grahambartley.client.screen.inventory.ProfileShareController;
 import com.grahambartley.data.LootLockPlayerData;
 import com.grahambartley.network.ClientMutationSync;
@@ -30,7 +30,9 @@ public final class ProfileImportScreen extends Screen {
   private static final int ERROR_HEIGHT = 9;
   private static final int BUTTON_HEIGHT = 20;
   private static final int BUTTON_GAP = 8;
-  private static final int ERROR_COLOR = 0xFFD05A4F;
+  private static final int TITLE_COLOR = 0xFF2F2F2F;
+  private static final int DESCRIPTION_COLOR = 0xFF4A4A52;
+  private static final int ERROR_COLOR = 0xFFB03A30;
 
   private final Screen returnTo;
   private TextFieldWidget codeField;
@@ -74,8 +76,7 @@ public final class ProfileImportScreen extends Screen {
             Text.translatable(LootLockLang.IMPORT_MODAL_PLACEHOLDER));
     codeField.setMaxLength(PacketLimits.MAX_SHARE_CODE_LENGTH);
     codeField.setDrawsBackground(true);
-    codeField.setPlaceholder(
-        Text.translatable(LootLockLang.IMPORT_MODAL_PLACEHOLDER).formatted(Formatting.DARK_GRAY));
+    codeField.setPlaceholder(Text.translatable(LootLockLang.IMPORT_MODAL_PLACEHOLDER));
     addDrawableChild(codeField);
     setInitialFocus(codeField);
     cursorY += FIELD_HEIGHT + ROW_GAP;
@@ -108,14 +109,14 @@ public final class ProfileImportScreen extends Screen {
         Text.translatable(LootLockLang.IMPORT_MODAL_TITLE),
         innerLeft,
         titleY,
-        Palette.INK,
+        TITLE_COLOR,
         false);
     context.drawText(
         textRenderer,
         Text.translatable(LootLockLang.IMPORT_MODAL_DESCRIPTION),
         innerLeft,
         descriptionY,
-        Palette.INK_DIM,
+        DESCRIPTION_COLOR,
         false);
 
     super.render(context, mouseX, mouseY, delta);
@@ -161,6 +162,7 @@ public final class ProfileImportScreen extends Screen {
             (title, subtitle) -> LootLockToast.show(client, title, subtitle));
     if (outcome.success()) {
       inlineError = null;
+      LootLockInventoryPanel.requestDropdownReopen();
       close();
       return;
     }

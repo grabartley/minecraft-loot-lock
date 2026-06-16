@@ -64,12 +64,18 @@ public final class LootLockInventoryPanel {
 
   private static PanelTab STICKY_ACTIVE_TAB = PanelTab.RULES;
 
+  private static boolean PENDING_DROPDOWN_REOPEN = false;
+
   public static boolean getStickyOpenState() {
     return STICKY_OPEN_STATE;
   }
 
   public static PanelTab getStickyActiveTab() {
     return STICKY_ACTIVE_TAB;
+  }
+
+  public static void requestDropdownReopen() {
+    PENDING_DROPDOWN_REOPEN = true;
   }
 
   /** Drop-flash starts as a forest green and fades to the well's normal fill over the duration. */
@@ -220,6 +226,10 @@ public final class LootLockInventoryPanel {
     if (!open) {
       cancelInlineRename();
       dropdownOpen = false;
+    } else if (PENDING_DROPDOWN_REOPEN && !clientPrefsMode) {
+      PENDING_DROPDOWN_REOPEN = false;
+      dropdownOpen = true;
+      rebuildDropdownIfStale();
     }
     applyVisibility();
   }
