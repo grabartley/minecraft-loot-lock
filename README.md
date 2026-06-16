@@ -147,14 +147,6 @@ Server policy lives under `/lootlock policy`. Every command in the Common and Pr
 
 `<target>` accepts an online player name (tab-completes), an offline name the server has cached, or a raw UUID literal for pre-staging a profile for a player who has never joined. Online targets receive an authoritative sync after every mutation so their client reflects the change without rejoining. Offline edits persist through the debounced save path keyed by UUID and survive restarts.
 
-### Client-only
-
-Registered by the client mod, so only available when you have Loot Lock installed locally.
-
-| Command | What it does |
-| --- | --- |
-| `/lootlock client reset-onboarding` | Clears the first-launch nudge flag so the onboarding toast fires again the next time you open your inventory. |
-
 ## FAQ
 
 **Does it work on vanilla clients?**

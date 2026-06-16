@@ -102,9 +102,6 @@
   "loot-lock.onboarding.title": "Loot Lock is ready",
   "loot-lock.onboarding.body": "Click the lock icon next to your recipe book to set up filters.",
 
-  "loot-lock.command.client.reset_onboarding.ok": "Onboarding nudge reset. Open your inventory to see it again.",
-  "loot-lock.command.client.reset_onboarding.unavailable": "Client settings are not available yet.",
-
   "loot-lock.blocked.blocked": "Blocked",
   "loot-lock.blocked.deleted": "Deleted",
   "loot-lock.blocked.unknown_item": "unknown item",

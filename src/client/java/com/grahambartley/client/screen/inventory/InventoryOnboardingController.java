@@ -28,13 +28,4 @@ public final class InventoryOnboardingController {
   public static boolean shouldShowOnboarding(ClientSettings settings) {
     return settings != null && !settings.hasSeenOnboarding();
   }
-
-  public static void reset(ClientSettingsManager manager) {
-    if (manager == null) {
-      return;
-    }
-    ClientSettings settings = manager.getSettingsCopy();
-    settings.setHasSeenOnboarding(false);
-    manager.replaceAndSave(settings);
-  }
 }

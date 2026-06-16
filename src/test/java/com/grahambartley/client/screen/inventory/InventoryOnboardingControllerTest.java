@@ -39,28 +39,6 @@ class InventoryOnboardingControllerTest {
   }
 
   @Test
-  void resetClearsHasSeenOnboardingAndPersists() {
-    ClientSettingsManager manager = newLoadedManager();
-    ClientSettings seen = manager.getSettingsCopy();
-    seen.setHasSeenOnboarding(true);
-    manager.replaceAndSave(seen);
-
-    InventoryOnboardingController.reset(manager);
-
-    assertFalse(manager.getSettingsCopy().hasSeenOnboarding());
-
-    ClientSettingsManager reloaded =
-        new ClientSettingsManager(tempDir.resolve("loot-lock-client.json"));
-    reloaded.load();
-    assertFalse(reloaded.getSettingsCopy().hasSeenOnboarding());
-  }
-
-  @Test
-  void resetIsNoOpWhenManagerNull() {
-    InventoryOnboardingController.reset(null);
-  }
-
-  @Test
   void maybeShowDoesNotPersistFlagWhenAlreadySeen() {
     ClientSettingsManager manager = newLoadedManager();
     ClientSettings seen = manager.getSettingsCopy();
