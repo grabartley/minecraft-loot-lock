@@ -15,7 +15,7 @@
 Stop letting your inventory turn into a graveyard of rotten flesh and wheat seeds. Loot Lock lets every player on the server decide exactly which ground items they want to pick up, and ignores everything else. No more inventory tetris after every cave run. No more shift-clicking junk into hoppers for ten minutes after a raid.
 
 <p align="center">
-<img src="https://cdn.modrinth.com/data/8AB6MX34/images/4d0fb71bea06889427ebfe9d73f5033dfab65d17.gif" alt="Egg pickup blocked by an active denylist">
+<img src="docs/grab_what_you_want.gif" alt="Allowlist mode picking up only the items the active profile permits">
 </p>
 
 ## Built For
@@ -31,10 +31,6 @@ Stop letting your inventory turn into a graveyard of rotten flesh and wheat seed
 **Modpack authors** who need a clean, sane way to give players inventory control without bolting on five separate utility mods.
 
 **Anyone who has ever yelled** at their screen because they ran over a pile of seeds while trying to grab netherite.
-
-![Profile configuration item search interface](https://cdn.modrinth.com/data/8AB6MX34/images/8269a6959aa4832c43e78465cb3ed4a9e284cdf1.png)
-
-![Profile view interface](https://cdn.modrinth.com/data/8AB6MX34/images/64421f353f65dad6e1a8b34fed5215188887d368.png)
 
 ## What You Get
 
@@ -88,6 +84,10 @@ Inside the Rules tab:
 - Use **denylist mode** for general play with a short reject list (eggs, seeds, rotten flesh), and **allowlist mode** for focused tasks like mining where you want only the good stuff.
 - Pair a delete-mode profile with a mob farm so your collection chests never fill with junk drops.
 - Operators can pre-stage profiles for new players with `/lootlock` commands before they ever log in.
+
+<p align="center">
+<img src="docs/deny_chickens.gif" alt="Denylist mode blocking unwanted chicken drops on pickup">
+</p>
 
 ## Controls
 
