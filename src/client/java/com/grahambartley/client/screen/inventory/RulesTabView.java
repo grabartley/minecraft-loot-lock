@@ -245,7 +245,11 @@ public final class RulesTabView {
   private void applyWidgetVisibility() {
     boolean widgetVisible = visible && !overlayHidden;
     for (ClickableWidget widget : widgets) {
-      widget.visible = widgetVisible;
+      if (widget == searchField) {
+        widget.visible = visible;
+      } else {
+        widget.visible = widgetVisible;
+      }
     }
   }
 
