@@ -15,10 +15,6 @@
 Stop letting your inventory turn into a graveyard of rotten flesh and wheat seeds. Loot Lock lets every player on the server decide exactly which ground items they want to pick up, and ignores everything else. No more inventory tetris after every cave run. No more shift-clicking junk into hoppers for ten minutes after a raid.
 
 <p align="center">
-<img src="docs/deny_eggs.gif" alt="Egg pickup blocked by an active denylist">
-</p>
-
-<p align="center">
 <img src="docs/grab_what_you_want.gif" alt="Allowlist mode picking up only the items the active profile permits">
 </p>
 
