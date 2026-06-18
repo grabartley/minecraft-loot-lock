@@ -32,10 +32,6 @@ Stop letting your inventory turn into a graveyard of rotten flesh and wheat seed
 
 **Anyone who has ever yelled** at their screen because they ran over a pile of seeds while trying to grab netherite.
 
-![Profile configuration item search interface](https://cdn.modrinth.com/data/8AB6MX34/images/8269a6959aa4832c43e78465cb3ed4a9e284cdf1.png)
-
-![Profile view interface](https://cdn.modrinth.com/data/8AB6MX34/images/64421f353f65dad6e1a8b34fed5215188887d368.png)
-
 ## What You Get
 
 ### Filtering
