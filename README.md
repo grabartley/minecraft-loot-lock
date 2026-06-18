@@ -15,7 +15,7 @@
 Stop letting your inventory turn into a graveyard of rotten flesh and wheat seeds. Loot Lock lets every player on the server decide exactly which ground items they want to pick up, and ignores everything else. No more inventory tetris after every cave run. No more shift-clicking junk into hoppers for ten minutes after a raid.
 
 <p align="center">
-<img src="https://cdn.modrinth.com/data/8AB6MX34/images/4d0fb71bea06889427ebfe9d73f5033dfab65d17.gif" alt="Egg pickup blocked by an active denylist">
+<img src="docs/deny_eggs.gif" alt="Egg pickup blocked by an active denylist">
 </p>
 
 <p align="center">
@@ -47,10 +47,6 @@ Stop letting your inventory turn into a graveyard of rotten flesh and wheat seed
 - **Allowlist or denylist mode** per profile. Pick exactly what to grab, or pick exactly what to skip.
 - **Multiple profiles per player** for fast switching. Mining loadout, building loadout, farming loadout. Swap in one click or one keypress.
 - **Leave on ground or delete** rejected items. Delete mode includes safety confirmations and an operator opt-out.
-
-<p align="center">
-<img src="docs/deny_chickens.gif" alt="Denylist mode blocking unwanted chicken drops on pickup">
-</p>
 
 ### In-game UI
 - **Docked panel** that slides out beside your inventory, no separate full-screen menu detour.
@@ -96,6 +92,10 @@ Inside the Rules tab:
 - Use **denylist mode** for general play with a short reject list (eggs, seeds, rotten flesh), and **allowlist mode** for focused tasks like mining where you want only the good stuff.
 - Pair a delete-mode profile with a mob farm so your collection chests never fill with junk drops.
 - Operators can pre-stage profiles for new players with `/lootlock` commands before they ever log in.
+
+<p align="center">
+<img src="docs/deny_chickens.gif" alt="Denylist mode blocking unwanted chicken drops on pickup">
+</p>
 
 ## Controls
 
