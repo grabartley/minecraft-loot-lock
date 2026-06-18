@@ -73,8 +73,7 @@ public abstract class InventoryScreenMixin implements LootLockPanelHolder {
     lootlock$panel.setTab(LootLockInventoryPanel.getStickyActiveTab());
     lootlock$panel.setOpen(LootLockInventoryPanel.getStickyOpenState());
 
-    InventoryOnboardingController.maybeShow(
-        MinecraftClient.getInstance(), LootLockClient.getClientSettingsManager());
+    InventoryOnboardingController.maybeShow(LootLockClient.getClientSettingsManager());
   }
 
   /**

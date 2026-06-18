@@ -12,7 +12,7 @@ import net.minecraft.text.Text;
 public final class LootLockToast implements Toast {
   private static final long DEFAULT_DURATION_MS = 5000L;
   private static final int MIN_WIDTH = 160;
-  private static final int MAX_WIDTH = 300;
+  private static final int MAX_WIDTH = 240;
   private static final int BASE_HEIGHT = 32;
   private static final int LINE_HEIGHT = 10;
   private static final int ICON_SIZE = 20;

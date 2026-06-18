@@ -71,6 +71,7 @@ public final class RulesTabView {
   private boolean showingSearch;
   private boolean visible;
   private boolean overlayHidden;
+  private boolean searchHiddenByOverlay;
   private long lastClickTime;
   private String lastClickedItemId;
   private int scrollOffset;
@@ -234,19 +235,23 @@ public final class RulesTabView {
     }
   }
 
-  public void setOverlayHidden(boolean overlayHidden) {
-    if (this.overlayHidden == overlayHidden) {
+  public void setOverlayHidden(boolean overlayHidden, int overlayBottomY) {
+    boolean searchUnderOverlay =
+        overlayHidden && searchField != null && searchField.getY() < overlayBottomY;
+    if (this.overlayHidden == overlayHidden && this.searchHiddenByOverlay == searchUnderOverlay) {
       return;
     }
     this.overlayHidden = overlayHidden;
+    this.searchHiddenByOverlay = searchUnderOverlay;
     applyWidgetVisibility();
   }
 
   private void applyWidgetVisibility() {
     boolean widgetVisible = visible && !overlayHidden;
+    boolean searchVisible = visible && !searchHiddenByOverlay;
     for (ClickableWidget widget : widgets) {
       if (widget == searchField) {
-        widget.visible = visible;
+        widget.visible = searchVisible;
       } else {
         widget.visible = widgetVisible;
       }

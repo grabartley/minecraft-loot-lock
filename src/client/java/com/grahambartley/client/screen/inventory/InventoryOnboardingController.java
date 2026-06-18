@@ -9,20 +9,29 @@ import net.minecraft.text.Text;
 public final class InventoryOnboardingController {
   private InventoryOnboardingController() {}
 
-  public static void maybeShow(MinecraftClient client, ClientSettingsManager manager) {
-    if (client == null || manager == null) {
+  @FunctionalInterface
+  public interface ToastDispatcher {
+    void show(Text title, Text body);
+  }
+
+  static final ToastDispatcher DEFAULT_DISPATCHER =
+      (title, body) -> LootLockToast.show(MinecraftClient.getInstance(), title, body);
+
+  static ToastDispatcher dispatcher = DEFAULT_DISPATCHER;
+
+  public static void maybeShow(ClientSettingsManager manager) {
+    if (manager == null) {
       return;
     }
     ClientSettings settings = manager.getSettingsCopy();
     if (!shouldShowOnboarding(settings)) {
       return;
     }
-    LootLockToast.show(
-        client,
-        Text.translatable(LootLockLang.ONBOARDING_TITLE),
-        Text.translatable(LootLockLang.ONBOARDING_BODY));
     settings.setHasSeenOnboarding(true);
     manager.replaceAndSave(settings);
+    dispatcher.show(
+        Text.translatable(LootLockLang.ONBOARDING_TITLE),
+        Text.translatable(LootLockLang.ONBOARDING_BODY));
   }
 
   public static boolean shouldShowOnboarding(ClientSettings settings) {
