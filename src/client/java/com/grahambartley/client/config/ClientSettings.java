@@ -5,6 +5,7 @@ public final class ClientSettings {
   private boolean confirmBeforeEnablingDelete = true;
   private boolean enableProfileCycleToast = false;
   private boolean enableToggleToast = false;
+  private boolean hasSeenOnboarding = false;
 
   public static ClientSettings defaults() {
     return new ClientSettings();
@@ -16,6 +17,7 @@ public final class ClientSettings {
     copy.confirmBeforeEnablingDelete = confirmBeforeEnablingDelete;
     copy.enableProfileCycleToast = enableProfileCycleToast;
     copy.enableToggleToast = enableToggleToast;
+    copy.hasSeenOnboarding = hasSeenOnboarding;
     return copy;
   }
 
@@ -49,5 +51,13 @@ public final class ClientSettings {
 
   public void setEnableToggleToast(boolean enableToggleToast) {
     this.enableToggleToast = enableToggleToast;
+  }
+
+  public boolean hasSeenOnboarding() {
+    return hasSeenOnboarding;
+  }
+
+  public void setHasSeenOnboarding(boolean hasSeenOnboarding) {
+    this.hasSeenOnboarding = hasSeenOnboarding;
   }
 }
