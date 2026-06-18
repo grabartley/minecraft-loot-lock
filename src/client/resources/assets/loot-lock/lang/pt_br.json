@@ -99,6 +99,9 @@
   "loot-lock.toast.import_success": "Perfil '%s' importado",
   "loot-lock.toast.import_at_capacity": "Limite de perfis atingido. Apague um primeiro.",
 
+  "loot-lock.onboarding.title": "Loot Lock está pronto",
+  "loot-lock.onboarding.body": "Clique no ícone do cadeado ao lado do livro de receitas para configurar filtros.",
+
   "loot-lock.blocked.blocked": "Bloqueado",
   "loot-lock.blocked.deleted": "Excluído",
   "loot-lock.blocked.unknown_item": "item desconhecido",

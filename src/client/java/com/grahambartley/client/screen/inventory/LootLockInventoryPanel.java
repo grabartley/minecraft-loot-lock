@@ -1182,7 +1182,7 @@ public final class LootLockInventoryPanel {
       widget.visible = open && dropdownOpen;
     }
     rulesView.setVisible(!clientPrefsMode && open && activeTab == PanelTab.RULES);
-    rulesView.setOverlayHidden(open && dropdownOpen);
+    rulesView.setOverlayHidden(open && dropdownOpen, dropdownFrameY + dropdownFrameH);
     settingsView.setVisible(open && activeTab == PanelTab.SETTINGS);
   }
 
@@ -1395,7 +1395,7 @@ public final class LootLockInventoryPanel {
     for (ClickableWidget widget : dropdownWidgets) {
       widget.visible = open && dropdownOpen;
     }
-    rulesView.setOverlayHidden(open && dropdownOpen);
+    rulesView.setOverlayHidden(open && dropdownOpen, dropdownFrameY + dropdownFrameH);
   }
 
   private Optional<LootLockProfile> activeProfile() {
@@ -1689,6 +1689,6 @@ public final class LootLockInventoryPanel {
     for (ClickableWidget widget : dropdownWidgets) {
       widget.visible = false;
     }
-    rulesView.setOverlayHidden(false);
+    rulesView.setOverlayHidden(false, 0);
   }
 }
