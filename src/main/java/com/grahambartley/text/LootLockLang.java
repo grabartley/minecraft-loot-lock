@@ -108,6 +108,9 @@ public final class LootLockLang {
   public static final String TOAST_ENABLED = "loot-lock.toast.enabled";
   public static final String TOAST_DISABLED = "loot-lock.toast.disabled";
 
+  public static final String ONBOARDING_TITLE = "loot-lock.onboarding.title";
+  public static final String ONBOARDING_BODY = "loot-lock.onboarding.body";
+
   public static final String BLOCKED_BLOCKED = "loot-lock.blocked.blocked";
   public static final String BLOCKED_DELETED = "loot-lock.blocked.deleted";
   public static final String BLOCKED_UNKNOWN_ITEM = "loot-lock.blocked.unknown_item";

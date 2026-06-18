@@ -1,7 +1,9 @@
 package com.grahambartley.client.mixin;
 
+import com.grahambartley.client.LootLockClient;
 import com.grahambartley.client.screen.LootLockScreen;
 import com.grahambartley.client.screen.inventory.DragToAddRouter;
+import com.grahambartley.client.screen.inventory.InventoryOnboardingController;
 import com.grahambartley.client.screen.inventory.LootLockIconButton;
 import com.grahambartley.client.screen.inventory.LootLockInventoryPanel;
 import com.grahambartley.client.screen.inventory.LootLockPanelHolder;
@@ -70,6 +72,8 @@ public abstract class InventoryScreenMixin implements LootLockPanelHolder {
     // force the user to re-open the panel each time.
     lootlock$panel.setTab(LootLockInventoryPanel.getStickyActiveTab());
     lootlock$panel.setOpen(LootLockInventoryPanel.getStickyOpenState());
+
+    InventoryOnboardingController.maybeShow(LootLockClient.getClientSettingsManager());
   }
 
   /**

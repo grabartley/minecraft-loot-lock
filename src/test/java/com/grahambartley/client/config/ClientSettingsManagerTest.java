@@ -58,4 +58,38 @@ class ClientSettingsManagerTest {
     assertFalse(settings.isShowBlockedHudNotification());
     assertTrue(settings.isEnableProfileCycleToast());
   }
+
+  @Test
+  void loadsPreOnboardingConfigDefaultsHasSeenOnboardingToFalse() throws IOException {
+    Path configPath = tempDir.resolve("v1-loot-lock-client.json");
+    String preOnboardingJson =
+        "{"
+            + "\"showBlockedHudNotification\": false,"
+            + "\"confirmBeforeEnablingDelete\": true,"
+            + "\"enableProfileCycleToast\": false,"
+            + "\"enableToggleToast\": false"
+            + "}";
+    Files.writeString(configPath, preOnboardingJson);
+
+    ClientSettingsManager manager =
+        new ClientSettingsManager(configPath, new GsonBuilder().setPrettyPrinting().create());
+    manager.load();
+
+    assertFalse(manager.getSettingsCopy().hasSeenOnboarding());
+  }
+
+  @Test
+  void roundTripsHasSeenOnboardingThroughDisk() {
+    Path configPath = tempDir.resolve("loot-lock-client.json");
+    ClientSettingsManager manager = new ClientSettingsManager(configPath);
+    manager.load();
+
+    ClientSettings updated = manager.getSettingsCopy();
+    updated.setHasSeenOnboarding(true);
+    manager.replaceAndSave(updated);
+
+    ClientSettingsManager reloaded = new ClientSettingsManager(configPath);
+    reloaded.load();
+    assertTrue(reloaded.getSettingsCopy().hasSeenOnboarding());
+  }
 }
