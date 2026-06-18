@@ -18,6 +18,10 @@ Stop letting your inventory turn into a graveyard of rotten flesh and wheat seed
 <img src="https://cdn.modrinth.com/data/8AB6MX34/images/4d0fb71bea06889427ebfe9d73f5033dfab65d17.gif" alt="Egg pickup blocked by an active denylist">
 </p>
 
+<p align="center">
+<img src="docs/grab_what_you_want.gif" alt="Allowlist mode picking up only the items the active profile permits">
+</p>
+
 ## Built For
 
 **Survival players** tired of picking up eggs while breeding chickens or wheat seeds while clearing grass.
@@ -43,6 +47,10 @@ Stop letting your inventory turn into a graveyard of rotten flesh and wheat seed
 - **Allowlist or denylist mode** per profile. Pick exactly what to grab, or pick exactly what to skip.
 - **Multiple profiles per player** for fast switching. Mining loadout, building loadout, farming loadout. Swap in one click or one keypress.
 - **Leave on ground or delete** rejected items. Delete mode includes safety confirmations and an operator opt-out.
+
+<p align="center">
+<img src="docs/deny_chickens.gif" alt="Denylist mode blocking unwanted chicken drops on pickup">
+</p>
 
 ### In-game UI
 - **Docked panel** that slides out beside your inventory, no separate full-screen menu detour.
