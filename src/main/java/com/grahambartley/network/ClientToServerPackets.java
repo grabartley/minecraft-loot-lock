@@ -11,9 +11,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.network.PacketByteBuf;
+import net.minecraft.network.codec.PacketCodec;
+import net.minecraft.network.packet.CustomPayload;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Identifier;
 
@@ -24,153 +25,70 @@ public final class ClientToServerPackets {
 
   public static void register() {
     ServerPlayNetworking.registerGlobalReceiver(
-        PacketIds.HELLO_C2S,
-        (server, player, handler, buf, responseSender) -> {
-          HelloPayload payload = readHelloPayload(buf);
-          server.execute(
-              () -> {
-                LootLock.LOGGER.debug(
-                    "Received hello from {}: version={}, schema={}.",
-                    player.getUuid(),
-                    payload.clientVersion(),
-                    payload.schemaVersion());
-                ServerToClientPackets.sendAuthoritativeSync(player);
-              });
+        HelloPayload.ID,
+        (payload, context) -> {
+          ServerPlayerEntity player = context.player();
+          context
+              .server()
+              .execute(
+                  () -> {
+                    LootLock.LOGGER.debug(
+                        "Received hello from {}: version={}, schema={}.",
+                        player.getUuid(),
+                        payload.clientVersion(),
+                        payload.schemaVersion());
+                    ServerToClientPackets.sendAuthoritativeSync(player);
+                  });
         });
 
     ServerPlayNetworking.registerGlobalReceiver(
-        PacketIds.REQUEST_SYNC_C2S,
-        (server, player, handler, buf, responseSender) ->
-            server.execute(() -> ServerToClientPackets.sendAuthoritativeSync(player)));
-
-    ServerPlayNetworking.registerGlobalReceiver(
-        PacketIds.UPDATE_PROFILE_C2S,
-        (server, player, handler, buf, responseSender) -> {
-          UpdateProfilePayload payload = readUpdateProfilePayload(buf);
-          server.execute(() -> handleUpdateProfile(player, payload));
+        RequestSyncPayload.ID,
+        (payload, context) -> {
+          ServerPlayerEntity player = context.player();
+          context.server().execute(() -> ServerToClientPackets.sendAuthoritativeSync(player));
         });
 
     ServerPlayNetworking.registerGlobalReceiver(
-        PacketIds.ACTIVATE_PROFILE_C2S,
-        (server, player, handler, buf, responseSender) -> {
-          ActivateProfilePayload payload = readActivateProfilePayload(buf);
-          server.execute(() -> handleActivateProfile(player, payload));
+        UpdateProfilePayload.ID,
+        (payload, context) -> {
+          ServerPlayerEntity player = context.player();
+          context.server().execute(() -> handleUpdateProfile(player, payload));
         });
 
     ServerPlayNetworking.registerGlobalReceiver(
-        PacketIds.CREATE_PROFILE_C2S,
-        (server, player, handler, buf, responseSender) -> {
-          CreateProfilePayload payload = readCreateProfilePayload(buf);
-          server.execute(() -> handleCreateProfile(player, payload));
+        ActivateProfilePayload.ID,
+        (payload, context) -> {
+          ServerPlayerEntity player = context.player();
+          context.server().execute(() -> handleActivateProfile(player, payload));
         });
 
     ServerPlayNetworking.registerGlobalReceiver(
-        PacketIds.DELETE_PROFILE_C2S,
-        (server, player, handler, buf, responseSender) -> {
-          DeleteProfilePayload payload = readDeleteProfilePayload(buf);
-          server.execute(() -> handleDeleteProfile(player, payload));
+        CreateProfilePayload.ID,
+        (payload, context) -> {
+          ServerPlayerEntity player = context.player();
+          context.server().execute(() -> handleCreateProfile(player, payload));
         });
 
     ServerPlayNetworking.registerGlobalReceiver(
-        PacketIds.UPDATE_SERVER_POLICY_C2S,
-        (server, player, handler, buf, responseSender) -> {
-          UpdateServerPolicyPayload payload = readUpdateServerPolicyPayload(buf);
-          server.execute(() -> handleUpdateServerPolicy(player, payload));
+        DeleteProfilePayload.ID,
+        (payload, context) -> {
+          ServerPlayerEntity player = context.player();
+          context.server().execute(() -> handleDeleteProfile(player, payload));
         });
 
     ServerPlayNetworking.registerGlobalReceiver(
-        PacketIds.UPDATE_GLOBAL_ENABLE_C2S,
-        (server, player, handler, buf, responseSender) -> {
-          UpdateGlobalEnablePayload payload = readUpdateGlobalEnablePayload(buf);
-          server.execute(() -> handleUpdateGlobalEnable(player, payload));
+        UpdateServerPolicyPayload.ID,
+        (payload, context) -> {
+          ServerPlayerEntity player = context.player();
+          context.server().execute(() -> handleUpdateServerPolicy(player, payload));
         });
-  }
 
-  public static PacketByteBuf writeHelloPayload(String clientVersion, int schemaVersion) {
-    PacketByteBuf buf = PacketByteBufs.create();
-    buf.writeString(clientVersion == null ? "unknown" : clientVersion, MAX_CLIENT_VERSION_LENGTH);
-    buf.writeVarInt(schemaVersion);
-    return buf;
-  }
-
-  static HelloPayload readHelloPayload(PacketByteBuf buf) {
-    String clientVersion = buf.readString(MAX_CLIENT_VERSION_LENGTH);
-    int schemaVersion = buf.readVarInt();
-    return new HelloPayload(clientVersion, schemaVersion);
-  }
-
-  public static PacketByteBuf writeUpdateProfilePayload(
-      long baseRevision, LootLockProfile profile) {
-    PacketByteBuf buf = PacketByteBufs.create();
-    buf.writeVarLong(baseRevision);
-    writeProfile(buf, profile);
-    return buf;
-  }
-
-  static UpdateProfilePayload readUpdateProfilePayload(PacketByteBuf buf) {
-    return new UpdateProfilePayload(buf.readVarLong(), readProfile(buf));
-  }
-
-  public static PacketByteBuf writeActivateProfilePayload(long baseRevision, UUID profileId) {
-    PacketByteBuf buf = PacketByteBufs.create();
-    buf.writeVarLong(baseRevision);
-    buf.writeUuid(profileId);
-    return buf;
-  }
-
-  static ActivateProfilePayload readActivateProfilePayload(PacketByteBuf buf) {
-    return new ActivateProfilePayload(buf.readVarLong(), buf.readUuid());
-  }
-
-  public static PacketByteBuf writeCreateProfilePayload(
-      long baseRevision, String name, LootLockProfile copyFromProfile) {
-    PacketByteBuf buf = PacketByteBufs.create();
-    buf.writeVarLong(baseRevision);
-    buf.writeString(name == null ? "" : name, PacketLimits.MAX_PROFILE_NAME_LENGTH);
-    buf.writeBoolean(copyFromProfile != null);
-    if (copyFromProfile != null) {
-      writeProfile(buf, copyFromProfile);
-    }
-    return buf;
-  }
-
-  static CreateProfilePayload readCreateProfilePayload(PacketByteBuf buf) {
-    long baseRevision = buf.readVarLong();
-    String name = buf.readString(PacketLimits.MAX_PROFILE_NAME_LENGTH);
-    LootLockProfile copyFrom = buf.readBoolean() ? readProfile(buf) : null;
-    return new CreateProfilePayload(baseRevision, name, copyFrom);
-  }
-
-  public static PacketByteBuf writeDeleteProfilePayload(long baseRevision, UUID profileId) {
-    PacketByteBuf buf = PacketByteBufs.create();
-    buf.writeVarLong(baseRevision);
-    buf.writeUuid(profileId);
-    return buf;
-  }
-
-  static DeleteProfilePayload readDeleteProfilePayload(PacketByteBuf buf) {
-    return new DeleteProfilePayload(buf.readVarLong(), buf.readUuid());
-  }
-
-  public static PacketByteBuf writeUpdateServerPolicyPayload(boolean allowDeleteRejectedItems) {
-    PacketByteBuf buf = PacketByteBufs.create();
-    buf.writeBoolean(allowDeleteRejectedItems);
-    return buf;
-  }
-
-  static UpdateServerPolicyPayload readUpdateServerPolicyPayload(PacketByteBuf buf) {
-    return new UpdateServerPolicyPayload(buf.readBoolean());
-  }
-
-  public static PacketByteBuf writeUpdateGlobalEnablePayload(long baseRevision, boolean enabled) {
-    PacketByteBuf buf = PacketByteBufs.create();
-    buf.writeVarLong(baseRevision);
-    buf.writeBoolean(enabled);
-    return buf;
-  }
-
-  static UpdateGlobalEnablePayload readUpdateGlobalEnablePayload(PacketByteBuf buf) {
-    return new UpdateGlobalEnablePayload(buf.readVarLong(), buf.readBoolean());
+    ServerPlayNetworking.registerGlobalReceiver(
+        UpdateGlobalEnablePayload.ID,
+        (payload, context) -> {
+          ServerPlayerEntity player = context.player();
+          context.server().execute(() -> handleUpdateGlobalEnable(player, payload));
+        });
   }
 
   static MutationResult applyUpdateGlobalEnable(
@@ -475,47 +393,154 @@ public final class ClientToServerPackets {
     return sanitized;
   }
 
-  private static void writeProfile(PacketByteBuf buf, LootLockProfile profile) {
-    buf.writeUuid(profile.getId());
-    buf.writeString(profile.getName(), PacketLimits.MAX_PROFILE_NAME_LENGTH);
-    buf.writeEnumConstant(profile.getMode());
-    buf.writeEnumConstant(profile.getRejectedItemAction());
-    buf.writeBoolean(profile.isEnabled());
-    buf.writeInt(profile.getColor());
-    buf.writeVarInt(profile.getRules().size());
-    for (RuleEntry rule : profile.getRules()) {
-      buf.writeString(rule.itemId(), PacketLimits.MAX_RULE_ID_LENGTH);
+  public record HelloPayload(String clientVersion, int schemaVersion) implements CustomPayload {
+    public static final CustomPayload.Id<HelloPayload> ID =
+        new CustomPayload.Id<>(PacketIds.HELLO_C2S);
+    public static final PacketCodec<PacketByteBuf, HelloPayload> CODEC =
+        PacketCodec.of(
+            (payload, buf) -> {
+              buf.writeString(
+                  payload.clientVersion() == null ? "unknown" : payload.clientVersion(),
+                  MAX_CLIENT_VERSION_LENGTH);
+              buf.writeVarInt(payload.schemaVersion());
+            },
+            buf -> new HelloPayload(buf.readString(MAX_CLIENT_VERSION_LENGTH), buf.readVarInt()));
+
+    @Override
+    public CustomPayload.Id<? extends CustomPayload> getId() {
+      return ID;
     }
   }
 
-  private static LootLockProfile readProfile(PacketByteBuf buf) {
-    UUID profileId = buf.readUuid();
-    String profileName = buf.readString(PacketLimits.MAX_PROFILE_NAME_LENGTH);
-    FilterMode mode = buf.readEnumConstant(FilterMode.class);
-    RejectedItemAction action = buf.readEnumConstant(RejectedItemAction.class);
-    boolean enabled = buf.readBoolean();
-    int color = buf.readInt();
-    int ruleCount = buf.readVarInt();
-    List<RuleEntry> rules = new ArrayList<>(ruleCount);
-    for (int i = 0; i < ruleCount; i++) {
-      rules.add(new RuleEntry(buf.readString(PacketLimits.MAX_RULE_ID_LENGTH)));
+  public record RequestSyncPayload() implements CustomPayload {
+    public static final RequestSyncPayload INSTANCE = new RequestSyncPayload();
+    public static final CustomPayload.Id<RequestSyncPayload> ID =
+        new CustomPayload.Id<>(PacketIds.REQUEST_SYNC_C2S);
+    public static final PacketCodec<PacketByteBuf, RequestSyncPayload> CODEC =
+        PacketCodec.unit(INSTANCE);
+
+    @Override
+    public CustomPayload.Id<? extends CustomPayload> getId() {
+      return ID;
     }
-    return new LootLockProfile(profileId, profileName, mode, action, enabled, color, rules);
   }
 
-  record HelloPayload(String clientVersion, int schemaVersion) {}
+  public record UpdateProfilePayload(long baseRevision, LootLockProfile profile)
+      implements CustomPayload {
+    public static final CustomPayload.Id<UpdateProfilePayload> ID =
+        new CustomPayload.Id<>(PacketIds.UPDATE_PROFILE_C2S);
+    public static final PacketCodec<PacketByteBuf, UpdateProfilePayload> CODEC =
+        PacketCodec.of(
+            (payload, buf) -> {
+              buf.writeVarLong(payload.baseRevision());
+              LootLockPayloads.PROFILE_CODEC.encode(buf, payload.profile());
+            },
+            buf ->
+                new UpdateProfilePayload(
+                    buf.readVarLong(), LootLockPayloads.PROFILE_CODEC.decode(buf)));
 
-  record UpdateProfilePayload(long baseRevision, LootLockProfile profile) {}
+    @Override
+    public CustomPayload.Id<? extends CustomPayload> getId() {
+      return ID;
+    }
+  }
 
-  record ActivateProfilePayload(long baseRevision, UUID profileId) {}
+  public record ActivateProfilePayload(long baseRevision, UUID profileId) implements CustomPayload {
+    public static final CustomPayload.Id<ActivateProfilePayload> ID =
+        new CustomPayload.Id<>(PacketIds.ACTIVATE_PROFILE_C2S);
+    public static final PacketCodec<PacketByteBuf, ActivateProfilePayload> CODEC =
+        PacketCodec.of(
+            (payload, buf) -> {
+              buf.writeVarLong(payload.baseRevision());
+              buf.writeUuid(payload.profileId());
+            },
+            buf -> new ActivateProfilePayload(buf.readVarLong(), buf.readUuid()));
 
-  record CreateProfilePayload(long baseRevision, String name, LootLockProfile copyFromProfile) {}
+    @Override
+    public CustomPayload.Id<? extends CustomPayload> getId() {
+      return ID;
+    }
+  }
 
-  record DeleteProfilePayload(long baseRevision, UUID profileId) {}
+  public record CreateProfilePayload(
+      long baseRevision, String name, LootLockProfile copyFromProfile) implements CustomPayload {
+    public static final CustomPayload.Id<CreateProfilePayload> ID =
+        new CustomPayload.Id<>(PacketIds.CREATE_PROFILE_C2S);
+    public static final PacketCodec<PacketByteBuf, CreateProfilePayload> CODEC =
+        PacketCodec.of(
+            (payload, buf) -> {
+              buf.writeVarLong(payload.baseRevision());
+              buf.writeString(
+                  payload.name() == null ? "" : payload.name(),
+                  PacketLimits.MAX_PROFILE_NAME_LENGTH);
+              buf.writeBoolean(payload.copyFromProfile() != null);
+              if (payload.copyFromProfile() != null) {
+                LootLockPayloads.PROFILE_CODEC.encode(buf, payload.copyFromProfile());
+              }
+            },
+            buf -> {
+              long baseRevision = buf.readVarLong();
+              String name = buf.readString(PacketLimits.MAX_PROFILE_NAME_LENGTH);
+              LootLockProfile copyFrom =
+                  buf.readBoolean() ? LootLockPayloads.PROFILE_CODEC.decode(buf) : null;
+              return new CreateProfilePayload(baseRevision, name, copyFrom);
+            });
 
-  record UpdateServerPolicyPayload(boolean allowDeleteRejectedItems) {}
+    @Override
+    public CustomPayload.Id<? extends CustomPayload> getId() {
+      return ID;
+    }
+  }
 
-  record UpdateGlobalEnablePayload(long baseRevision, boolean enabled) {}
+  public record DeleteProfilePayload(long baseRevision, UUID profileId) implements CustomPayload {
+    public static final CustomPayload.Id<DeleteProfilePayload> ID =
+        new CustomPayload.Id<>(PacketIds.DELETE_PROFILE_C2S);
+    public static final PacketCodec<PacketByteBuf, DeleteProfilePayload> CODEC =
+        PacketCodec.of(
+            (payload, buf) -> {
+              buf.writeVarLong(payload.baseRevision());
+              buf.writeUuid(payload.profileId());
+            },
+            buf -> new DeleteProfilePayload(buf.readVarLong(), buf.readUuid()));
+
+    @Override
+    public CustomPayload.Id<? extends CustomPayload> getId() {
+      return ID;
+    }
+  }
+
+  public record UpdateServerPolicyPayload(boolean allowDeleteRejectedItems)
+      implements CustomPayload {
+    public static final CustomPayload.Id<UpdateServerPolicyPayload> ID =
+        new CustomPayload.Id<>(PacketIds.UPDATE_SERVER_POLICY_C2S);
+    public static final PacketCodec<PacketByteBuf, UpdateServerPolicyPayload> CODEC =
+        PacketCodec.of(
+            (payload, buf) -> buf.writeBoolean(payload.allowDeleteRejectedItems()),
+            buf -> new UpdateServerPolicyPayload(buf.readBoolean()));
+
+    @Override
+    public CustomPayload.Id<? extends CustomPayload> getId() {
+      return ID;
+    }
+  }
+
+  public record UpdateGlobalEnablePayload(long baseRevision, boolean enabled)
+      implements CustomPayload {
+    public static final CustomPayload.Id<UpdateGlobalEnablePayload> ID =
+        new CustomPayload.Id<>(PacketIds.UPDATE_GLOBAL_ENABLE_C2S);
+    public static final PacketCodec<PacketByteBuf, UpdateGlobalEnablePayload> CODEC =
+        PacketCodec.of(
+            (payload, buf) -> {
+              buf.writeVarLong(payload.baseRevision());
+              buf.writeBoolean(payload.enabled());
+            },
+            buf -> new UpdateGlobalEnablePayload(buf.readVarLong(), buf.readBoolean()));
+
+    @Override
+    public CustomPayload.Id<? extends CustomPayload> getId() {
+      return ID;
+    }
+  }
 
   record MutationResult(boolean success, MutationRejectionReason reason) {
     static MutationResult applied() {

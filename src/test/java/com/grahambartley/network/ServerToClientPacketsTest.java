@@ -10,13 +10,23 @@ import com.grahambartley.data.LootLockPlayerData;
 import com.grahambartley.data.LootLockProfile;
 import com.grahambartley.data.RejectedItemAction;
 import com.grahambartley.data.RuleEntry;
+import io.netty.buffer.Unpooled;
 import java.util.List;
 import java.util.UUID;
 import net.minecraft.network.PacketByteBuf;
+import net.minecraft.network.codec.PacketCodec;
+import net.minecraft.network.packet.CustomPayload;
 import net.minecraft.util.Identifier;
 import org.junit.jupiter.api.Test;
 
 class ServerToClientPacketsTest {
+
+  private static <T extends CustomPayload> T roundTrip(
+      PacketCodec<PacketByteBuf, T> codec, T payload) {
+    PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
+    codec.encode(buf, payload);
+    return codec.decode(buf);
+  }
 
   @Test
   void syncPayloadRoundTripsFullPlayerSnapshot() {
@@ -37,7 +47,8 @@ class ServerToClientPacketsTest {
     data.setRevision(42L);
 
     ServerToClientPackets.SyncPayload decoded =
-        ServerToClientPackets.readSyncPayload(ServerToClientPackets.writeSyncPayload(data));
+        roundTrip(
+            ServerToClientPackets.SyncPayload.CODEC, ServerToClientPackets.syncPayloadOf(data));
 
     assertEquals(data.getSchemaVersion(), decoded.schemaVersion());
     assertEquals(playerId, decoded.playerUuid());
@@ -61,8 +72,9 @@ class ServerToClientPacketsTest {
     LootLockPlayerData data = LootLockPlayerData.createDefault(UUID.randomUUID());
 
     ServerToClientPackets.SyncPayload decoded =
-        ServerToClientPackets.readSyncPayload(
-            ServerToClientPackets.writeSyncPayload(data, true, false));
+        roundTrip(
+            ServerToClientPackets.SyncPayload.CODEC,
+            ServerToClientPackets.syncPayloadOf(data, true, false));
 
     assertFalse(decoded.allowDeleteRejectedItems());
   }
@@ -85,7 +97,8 @@ class ServerToClientPacketsTest {
     data.setRevision(7L);
 
     ServerToClientPackets.SyncPayload decoded =
-        ServerToClientPackets.readSyncPayload(ServerToClientPackets.writeSyncPayload(data));
+        roundTrip(
+            ServerToClientPackets.SyncPayload.CODEC, ServerToClientPackets.syncPayloadOf(data));
 
     assertEquals(1, decoded.profiles().size());
     assertEquals("EmptyRules", decoded.profiles().get(0).getName());
@@ -99,7 +112,8 @@ class ServerToClientPacketsTest {
     data.setRevision(3L);
 
     ServerToClientPackets.SyncPayload decoded =
-        ServerToClientPackets.readSyncPayload(ServerToClientPackets.writeSyncPayload(data));
+        roundTrip(
+            ServerToClientPackets.SyncPayload.CODEC, ServerToClientPackets.syncPayloadOf(data));
 
     assertNull(decoded.activeProfileId());
     assertEquals(1, decoded.profiles().size());
@@ -108,10 +122,11 @@ class ServerToClientPacketsTest {
   @Test
   void blockedNoticePayloadRoundTrips() {
     Identifier itemId = Identifier.of("minecraft", "wheat_seeds");
-    PacketByteBuf encoded = ServerToClientPackets.writeBlockedNoticePayload(itemId, 16, false);
 
     ServerToClientPackets.BlockedNoticePayload decoded =
-        ServerToClientPackets.readBlockedNoticePayload(encoded);
+        roundTrip(
+            ServerToClientPackets.BlockedNoticePayload.CODEC,
+            new ServerToClientPackets.BlockedNoticePayload(itemId, 16, false));
 
     assertEquals(itemId, decoded.itemId());
     assertEquals(16, decoded.count());

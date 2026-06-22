@@ -37,7 +37,7 @@ class BlockedNoticePresenterTest {
 
   @Test
   void resolveItemLabelFallsBackToIdentifierStringWhenLookupEmpty() {
-    Identifier unknown = new Identifier("lootlock", "definitely_missing_item");
+    Identifier unknown = Identifier.of("lootlock", "definitely_missing_item");
 
     assertEquals(
         "lootlock:definitely_missing_item",

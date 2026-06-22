@@ -38,7 +38,7 @@ public final class LootLockScreen extends Screen {
 
   @Override
   public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-    renderBackground(context);
+    renderBackground(context, mouseX, mouseY, delta);
     if (panel != null) {
       int anchorX = (width - LootLockInventoryPanel.WIDTH) / 2;
       panel.layout(anchorX, width, height);
@@ -60,11 +60,12 @@ public final class LootLockScreen extends Screen {
   }
 
   @Override
-  public boolean mouseScrolled(double mouseX, double mouseY, double amount) {
-    if (panel != null && panel.handleMouseScroll(mouseX, mouseY, amount)) {
+  public boolean mouseScrolled(
+      double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
+    if (panel != null && panel.handleMouseScroll(mouseX, mouseY, verticalAmount)) {
       return true;
     }
-    return super.mouseScrolled(mouseX, mouseY, amount);
+    return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
   }
 
   @Override

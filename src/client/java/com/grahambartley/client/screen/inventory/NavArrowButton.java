@@ -25,7 +25,7 @@ public final class NavArrowButton extends PressableWidget {
   }
 
   @Override
-  protected void renderButton(DrawContext context, int mouseX, int mouseY, float delta) {
+  protected void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
     Chrome.guiButton(context, getX(), getY(), getWidth(), getHeight());
     MinecraftClient client = MinecraftClient.getInstance();
     String glyph = rightFacing ? ">" : "<";

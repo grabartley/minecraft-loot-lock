@@ -12,16 +12,26 @@ import com.grahambartley.data.LootLockPlayerData;
 import com.grahambartley.data.LootLockProfile;
 import com.grahambartley.data.RejectedItemAction;
 import com.grahambartley.data.RuleEntry;
+import io.netty.buffer.Unpooled;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import net.minecraft.network.PacketByteBuf;
+import net.minecraft.network.codec.PacketCodec;
+import net.minecraft.network.packet.CustomPayload;
 import net.minecraft.server.network.ServerPlayerEntity;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
 class ClientToServerPacketsTest {
+
+  private static <T extends CustomPayload> T roundTrip(
+      PacketCodec<PacketByteBuf, T> codec, T payload) {
+    PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
+    codec.encode(buf, payload);
+    return codec.decode(buf);
+  }
 
   @ParameterizedTest(name = "isValidRuleEntryToken(\"{0}\") -> {1}")
   @CsvSource({
@@ -67,9 +77,10 @@ class ClientToServerPacketsTest {
 
   @Test
   void helloPayloadRoundTripsVersionAndSchema() {
-    PacketByteBuf buf = ClientToServerPackets.writeHelloPayload("1.2.3", 7);
-
-    ClientToServerPackets.HelloPayload payload = ClientToServerPackets.readHelloPayload(buf);
+    ClientToServerPackets.HelloPayload payload =
+        roundTrip(
+            ClientToServerPackets.HelloPayload.CODEC,
+            new ClientToServerPackets.HelloPayload("1.2.3", 7));
 
     assertEquals("1.2.3", payload.clientVersion());
     assertEquals(7, payload.schemaVersion());
@@ -85,9 +96,10 @@ class ClientToServerPacketsTest {
             true,
             "minecraft:cobblestone");
 
-    PacketByteBuf buf = ClientToServerPackets.writeUpdateProfilePayload(8L, profile);
     ClientToServerPackets.UpdateProfilePayload payload =
-        ClientToServerPackets.readUpdateProfilePayload(buf);
+        roundTrip(
+            ClientToServerPackets.UpdateProfilePayload.CODEC,
+            new ClientToServerPackets.UpdateProfilePayload(8L, profile));
 
     assertEquals(8L, payload.baseRevision());
     assertEquals(profile.getId(), payload.profile().getId());
@@ -216,18 +228,20 @@ class ClientToServerPacketsTest {
 
   @Test
   void updateServerPolicyPayloadRoundTrips() {
-    PacketByteBuf buf = ClientToServerPackets.writeUpdateServerPolicyPayload(false);
     ClientToServerPackets.UpdateServerPolicyPayload payload =
-        ClientToServerPackets.readUpdateServerPolicyPayload(buf);
+        roundTrip(
+            ClientToServerPackets.UpdateServerPolicyPayload.CODEC,
+            new ClientToServerPackets.UpdateServerPolicyPayload(false));
 
     assertFalse(payload.allowDeleteRejectedItems());
   }
 
   @Test
   void updateGlobalEnablePayloadRoundTrips() {
-    PacketByteBuf buf = ClientToServerPackets.writeUpdateGlobalEnablePayload(12L, false);
     ClientToServerPackets.UpdateGlobalEnablePayload payload =
-        ClientToServerPackets.readUpdateGlobalEnablePayload(buf);
+        roundTrip(
+            ClientToServerPackets.UpdateGlobalEnablePayload.CODEC,
+            new ClientToServerPackets.UpdateGlobalEnablePayload(12L, false));
 
     assertEquals(12L, payload.baseRevision());
     assertFalse(payload.enabled());

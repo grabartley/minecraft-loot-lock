@@ -66,7 +66,7 @@ public final class VanillaSwitch extends PressableWidget {
   }
 
   @Override
-  protected void renderButton(DrawContext context, int mouseX, int mouseY, float delta) {
+  protected void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
     boolean on = isOn();
     if (on) {
       Chrome.switchOn(context, getX(), getY(), getWidth(), getHeight());

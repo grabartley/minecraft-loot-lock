@@ -1,17 +1,15 @@
 package com.grahambartley.network;
 
 import com.grahambartley.LootLock;
-import com.grahambartley.data.FilterMode;
 import com.grahambartley.data.LootLockPlayerData;
 import com.grahambartley.data.LootLockProfile;
-import com.grahambartley.data.RejectedItemAction;
-import com.grahambartley.data.RuleEntry;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.network.PacketByteBuf;
+import net.minecraft.network.codec.PacketCodec;
+import net.minecraft.network.packet.CustomPayload;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Identifier;
 
@@ -19,14 +17,12 @@ public final class ServerToClientPackets {
   private ServerToClientPackets() {}
 
   public static void sendServerCapabilities(ServerPlayerEntity player) {
-    if (!ServerPlayNetworking.canSend(player, PacketIds.SERVER_CAPABILITIES_S2C)) {
+    if (!ServerPlayNetworking.canSend(player, ServerCapabilitiesPayload.ID)) {
       return;
     }
 
-    PacketByteBuf buf = PacketByteBufs.create();
-    buf.writeBoolean(true);
-    buf.writeVarInt(LootLockPlayerData.CURRENT_SCHEMA_VERSION);
-    ServerPlayNetworking.send(player, PacketIds.SERVER_CAPABILITIES_S2C, buf);
+    ServerPlayNetworking.send(
+        player, new ServerCapabilitiesPayload(true, LootLockPlayerData.CURRENT_SCHEMA_VERSION));
   }
 
   public static void sendAuthoritativeSync(ServerPlayerEntity player) {
@@ -38,114 +34,41 @@ public final class ServerToClientPackets {
     }
 
     if (LootLock.PLAYER_DATA_MANAGER == null
-        || !ServerPlayNetworking.canSend(player, PacketIds.SYNC_PLAYER_DATA_S2C)) {
+        || !ServerPlayNetworking.canSend(player, SyncPayload.ID)) {
       return;
     }
 
     LootLockPlayerData data = LootLock.PLAYER_DATA_MANAGER.get(player);
     // clientCanEdit reflects data ownership: self-data sync always grants edit rights.
     ServerPlayNetworking.send(
-        player,
-        PacketIds.SYNC_PLAYER_DATA_S2C,
-        writeSyncPayload(data, true, LootLock.SERVER_CONFIG.allowDeleteRejectedItems()));
+        player, syncPayloadOf(data, true, LootLock.SERVER_CONFIG.allowDeleteRejectedItems()));
   }
 
-  public static PacketByteBuf writeSyncPayload(LootLockPlayerData data) {
-    return writeSyncPayload(
+  public static SyncPayload syncPayloadOf(LootLockPlayerData data) {
+    return syncPayloadOf(
         data, data.isClientCanEdit(), LootLock.SERVER_CONFIG.allowDeleteRejectedItems());
   }
 
-  public static PacketByteBuf writeSyncPayload(
+  public static SyncPayload syncPayloadOf(
       LootLockPlayerData data, boolean clientCanEdit, boolean allowDeleteRejectedItems) {
-    PacketByteBuf buf = PacketByteBufs.create();
-    buf.writeVarInt(data.getSchemaVersion());
-    buf.writeUuid(data.getPlayerUuid());
-    buf.writeVarLong(data.getRevision());
-    buf.writeBoolean(data.getActiveProfileId() != null);
-    if (data.getActiveProfileId() != null) {
-      buf.writeUuid(data.getActiveProfileId());
-    }
-    buf.writeVarInt(data.getProfiles().size());
-    for (LootLockProfile profile : data.getProfiles()) {
-      writeProfile(buf, profile);
-    }
-    buf.writeBoolean(clientCanEdit);
-    buf.writeBoolean(allowDeleteRejectedItems);
-    return buf;
-  }
-
-  public static boolean sendBlockedNotice(
-      ServerPlayerEntity player, Identifier itemId, int count, boolean deleted) {
-    if (player == null || !ServerPlayNetworking.canSend(player, PacketIds.BLOCKED_NOTICE_S2C)) {
-      return false;
-    }
-
-    ServerPlayNetworking.send(
-        player, PacketIds.BLOCKED_NOTICE_S2C, writeBlockedNoticePayload(itemId, count, deleted));
-    return true;
-  }
-
-  public static PacketByteBuf writeBlockedNoticePayload(
-      Identifier itemId, int count, boolean deleted) {
-    PacketByteBuf buf = PacketByteBufs.create();
-    buf.writeIdentifier(itemId);
-    buf.writeVarInt(Math.max(1, count));
-    buf.writeBoolean(deleted);
-    return buf;
-  }
-
-  public static BlockedNoticePayload readBlockedNoticePayload(PacketByteBuf buf) {
-    return new BlockedNoticePayload(buf.readIdentifier(), buf.readVarInt(), buf.readBoolean());
-  }
-
-  public static SyncPayload readSyncPayload(PacketByteBuf buf) {
-    int schemaVersion = buf.readVarInt();
-    UUID playerUuid = buf.readUuid();
-    long revision = buf.readVarLong();
-    UUID activeProfileId = buf.readBoolean() ? buf.readUuid() : null;
-    int profileCount = buf.readVarInt();
-    List<LootLockProfile> profiles = new ArrayList<>(profileCount);
-    for (int i = 0; i < profileCount; i++) {
-      profiles.add(readProfile(buf));
-    }
-    boolean clientCanEdit = buf.readBoolean();
-    boolean allowDeleteRejectedItems = buf.readBoolean();
     return new SyncPayload(
-        schemaVersion,
-        playerUuid,
-        revision,
-        activeProfileId,
-        profiles,
+        data.getSchemaVersion(),
+        data.getPlayerUuid(),
+        data.getRevision(),
+        data.getActiveProfileId(),
+        List.copyOf(data.getProfiles()),
         clientCanEdit,
         allowDeleteRejectedItems);
   }
 
-  private static void writeProfile(PacketByteBuf buf, LootLockProfile profile) {
-    buf.writeUuid(profile.getId());
-    buf.writeString(profile.getName(), PacketLimits.MAX_PROFILE_NAME_LENGTH);
-    buf.writeEnumConstant(profile.getMode());
-    buf.writeEnumConstant(profile.getRejectedItemAction());
-    buf.writeBoolean(profile.isEnabled());
-    buf.writeInt(profile.getColor());
-    buf.writeVarInt(profile.getRules().size());
-    for (RuleEntry rule : profile.getRules()) {
-      buf.writeString(rule.itemId(), PacketLimits.MAX_RULE_ID_LENGTH);
+  public static boolean sendBlockedNotice(
+      ServerPlayerEntity player, Identifier itemId, int count, boolean deleted) {
+    if (player == null || !ServerPlayNetworking.canSend(player, BlockedNoticePayload.ID)) {
+      return false;
     }
-  }
 
-  private static LootLockProfile readProfile(PacketByteBuf buf) {
-    UUID profileId = buf.readUuid();
-    String profileName = buf.readString(PacketLimits.MAX_PROFILE_NAME_LENGTH);
-    FilterMode mode = buf.readEnumConstant(FilterMode.class);
-    RejectedItemAction action = buf.readEnumConstant(RejectedItemAction.class);
-    boolean enabled = buf.readBoolean();
-    int color = buf.readInt();
-    int ruleCount = buf.readVarInt();
-    List<RuleEntry> rules = new ArrayList<>(ruleCount);
-    for (int i = 0; i < ruleCount; i++) {
-      rules.add(new RuleEntry(buf.readString(PacketLimits.MAX_RULE_ID_LENGTH)));
-    }
-    return new LootLockProfile(profileId, profileName, mode, action, enabled, color, rules);
+    ServerPlayNetworking.send(player, new BlockedNoticePayload(itemId, count, deleted));
+    return true;
   }
 
   public record SyncPayload(
@@ -155,7 +78,93 @@ public final class ServerToClientPackets {
       UUID activeProfileId,
       List<LootLockProfile> profiles,
       boolean clientCanEdit,
-      boolean allowDeleteRejectedItems) {}
+      boolean allowDeleteRejectedItems)
+      implements CustomPayload {
+    public static final CustomPayload.Id<SyncPayload> ID =
+        new CustomPayload.Id<>(PacketIds.SYNC_PLAYER_DATA_S2C);
+    public static final PacketCodec<PacketByteBuf, SyncPayload> CODEC =
+        PacketCodec.of(SyncPayload::write, SyncPayload::read);
 
-  public record BlockedNoticePayload(Identifier itemId, int count, boolean deleted) {}
+    private static void write(SyncPayload payload, PacketByteBuf buf) {
+      buf.writeVarInt(payload.schemaVersion());
+      buf.writeUuid(payload.playerUuid());
+      buf.writeVarLong(payload.revision());
+      buf.writeBoolean(payload.activeProfileId() != null);
+      if (payload.activeProfileId() != null) {
+        buf.writeUuid(payload.activeProfileId());
+      }
+      buf.writeVarInt(payload.profiles().size());
+      for (LootLockProfile profile : payload.profiles()) {
+        LootLockPayloads.writeProfile(profile, buf);
+      }
+      buf.writeBoolean(payload.clientCanEdit());
+      buf.writeBoolean(payload.allowDeleteRejectedItems());
+    }
+
+    private static SyncPayload read(PacketByteBuf buf) {
+      int schemaVersion = buf.readVarInt();
+      UUID playerUuid = buf.readUuid();
+      long revision = buf.readVarLong();
+      UUID activeProfileId = buf.readBoolean() ? buf.readUuid() : null;
+      int profileCount = buf.readVarInt();
+      List<LootLockProfile> profiles = new ArrayList<>(profileCount);
+      for (int i = 0; i < profileCount; i++) {
+        profiles.add(LootLockPayloads.readProfile(buf));
+      }
+      boolean clientCanEdit = buf.readBoolean();
+      boolean allowDeleteRejectedItems = buf.readBoolean();
+      return new SyncPayload(
+          schemaVersion,
+          playerUuid,
+          revision,
+          activeProfileId,
+          profiles,
+          clientCanEdit,
+          allowDeleteRejectedItems);
+    }
+
+    @Override
+    public CustomPayload.Id<? extends CustomPayload> getId() {
+      return ID;
+    }
+  }
+
+  public record ServerCapabilitiesPayload(boolean supported, int schemaVersion)
+      implements CustomPayload {
+    public static final CustomPayload.Id<ServerCapabilitiesPayload> ID =
+        new CustomPayload.Id<>(PacketIds.SERVER_CAPABILITIES_S2C);
+    public static final PacketCodec<PacketByteBuf, ServerCapabilitiesPayload> CODEC =
+        PacketCodec.of(
+            (payload, buf) -> {
+              buf.writeBoolean(payload.supported());
+              buf.writeVarInt(payload.schemaVersion());
+            },
+            buf -> new ServerCapabilitiesPayload(buf.readBoolean(), buf.readVarInt()));
+
+    @Override
+    public CustomPayload.Id<? extends CustomPayload> getId() {
+      return ID;
+    }
+  }
+
+  public record BlockedNoticePayload(Identifier itemId, int count, boolean deleted)
+      implements CustomPayload {
+    public static final CustomPayload.Id<BlockedNoticePayload> ID =
+        new CustomPayload.Id<>(PacketIds.BLOCKED_NOTICE_S2C);
+    public static final PacketCodec<PacketByteBuf, BlockedNoticePayload> CODEC =
+        PacketCodec.of(
+            (payload, buf) -> {
+              buf.writeIdentifier(payload.itemId());
+              buf.writeVarInt(Math.max(1, payload.count()));
+              buf.writeBoolean(payload.deleted());
+            },
+            buf ->
+                new BlockedNoticePayload(
+                    buf.readIdentifier(), buf.readVarInt(), buf.readBoolean()));
+
+    @Override
+    public CustomPayload.Id<? extends CustomPayload> getId() {
+      return ID;
+    }
+  }
 }

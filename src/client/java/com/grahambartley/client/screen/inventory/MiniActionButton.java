@@ -27,7 +27,7 @@ public final class MiniActionButton extends PressableWidget {
   }
 
   @Override
-  protected void renderButton(DrawContext context, int mouseX, int mouseY, float delta) {
+  protected void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
     int face;
     if (!active) {
       face = 0xFF2C2C32;

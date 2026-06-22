@@ -99,7 +99,7 @@ public final class ProfileImportScreen extends Screen {
 
   @Override
   public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-    renderBackground(context);
+    renderBackground(context, mouseX, mouseY, delta);
     Chrome.guiWindow(context, cardX, cardY, CARD_WIDTH, CARD_HEIGHT);
 
     context.drawText(

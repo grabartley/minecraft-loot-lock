@@ -32,7 +32,7 @@ public final class VanillaTab extends PressableWidget {
   }
 
   @Override
-  protected void renderButton(DrawContext context, int mouseX, int mouseY, float delta) {
+  protected void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
     boolean on = activeSupplier.getAsBoolean();
     // Inactive tabs sit 2px proud of the content well per CSS .tab { top: 2px }.
     int paintY = on ? getY() : getY() - 2;

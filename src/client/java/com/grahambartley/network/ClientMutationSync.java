@@ -13,68 +13,66 @@ public final class ClientMutationSync {
   private ClientMutationSync() {}
 
   public static boolean sendSaveRequest(ClientDraftSaveRequest saveRequest) {
-    if (saveRequest == null || !ClientPlayNetworking.canSend(PacketIds.UPDATE_PROFILE_C2S)) {
+    if (saveRequest == null
+        || !ClientPlayNetworking.canSend(ClientToServerPackets.UpdateProfilePayload.ID)) {
       return false;
     }
 
     ClientPlayNetworking.send(
-        PacketIds.UPDATE_PROFILE_C2S,
-        ClientToServerPackets.writeUpdateProfilePayload(
+        new ClientToServerPackets.UpdateProfilePayload(
             saveRequest.baseRevision(), saveRequest.profile()));
     return true;
   }
 
   public static boolean sendActivateRequest(long baseRevision, UUID profileId) {
-    if (profileId == null || !ClientPlayNetworking.canSend(PacketIds.ACTIVATE_PROFILE_C2S)) {
+    if (profileId == null
+        || !ClientPlayNetworking.canSend(ClientToServerPackets.ActivateProfilePayload.ID)) {
       return false;
     }
 
     ClientPlayNetworking.send(
-        PacketIds.ACTIVATE_PROFILE_C2S,
-        ClientToServerPackets.writeActivateProfilePayload(baseRevision, profileId));
+        new ClientToServerPackets.ActivateProfilePayload(baseRevision, profileId));
     return true;
   }
 
   public static boolean sendCreateRequest(
       long baseRevision, String name, LootLockProfile copyFromProfile) {
-    if (name == null || !ClientPlayNetworking.canSend(PacketIds.CREATE_PROFILE_C2S)) {
+    if (name == null
+        || !ClientPlayNetworking.canSend(ClientToServerPackets.CreateProfilePayload.ID)) {
       return false;
     }
 
     ClientPlayNetworking.send(
-        PacketIds.CREATE_PROFILE_C2S,
-        ClientToServerPackets.writeCreateProfilePayload(baseRevision, name, copyFromProfile));
+        new ClientToServerPackets.CreateProfilePayload(baseRevision, name, copyFromProfile));
     return true;
   }
 
   public static boolean sendDeleteRequest(long baseRevision, UUID profileId) {
-    if (profileId == null || !ClientPlayNetworking.canSend(PacketIds.DELETE_PROFILE_C2S)) {
+    if (profileId == null
+        || !ClientPlayNetworking.canSend(ClientToServerPackets.DeleteProfilePayload.ID)) {
       return false;
     }
 
     ClientPlayNetworking.send(
-        PacketIds.DELETE_PROFILE_C2S,
-        ClientToServerPackets.writeDeleteProfilePayload(baseRevision, profileId));
+        new ClientToServerPackets.DeleteProfilePayload(baseRevision, profileId));
     return true;
   }
 
   public static boolean sendServerPolicyUpdateRequest(boolean allowDeleteRejectedItems) {
-    if (!ClientPlayNetworking.canSend(PacketIds.UPDATE_SERVER_POLICY_C2S)) {
+    if (!ClientPlayNetworking.canSend(ClientToServerPackets.UpdateServerPolicyPayload.ID)) {
       return false;
     }
     ClientPlayNetworking.send(
-        PacketIds.UPDATE_SERVER_POLICY_C2S,
-        ClientToServerPackets.writeUpdateServerPolicyPayload(allowDeleteRejectedItems));
+        new ClientToServerPackets.UpdateServerPolicyPayload(allowDeleteRejectedItems));
     return true;
   }
 
   public static boolean sendUpdateGlobalEnableRequest(long baseRevision, boolean enabled) {
-    if (!ClientPlayNetworking.canSend(PacketIds.UPDATE_GLOBAL_ENABLE_C2S)) {
+    if (!ClientPlayNetworking.canSend(ClientToServerPackets.UpdateGlobalEnablePayload.ID)) {
       return false;
     }
     ClientPlayNetworking.send(
-        PacketIds.UPDATE_GLOBAL_ENABLE_C2S,
-        ClientToServerPackets.writeUpdateGlobalEnablePayload(baseRevision, enabled));
+        new ClientToServerPackets.UpdateGlobalEnablePayload(baseRevision, enabled));
     return true;
   }
 }

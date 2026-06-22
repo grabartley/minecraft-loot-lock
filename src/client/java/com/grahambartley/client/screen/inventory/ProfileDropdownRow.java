@@ -101,7 +101,7 @@ public final class ProfileDropdownRow extends PressableWidget {
   }
 
   @Override
-  protected void renderButton(DrawContext context, int mouseX, int mouseY, float delta) {
+  protected void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
     int bg = active ? 0xFF34301F : (isHovered() ? Palette.WELL_ROW : 0);
     if (bg != 0) {
       context.fill(getX(), getY(), getX() + getWidth(), getY() + getHeight(), bg);
