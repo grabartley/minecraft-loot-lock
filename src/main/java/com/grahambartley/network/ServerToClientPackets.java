@@ -56,6 +56,8 @@ public final class ServerToClientPackets {
         data.getPlayerUuid(),
         data.getRevision(),
         data.getActiveProfileId(),
+        // Defensive copy: a later mutation of the manager's backing list must not poison an
+        // in-flight payload before it is encoded.
         List.copyOf(data.getProfiles()),
         clientCanEdit,
         allowDeleteRejectedItems);
@@ -149,13 +151,17 @@ public final class ServerToClientPackets {
 
   public record BlockedNoticePayload(Identifier itemId, int count, boolean deleted)
       implements CustomPayload {
+    public BlockedNoticePayload {
+      count = Math.max(1, count);
+    }
+
     public static final CustomPayload.Id<BlockedNoticePayload> ID =
         new CustomPayload.Id<>(PacketIds.BLOCKED_NOTICE_S2C);
     public static final PacketCodec<PacketByteBuf, BlockedNoticePayload> CODEC =
         PacketCodec.of(
             (payload, buf) -> {
               buf.writeIdentifier(payload.itemId());
-              buf.writeVarInt(Math.max(1, payload.count()));
+              buf.writeVarInt(payload.count());
               buf.writeBoolean(payload.deleted());
             },
             buf ->
