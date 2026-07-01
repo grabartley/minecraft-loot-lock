@@ -23,72 +23,47 @@ public final class ClientToServerPackets {
 
   private ClientToServerPackets() {}
 
+  // Play payload receivers already run on the server thread, no execute() hop is needed.
   public static void register() {
     ServerPlayNetworking.registerGlobalReceiver(
         HelloPayload.ID,
         (payload, context) -> {
           ServerPlayerEntity player = context.player();
-          context
-              .server()
-              .execute(
-                  () -> {
-                    LootLock.LOGGER.debug(
-                        "Received hello from {}: version={}, schema={}.",
-                        player.getUuid(),
-                        payload.clientVersion(),
-                        payload.schemaVersion());
-                    ServerToClientPackets.sendAuthoritativeSync(player);
-                  });
+          LootLock.LOGGER.debug(
+              "Received hello from {}: version={}, schema={}.",
+              player.getUuid(),
+              payload.clientVersion(),
+              payload.schemaVersion());
+          ServerToClientPackets.sendAuthoritativeSync(player);
         });
 
     ServerPlayNetworking.registerGlobalReceiver(
         RequestSyncPayload.ID,
-        (payload, context) -> {
-          ServerPlayerEntity player = context.player();
-          context.server().execute(() -> ServerToClientPackets.sendAuthoritativeSync(player));
-        });
+        (payload, context) -> ServerToClientPackets.sendAuthoritativeSync(context.player()));
 
     ServerPlayNetworking.registerGlobalReceiver(
         UpdateProfilePayload.ID,
-        (payload, context) -> {
-          ServerPlayerEntity player = context.player();
-          context.server().execute(() -> handleUpdateProfile(player, payload));
-        });
+        (payload, context) -> handleUpdateProfile(context.player(), payload));
 
     ServerPlayNetworking.registerGlobalReceiver(
         ActivateProfilePayload.ID,
-        (payload, context) -> {
-          ServerPlayerEntity player = context.player();
-          context.server().execute(() -> handleActivateProfile(player, payload));
-        });
+        (payload, context) -> handleActivateProfile(context.player(), payload));
 
     ServerPlayNetworking.registerGlobalReceiver(
         CreateProfilePayload.ID,
-        (payload, context) -> {
-          ServerPlayerEntity player = context.player();
-          context.server().execute(() -> handleCreateProfile(player, payload));
-        });
+        (payload, context) -> handleCreateProfile(context.player(), payload));
 
     ServerPlayNetworking.registerGlobalReceiver(
         DeleteProfilePayload.ID,
-        (payload, context) -> {
-          ServerPlayerEntity player = context.player();
-          context.server().execute(() -> handleDeleteProfile(player, payload));
-        });
+        (payload, context) -> handleDeleteProfile(context.player(), payload));
 
     ServerPlayNetworking.registerGlobalReceiver(
         UpdateServerPolicyPayload.ID,
-        (payload, context) -> {
-          ServerPlayerEntity player = context.player();
-          context.server().execute(() -> handleUpdateServerPolicy(player, payload));
-        });
+        (payload, context) -> handleUpdateServerPolicy(context.player(), payload));
 
     ServerPlayNetworking.registerGlobalReceiver(
         UpdateGlobalEnablePayload.ID,
-        (payload, context) -> {
-          ServerPlayerEntity player = context.player();
-          context.server().execute(() -> handleUpdateGlobalEnable(player, payload));
-        });
+        (payload, context) -> handleUpdateGlobalEnable(context.player(), payload));
   }
 
   static MutationResult applyUpdateGlobalEnable(

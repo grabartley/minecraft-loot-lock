@@ -16,15 +16,24 @@ import io.netty.buffer.Unpooled;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import net.minecraft.Bootstrap;
+import net.minecraft.SharedConstants;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.network.codec.PacketCodec;
 import net.minecraft.network.packet.CustomPayload;
 import net.minecraft.server.network.ServerPlayerEntity;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
 class ClientToServerPacketsTest {
+
+  @BeforeAll
+  static void bootstrap() {
+    SharedConstants.createGameVersion();
+    Bootstrap.initialize();
+  }
 
   private static <T extends CustomPayload> T roundTrip(
       PacketCodec<PacketByteBuf, T> codec, T payload) {

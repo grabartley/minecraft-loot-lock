@@ -3,6 +3,7 @@ package com.grahambartley.network;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.grahambartley.data.FilterMode;
@@ -11,6 +12,7 @@ import com.grahambartley.data.LootLockProfile;
 import com.grahambartley.data.RejectedItemAction;
 import com.grahambartley.data.RuleEntry;
 import io.netty.buffer.Unpooled;
+import io.netty.handler.codec.DecoderException;
 import java.util.List;
 import java.util.UUID;
 import net.minecraft.network.PacketByteBuf;
@@ -117,6 +119,18 @@ class ServerToClientPacketsTest {
 
     assertNull(decoded.activeProfileId());
     assertEquals(1, decoded.profiles().size());
+  }
+
+  @Test
+  void syncPayloadRejectsOutOfBoundsProfileCount() {
+    PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
+    buf.writeVarInt(LootLockPlayerData.CURRENT_SCHEMA_VERSION);
+    buf.writeUuid(UUID.randomUUID());
+    buf.writeVarLong(1L);
+    buf.writeBoolean(false);
+    buf.writeVarInt(PacketLimits.MAX_PROFILES + 1);
+
+    assertThrows(DecoderException.class, () -> ServerToClientPackets.SyncPayload.CODEC.decode(buf));
   }
 
   @Test

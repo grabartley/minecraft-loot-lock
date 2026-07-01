@@ -108,7 +108,8 @@ public final class ServerToClientPackets {
       UUID playerUuid = buf.readUuid();
       long revision = buf.readVarLong();
       UUID activeProfileId = buf.readBoolean() ? buf.readUuid() : null;
-      int profileCount = buf.readVarInt();
+      int profileCount =
+          LootLockPayloads.readBoundedCount(buf, PacketLimits.MAX_PROFILES, "profile");
       List<LootLockProfile> profiles = new ArrayList<>(profileCount);
       for (int i = 0; i < profileCount; i++) {
         profiles.add(LootLockPayloads.readProfile(buf));

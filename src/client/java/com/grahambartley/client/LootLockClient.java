@@ -75,57 +75,43 @@ public class LootLockClient implements ClientModInitializer {
                   });
         });
 
+    // Play payload receivers already run on the client thread, no execute() hop is needed.
     ClientPlayNetworking.registerGlobalReceiver(
         ServerToClientPackets.ServerCapabilitiesPayload.ID,
         (payload, context) -> {
-          boolean serverSupportsLootLock = payload.supported();
-          int schemaVersion = payload.schemaVersion();
           String modVersion =
               FabricLoader.getInstance()
                   .getModContainer("loot-lock")
                   .map(container -> container.getMetadata().getVersion().getFriendlyString())
                   .orElse("unknown");
-          context
-              .client()
-              .execute(
-                  () -> {
-                    STATE.onServerCapabilities(serverSupportsLootLock);
-                    ClientPlayNetworking.send(
-                        new ClientToServerPackets.HelloPayload(modVersion, schemaVersion));
-                  });
+          STATE.onServerCapabilities(payload.supported());
+          ClientPlayNetworking.send(
+              new ClientToServerPackets.HelloPayload(modVersion, payload.schemaVersion()));
         });
 
     ClientPlayNetworking.registerGlobalReceiver(
         ServerToClientPackets.SyncPayload.ID,
-        (payload, context) ->
-            context
-                .client()
-                .execute(
-                    () -> {
-                      STATE.onAuthoritativeSync(payload);
-                      LootLock.LOGGER.debug(
-                          "Client state synced: supported={}, synced={}, revision={}",
-                          STATE.isServerSupportsLootLock(),
-                          STATE.isSynced(),
-                          payload.revision());
-                      LootLock.LOGGER.debug(
-                          "Received authoritative sync: player={}, revision={}, profiles={}",
-                          payload.playerUuid(),
-                          payload.revision(),
-                          payload.profiles().size());
-                    }));
+        (payload, context) -> {
+          STATE.onAuthoritativeSync(payload);
+          LootLock.LOGGER.debug(
+              "Client state synced: supported={}, synced={}, revision={}",
+              STATE.isServerSupportsLootLock(),
+              STATE.isSynced(),
+              payload.revision());
+          LootLock.LOGGER.debug(
+              "Received authoritative sync: player={}, revision={}, profiles={}",
+              payload.playerUuid(),
+              payload.revision(),
+              payload.profiles().size());
+        });
 
     ClientPlayNetworking.registerGlobalReceiver(
         ServerToClientPackets.BlockedNoticePayload.ID,
         (payload, context) ->
-            context
-                .client()
-                .execute(
-                    () ->
-                        BlockedNoticePresenter.show(
-                            context.client(),
-                            clientSettingsManager.getSettingsCopy(),
-                            payload.itemId(),
-                            payload.deleted())));
+            BlockedNoticePresenter.show(
+                context.client(),
+                clientSettingsManager.getSettingsCopy(),
+                payload.itemId(),
+                payload.deleted()));
   }
 }

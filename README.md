@@ -166,19 +166,19 @@ Profile data is server-authoritative and saved per player UUID alongside other w
 
 ## Compatibility
 
-- **Minecraft:** `1.20.1`
-- **Loader:** Fabric `0.19.2+`
-- **Fabric API:** `0.92.9+1.20.1` minimum
-- **Java:** `17+` (Java 21 supported and recommended)
+- **Minecraft:** `1.21.1`
+- **Loader:** Fabric `0.19.3+`
+- **Fabric API:** `0.116.12+1.21.1` minimum
+- **Java:** `21+`
 - **Environments:** dedicated server and integrated server, with or without client mod installed
 
 ## Dependencies
 
 | Dependency | Version | Required | Purpose |
 | --- | --- | --- | --- |
-| Fabric Loader | `>=0.19.2` | Yes | Mod loader |
-| Fabric API | `>=0.92.9+1.20.1` | Yes | Fabric hooks and APIs |
-| Mod Menu | `>=7.2.2` | No | Opens Loot Lock client preferences from the mod list. Profiles, rules, and server policy are edited in-game by opening the Loot Lock panel from your inventory |
+| Fabric Loader | `>=0.19.3` | Yes | Mod loader |
+| Fabric API | `>=0.116.12+1.21.1` | Yes | Fabric hooks and APIs |
+| Mod Menu | `>=11.0.4` | No | Opens Loot Lock client preferences from the mod list. Profiles, rules, and server policy are edited in-game by opening the Loot Lock panel from your inventory |
 
 ## Permissions
 

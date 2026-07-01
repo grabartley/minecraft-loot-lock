@@ -4,6 +4,7 @@ import com.grahambartley.data.FilterMode;
 import com.grahambartley.data.LootLockProfile;
 import com.grahambartley.data.RejectedItemAction;
 import com.grahambartley.data.RuleEntry;
+import io.netty.handler.codec.DecoderException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -88,11 +89,21 @@ public final class LootLockPayloads {
     RejectedItemAction action = buf.readEnumConstant(RejectedItemAction.class);
     boolean enabled = buf.readBoolean();
     int color = buf.readInt();
-    int ruleCount = buf.readVarInt();
+    int ruleCount = readBoundedCount(buf, PacketLimits.MAX_RULES_PER_PROFILE, "rule");
     List<RuleEntry> rules = new ArrayList<>(ruleCount);
     for (int i = 0; i < ruleCount; i++) {
       rules.add(new RuleEntry(buf.readString(PacketLimits.MAX_RULE_ID_LENGTH)));
     }
     return new LootLockProfile(profileId, profileName, mode, action, enabled, color, rules);
+  }
+
+  // The count arrives before its elements and sizes an allocation, so it must be bounded before
+  // it is trusted; a hostile peer can claim any varint regardless of actual payload size.
+  static int readBoundedCount(PacketByteBuf buf, int max, String kind) {
+    int count = buf.readVarInt();
+    if (count < 0 || count > max) {
+      throw new DecoderException(kind + " count " + count + " is outside [0, " + max + "]");
+    }
+    return count;
   }
 }
