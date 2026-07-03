@@ -958,7 +958,11 @@ public final class LootLockInventoryPanel {
     }
     if (hoveredEffect != null) {
       Text name = Text.translatable(hoveredEffect.getTranslationKey());
-      Text duration = StatusEffectUtil.getDurationText(hoveredEffect, 1.0f);
+      Text duration =
+          StatusEffectUtil.getDurationText(
+              hoveredEffect,
+              1.0f,
+              client.world == null ? 20.0f : client.world.getTickManager().getTickRate());
       context.drawTooltip(
           client.textRenderer,
           List.of(name, duration.copy().formatted(Formatting.GRAY)),

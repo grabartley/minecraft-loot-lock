@@ -19,6 +19,6 @@ public final class PacketIds {
   private PacketIds() {}
 
   private static Identifier id(String path) {
-    return new Identifier(LootLockConstants.MOD_ID, path);
+    return Identifier.of(LootLockConstants.MOD_ID, path);
   }
 }

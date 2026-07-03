@@ -66,7 +66,7 @@ public final class RuleRowButton extends PressableWidget {
   }
 
   @Override
-  protected void renderButton(DrawContext context, int mouseX, int mouseY, float delta) {
+  protected void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
     boolean selected = selectedSupplier != null && selectedSupplier.getAsBoolean();
     boolean hovered = isHovered();
 

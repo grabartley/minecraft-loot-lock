@@ -39,7 +39,7 @@ public final class SegmentedButton extends PressableWidget {
   }
 
   @Override
-  protected void renderButton(DrawContext context, int mouseX, int mouseY, float delta) {
+  protected void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
     boolean on = onSupplier.getAsBoolean();
     if (on) {
       Chrome.coloredSegment(context, getX(), getY(), getWidth(), getHeight(), onColor);

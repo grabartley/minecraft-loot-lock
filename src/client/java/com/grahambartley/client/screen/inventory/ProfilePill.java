@@ -41,7 +41,7 @@ public final class ProfilePill extends PressableWidget {
   }
 
   @Override
-  protected void renderButton(DrawContext context, int mouseX, int mouseY, float delta) {
+  protected void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
     Chrome.slot(context, getX(), getY(), getWidth(), getHeight());
 
     int chipSize = 10;

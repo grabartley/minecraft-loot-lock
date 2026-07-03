@@ -6,9 +6,9 @@ import net.minecraft.client.util.InputUtil;
 import org.lwjgl.glfw.GLFW;
 
 /**
- * Cross-platform modifier-key helper. Vanilla {@link Screen#hasControlDown()} does not bridge to
- * Cmd on macOS in 1.20.1 Yarn, so any code that wants the system "additive selection" modifier
- * (Ctrl on Windows / Linux, Cmd on macOS) must OR in an explicit GLFW super-key check.
+ * System "additive selection" modifier: Ctrl on Windows / Linux, Cmd on macOS. Vanilla {@link
+ * Screen#hasControlDown()} already maps to Cmd on macOS; the explicit GLFW super-key check is kept
+ * so the modifier keeps working if that vanilla mapping changes.
  */
 public final class ModifierKeys {
   private ModifierKeys() {}

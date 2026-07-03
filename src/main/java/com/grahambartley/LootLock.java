@@ -27,7 +27,7 @@ public class LootLock implements ModInitializer {
   public void onInitialize() {
     CommandRegistrationCallback.EVENT.register(
         (dispatcher, registryAccess, environment) -> LootLockCommand.register(dispatcher));
-    LootLockNetworking.initializeServer();
+    LootLockNetworking.initializeNetworking();
 
     ServerLifecycleEvents.SERVER_STARTED.register(
         server -> {
