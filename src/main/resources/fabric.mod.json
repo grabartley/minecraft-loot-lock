@@ -17,13 +17,13 @@
 	"environment": "*",
 	"entrypoints": {
 		"main": [
-			"com.grahambartley.LootLock"
+			"com.grahambartley.lootlock.LootLock"
 		],
 		"client": [
-			"com.grahambartley.client.LootLockClient"
+			"com.grahambartley.lootlock.client.LootLockClient"
 		],
 		"modmenu": [
-			"com.grahambartley.client.modmenu.LootLockModMenuIntegration"
+			"com.grahambartley.lootlock.client.modmenu.LootLockModMenuIntegration"
 		]
 	},
 	"mixins": [

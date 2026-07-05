@@ -76,7 +76,7 @@ tasks.register("verifyMainSourceSideSafety") {
 	doLast {
 		def disallowedPatterns = [
 			"net.minecraft.client.",
-			"com.grahambartley.client."
+			"com.grahambartley.lootlock.client."
 		]
 		def violations = []
 
