@@ -179,8 +179,7 @@ jobs:
 
       - name: Publish to Modrinth
         if: github.event_name == 'workflow_dispatch'
-        run: ./gradlew modrinth
+        run: ./gradlew modrinth -Pversion=${{ steps.semver.outputs.new_version }}
         env:
           MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
-          MOD_VERSION: ${{ steps.semver.outputs.new_version }}
           MOD_RELEASE_TYPE: ${{ steps.release_meta.outputs.modrinth_type }}
