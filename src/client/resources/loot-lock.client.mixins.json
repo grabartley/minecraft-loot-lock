@@ -1,6 +1,6 @@
 {
 	"required": true,
-	"package": "com.grahambartley.client.mixin",
+	"package": "com.grahambartley.lootlock.client.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"client": [
 		"AbstractInventoryScreenMixin",

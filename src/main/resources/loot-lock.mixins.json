@@ -1,6 +1,6 @@
 {
 	"required": true,
-	"package": "com.grahambartley.mixin",
+	"package": "com.grahambartley.lootlock.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
 		"ItemEntityMixin"

@@ -22,7 +22,7 @@ This includes formatting checks, tests, and side-safety verification.
 Loot Lock supports dedicated server operation. `src/main` must stay server-safe.
 
 - `src/main/java` must not reference `net.minecraft.client.*`
-- `src/main/java` must not reference `com.grahambartley.client.*`
+- `src/main/java` must not reference `com.grahambartley.lootlock.client.*`
 - Client UI, keybinds, and rendering code must stay in `src/client/java`
 
 ## Validation Commands
