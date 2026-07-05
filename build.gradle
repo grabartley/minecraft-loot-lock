@@ -7,7 +7,8 @@ id 'com.modrinth.minotaur' version '2.9.0'
 
 import java.nio.charset.StandardCharsets
 
-version = project.findProperty("version") ?: project.mod_version
+// findProperty("version") can never fall through: Project.version defaults to the string "unspecified"
+version = gradle.startParameter.projectProperties.getOrDefault("version", project.mod_version)
 group = project.maven_group
 
 repositories {
@@ -154,18 +155,18 @@ publishing {
 }
 
 modrinth {
-projectId = 'loot-lock'
-versionNumber = System.getenv('MOD_VERSION') ?: project.version
-versionName = 'Loot Lock v' + (System.getenv('MOD_VERSION') ?: project.version)
-versionType = System.getenv('MOD_RELEASE_TYPE') ?: 'alpha'
-uploadFile = remapJar
-gameVersions = ['1.21.1']
-loaders = ['fabric']
-changelog = rootProject.file('release-notes.md').exists()
-	? rootProject.file('release-notes.md').text
-	: 'No changelog provided.'
-dependencies {
-	required.project 'fabric-api'
-	optional.project 'modmenu'
-}
+	projectId = 'loot-lock'
+	versionNumber = project.version.toString()
+	versionName = "Loot Lock v${project.version}"
+	versionType = System.getenv('MOD_RELEASE_TYPE') ?: 'alpha'
+	uploadFile = remapJar
+	gameVersions = ['1.21.1']
+	loaders = ['fabric']
+	changelog = rootProject.file('release-notes.md').exists()
+		? rootProject.file('release-notes.md').text
+		: 'No changelog provided.'
+	dependencies {
+		required.project 'fabric-api'
+		optional.project 'modmenu'
+	}
 }
