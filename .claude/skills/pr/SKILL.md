@@ -29,7 +29,7 @@ This skill is used directly by humans and also as a handoff step from the build 
 	- Never enumerate file changes, classes being added, or method renames, in prose, lists, or tables. Reviewers see that in the Files Changed tab already. Tables are for explaining behaviour and concepts, not for cataloguing the diff.
 	- Never include automated-test breakdowns ("X tests pass", "Y new tests added"). CI runs the suite. At most, one sentence on the *kinds* of tests added (unit tests for a controller, mixin smoke test, etc.) when that's actually useful context.
 	- Keep it concise. Do not waffle. If a paragraph can be cut without losing reviewer-relevant signal, cut it.
-	- Attach screenshots whenever the change has a visible surface (UI, screen layout, in-game widget, command output, doc rendering). Capture the relevant state in the dev client or wherever the change is visible, and either drag the file into the GitHub PR description after creation or upload it through the GitHub web UI; reference the resulting `user-attachments` URL in the body next to the paragraph it illustrates. Skip screenshots only when the change is purely server-side or otherwise has no rendered output.
+	- Attach screenshots whenever the change has a visible surface (UI, screen layout, in-game widget, command output, doc rendering). Capture them with the `automated-qa` skill, publish them to the orphan `images` branch under `pr-<number>/`, and reference the raw URL (`https://raw.githubusercontent.com/grabartley/minecraft-loot-lock/images/pr-<number>/<name>.png`) in the body next to the paragraph each illustrates. Never commit screenshots to the PR branch or `main`, and never force-push or delete the `images` branch: every past PR hot-links its evidence from it. Skip screenshots only when the change is purely server-side or otherwise has no rendered output.
 	- Wrap class names, commands, and identifiers in backticks inside the markdown file, not inline shell args.
 	- Always include a closing reference like `Closes #<issue-number>` so the PR Development section is linked to the issue being worked on.
 8. After merge, clean up: `cd ../loot-lock && git worktree remove ./.claude/worktrees/loot-lock-<branch-name>`
@@ -43,7 +43,7 @@ This skill is used directly by humans and also as a handoff step from the build 
 - Commit messages: `<type>: <lowercase description>`, no period at end
 - Types: feat, fix, refactor, test, docs, chore
 - PR descriptions: prose-led, present-tense description of the final state vs `main`. Tables and other structured elements are encouraged for explaining complex parts more clearly than prose alone. No journey language ("no longer", "now", "restored", "fixed", etc.). Never enumerate file changes in any form. No automated-test pass-counts. Cut anything that doesn't help the reviewer.
-- Attach screenshots for any change with a visible surface, drag-uploaded into the GitHub PR description so the body links the `user-attachments` URL beside the paragraph it illustrates.
+- Attach screenshots for any change with a visible surface, captured via `automated-qa` and hot-linked from the `images` branch beside the paragraph each illustrates.
 - PR titles and descriptions must be written as public-facing text, since this repo is public and anyone can view them
 - Always link the PR Development section to the active issue via `Closes #<issue-number>` in the PR body
 - Pre-commit must complete successfully: format, test, build
@@ -53,6 +53,7 @@ This skill is used directly by humans and also as a handoff step from the build 
 ## Related Skills
 
 - worktree, used first for fresh branch and isolated directory setup
+- automated-qa, produces the screenshot evidence and publishes it to the `images` branch for embedding in the body
 
 ## Build Skill Integration
 

@@ -13,12 +13,13 @@ description: Build or implement a feature for the LootLock mod, optionally from 
 4. All code changes require unit tests. Test classes must mirror the production class name under test with a `Test` suffix and live in the same package structure under `src/test/java`.
 5. Use the `create-issue` skill whenever build work does not already have a GitHub issue.
 6. Assign the issue being worked on to the developer running the build workflow before moving it to `In progress`.
-7. Run the pr skill as part of build after validation passes.
-8. Move issue to `QA testing` only after PR is opened and CI is running.
-9. After PR creation and `QA testing` transition, always provide a detailed manual QA checklist to the developer.
-10. If PR code changes after the PR is opened, check whether the PR description still matches the current branch state, and update it if needed so it reflects the final state only.
-11. Stop at QA testing, human performs final verification and moves to Done.
-12. Every code change must also update any docs it invalidates. Audit `README.md`, in-repo docs under `docs/`, and the linked issue body before committing; ship doc edits in the same PR as the code change.
+7. Automated QA is a HARD REQUIREMENT before manual QA handoff for any change with a visible or interactive surface (screens, the inventory panel, toasts, HUD notices, rendering, in-world interactions): run the `automated-qa` skill, verify the captured screenshots yourself, and publish the evidence to the `images` branch with the raw URLs embedded in the PR body. Hand off to manual QA only once automated QA has passed. If automated QA is genuinely infeasible for the change (for example it needs multiplayer, audio, or OS-level input), state why in the QA handoff and let manual QA cover it.
+8. Run the pr skill as part of build after validation passes.
+9. Move issue to `QA testing` only after PR is opened and CI is running.
+10. After PR creation and `QA testing` transition, always provide a detailed manual QA checklist to the developer. The checklist covers what automated QA could not; items already verified by automated QA are listed as pre-verified with a pointer to the published evidence.
+11. If PR code changes after the PR is opened, check whether the PR description still matches the current branch state, and update it if needed so it reflects the final state only.
+12. Stop at QA testing, human performs final verification and moves to Done.
+13. Every code change must also update any docs it invalidates. Audit `README.md`, in-repo docs under `docs/`, and the linked issue body before committing; ship doc edits in the same PR as the code change.
 
 ## Workflow
 
@@ -33,7 +34,7 @@ description: Build or implement a feature for the LootLock mod, optionally from 
 7. Move the issue to `In progress`.
 8. Implement the feature.
 9. Run relevant automated tests and a local validation pass for changed behavior.
-10. Run manual validation via run-game-client when gameplay behavior changes.
+10. Run the `automated-qa` skill for any change with a visible or interactive surface: drive the feature in the live client, capture and verify screenshots, and publish the evidence to the `images` branch for embedding in the PR body. Fall back to `run-game-client` for a plain manual launch only when automated QA is infeasible.
 11. Invoke the pr skill for branch strategy, final checks, commit, push, and PR creation.
 12. If you make additional code changes after the PR is opened, re-check the PR description and update it when necessary so it describes only the final shipped scope.
 13. Wait for CI to start on the PR and report status.
@@ -66,4 +67,5 @@ description: Build or implement a feature for the LootLock mod, optionally from 
 - worktree, required first step for isolated branch setup
 - create-issue, required when build work starts without an existing GitHub issue
 - pr, required for branch, commit, push, and PR creation during build flow
-- run-game-client, use for manual validation before handoff
+- automated-qa, REQUIRED before manual QA handoff for any change with a visible or interactive surface: in-process QA driver, screenshot capture and verification, evidence published to the `images` branch
+- run-game-client, manual gameplay launch when a human drives or automated QA is infeasible
