@@ -27,3 +27,7 @@ After running the game client for manual testing, always ask for human input bef
 ## Hot Reload
 
 Press **F3+T** to reload textures/models without restarting.
+
+## Related Skills
+
+- `automated-qa`, use instead of this skill when the client should drive itself and capture screenshot evidence for a PR
