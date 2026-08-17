@@ -1,0 +1,12 @@
+{
+	"extraKnownMarketplaces": {
+		"grabartley-plugins": {
+			"source": { "source": "github", "repo": "grabartley/grabartley-plugins" },
+			"autoUpdate": true
+		}
+	},
+	"enabledPlugins": {
+		"dev-workflow@grabartley-plugins": true,
+		"minecraft-modding@grabartley-plugins": true
+	}
+}
