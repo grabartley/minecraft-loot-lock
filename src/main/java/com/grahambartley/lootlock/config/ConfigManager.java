@@ -17,15 +17,6 @@ public final class ConfigManager {
 
   public ConfigManager(Path worldDir) {
     this.paths = new ConfigPaths(worldDir);
-    ensureDirectories();
-  }
-
-  private void ensureDirectories() {
-    try {
-      Files.createDirectories(paths.getPlayersDir());
-    } catch (IOException e) {
-      LOGGER.error("Failed to create lootlock player data directory: {}", paths.getPlayersDir(), e);
-    }
   }
 
   public LoadResult loadPlayerData(UUID playerUuid) {
