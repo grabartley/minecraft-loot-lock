@@ -1,6 +1,7 @@
 package com.grahambartley.lootlock.client.screen.inventory;
 
 import com.grahambartley.lootlock.client.LootLockClient;
+import com.grahambartley.lootlock.client.network.ClientMutationSync;
 import com.grahambartley.lootlock.client.screen.ProfileImportScreen;
 import com.grahambartley.lootlock.client.screen.ProfileUiController;
 import com.grahambartley.lootlock.client.state.ClientDraftProfile;
@@ -10,7 +11,6 @@ import com.grahambartley.lootlock.data.FilterMode;
 import com.grahambartley.lootlock.data.LootLockPlayerData;
 import com.grahambartley.lootlock.data.LootLockProfile;
 import com.grahambartley.lootlock.data.RejectedItemAction;
-import com.grahambartley.lootlock.network.ClientMutationSync;
 import com.grahambartley.lootlock.network.PacketLimits;
 import com.grahambartley.lootlock.text.LootLockLang;
 import java.util.ArrayList;

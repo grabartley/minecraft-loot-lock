@@ -4,7 +4,7 @@ import com.grahambartley.lootlock.client.LootLockClient;
 import com.grahambartley.lootlock.client.config.ClientSettings;
 import com.grahambartley.lootlock.client.config.ClientSettingsManager;
 import com.grahambartley.lootlock.client.keybind.LootLockKeybinds;
-import com.grahambartley.lootlock.network.ClientMutationSync;
+import com.grahambartley.lootlock.client.network.ClientMutationSync;
 import com.grahambartley.lootlock.text.LootLockLang;
 import java.util.ArrayList;
 import java.util.List;

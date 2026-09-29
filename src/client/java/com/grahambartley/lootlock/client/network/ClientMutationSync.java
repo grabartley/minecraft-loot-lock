@@ -1,7 +1,8 @@
-package com.grahambartley.lootlock.network;
+package com.grahambartley.lootlock.client.network;
 
 import com.grahambartley.lootlock.client.state.ClientLootLockState.ClientDraftSaveRequest;
 import com.grahambartley.lootlock.data.LootLockProfile;
+import com.grahambartley.lootlock.network.ClientToServerPackets;
 import java.util.UUID;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 

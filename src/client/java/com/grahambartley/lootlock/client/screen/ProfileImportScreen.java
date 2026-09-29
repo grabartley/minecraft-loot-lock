@@ -1,12 +1,12 @@
 package com.grahambartley.lootlock.client.screen;
 
 import com.grahambartley.lootlock.client.LootLockClient;
+import com.grahambartley.lootlock.client.network.ClientMutationSync;
 import com.grahambartley.lootlock.client.screen.inventory.Chrome;
 import com.grahambartley.lootlock.client.screen.inventory.LootLockInventoryPanel;
 import com.grahambartley.lootlock.client.screen.inventory.LootLockToast;
 import com.grahambartley.lootlock.client.screen.inventory.ProfileShareController;
 import com.grahambartley.lootlock.data.LootLockPlayerData;
-import com.grahambartley.lootlock.network.ClientMutationSync;
 import com.grahambartley.lootlock.network.PacketLimits;
 import com.grahambartley.lootlock.text.LootLockLang;
 import java.util.Optional;

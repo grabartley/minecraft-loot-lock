@@ -1,4 +1,4 @@
-package com.grahambartley.lootlock.network;
+package com.grahambartley.lootlock.client.network;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 

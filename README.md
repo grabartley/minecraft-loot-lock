@@ -203,7 +203,7 @@ Codes are public by definition. Do not encode anything you would not paste into 
 
 ## Contributing translations
 
-Every player-visible string is wired through Minecraft's translation pipeline. To ship a new locale, copy `src/client/resources/assets/loot-lock/lang/en_us.json` to a new file named after your locale code (for example `de_de.json`, `es_es.json`, `ja_jp.json`) and translate the values. Keys must stay byte-for-byte identical, and `%s` placeholders must remain in the translated string. Submit your file as a PR. The build's translation-key coverage test enforces that every key referenced in code has a value in `en_us.json`, so the English bundle stays the source of truth for what needs translating.
+Every player-visible string is wired through Minecraft's translation pipeline. To ship a new locale, copy `src/main/resources/assets/loot-lock/lang/en_us.json` to a new file named after your locale code (for example `de_de.json`, `es_es.json`, `ja_jp.json`) and translate the values. Keys must stay byte-for-byte identical, and `%s` placeholders must remain in the translated string. Submit your file as a PR. The build's translation-key coverage test enforces that every key referenced in code has a value in `en_us.json`, so the English bundle stays the source of truth for what needs translating.
 
 ## Open Source
 

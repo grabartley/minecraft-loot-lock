@@ -1,14 +1,14 @@
 {
-	"required": true,
-	"package": "com.grahambartley.lootlock.mixin",
-	"compatibilityLevel": "JAVA_21",
-	"mixins": [
-		"ItemEntityMixin"
-	],
-	"injectors": {
-		"defaultRequire": 1
-	},
-	"overwrites": {
-		"requireAnnotations": true
-	}
+  "required": true,
+  "package": "com.grahambartley.lootlock.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "ItemEntityMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "overwrites": {
+    "requireAnnotations": true
+  }
 }
