@@ -18,10 +18,10 @@ import org.slf4j.LoggerFactory;
 
 public class LootLock implements ModInitializer {
   public static final Logger LOGGER = LoggerFactory.getLogger(LootLockConstants.MOD_ID);
-  public static ServerPlayerDataManager PLAYER_DATA_MANAGER;
-  public static PickupGuard PICKUP_GUARD;
+  public static volatile ServerPlayerDataManager PLAYER_DATA_MANAGER;
+  public static volatile PickupGuard PICKUP_GUARD;
   // Updated at startup and mutated at runtime by server policy command and GUI paths.
-  public static LootLockConfig SERVER_CONFIG = LootLockConfig.defaults();
+  public static volatile LootLockConfig SERVER_CONFIG = LootLockConfig.defaults();
 
   @Override
   public void onInitialize() {

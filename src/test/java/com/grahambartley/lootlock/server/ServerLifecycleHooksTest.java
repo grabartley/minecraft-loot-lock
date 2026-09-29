@@ -4,20 +4,30 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.grahambartley.lootlock.LootLock;
+import java.util.UUID;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
+import net.minecraft.Bootstrap;
+import net.minecraft.SharedConstants;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.network.ServerPlayNetworkHandler;
+import net.minecraft.server.network.ServerPlayerEntity;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 class ServerLifecycleHooksTest {
+  private static final UUID PLAYER = UUID.randomUUID();
   private final MinecraftServer server = mock(MinecraftServer.class);
 
   @BeforeAll
   static void registerAsIfTwoWorldsStarted() {
+    SharedConstants.createGameVersion();
+    Bootstrap.initialize();
     ServerLifecycleHooks.register();
     ServerLifecycleHooks.register();
   }
@@ -57,11 +67,35 @@ class ServerLifecycleHooksTest {
   }
 
   @Test
+  void disconnectSavesAndClearsCooldownOnTheOpenWorldOnce() {
+    ServerPlayerDataManager manager = mock(ServerPlayerDataManager.class);
+    PickupGuard guard = mock(PickupGuard.class);
+    LootLock.PLAYER_DATA_MANAGER = manager;
+    LootLock.PICKUP_GUARD = guard;
+
+    ServerPlayConnectionEvents.DISCONNECT.invoker().onPlayDisconnect(handlerFor(PLAYER), server);
+
+    verify(manager, times(1)).saveOnDisconnect(PLAYER);
+    verify(guard, times(1)).clearNotificationCooldown(PLAYER);
+  }
+
+  @Test
   void listenersIgnoreEventsWhenNoWorldIsOpen() {
+    ServerPlayNetworkHandler handler = handlerFor(PLAYER);
+
     assertDoesNotThrow(
         () -> {
           ServerTickEvents.END_SERVER_TICK.invoker().onEndTick(server);
           ServerLifecycleEvents.SERVER_STOPPING.invoker().onServerStopping(server);
+          ServerPlayConnectionEvents.DISCONNECT.invoker().onPlayDisconnect(handler, server);
         });
+  }
+
+  private static ServerPlayNetworkHandler handlerFor(UUID playerUuid) {
+    ServerPlayerEntity player = mock(ServerPlayerEntity.class);
+    when(player.getUuid()).thenReturn(playerUuid);
+    ServerPlayNetworkHandler handler = mock(ServerPlayNetworkHandler.class);
+    handler.player = player;
+    return handler;
   }
 }
