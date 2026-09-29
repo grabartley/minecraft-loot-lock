@@ -4,21 +4,19 @@ import com.grahambartley.lootlock.text.LootLockLang;
 import java.util.function.BooleanSupplier;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
 import net.minecraft.client.gui.widget.PressableWidget;
 import net.minecraft.client.sound.SoundManager;
 import net.minecraft.text.Text;
+import net.minecraft.util.Identifier;
 
-public final class VanillaSwitch extends PressableWidget {
-  private static final int KNOB_WIDTH = 17;
-  private static final int KNOB_HEIGHT = 12;
-  private static final int KNOB_TRAVEL = 22;
-
+public final class OnOffButton extends PressableWidget {
   private final BooleanSupplier stateSupplier;
   private final Runnable onToggle;
   private boolean readOnly;
   private final boolean badWhenOff;
 
-  public VanillaSwitch(
+  public OnOffButton(
       int x,
       int y,
       int width,
@@ -47,6 +45,11 @@ public final class VanillaSwitch extends PressableWidget {
   }
 
   @Override
+  public Text getMessage() {
+    return Text.translatable(isOn() ? LootLockLang.SWITCH_ON : LootLockLang.SWITCH_OFF);
+  }
+
+  @Override
   public void onPress() {
     if (!readOnly && onToggle != null) {
       onToggle.run();
@@ -60,45 +63,43 @@ public final class VanillaSwitch extends PressableWidget {
     }
   }
 
-  @Override
-  protected void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
-    boolean on = isOn();
-    if (on) {
-      Chrome.switchOn(context, getX(), getY(), getWidth(), getHeight());
-    } else if (badWhenOff) {
-      Chrome.switchBad(context, getX(), getY(), getWidth(), getHeight());
-    } else {
-      Chrome.switchOff(context, getX(), getY(), getWidth(), getHeight());
-    }
+  static Identifier sprite(boolean active, boolean readOnly, boolean hovered) {
+    boolean interactive = active && !readOnly;
+    return Chrome.BUTTON.get(interactive, interactive && hovered);
+  }
 
-    int knobX = getX() + 2 + (on ? KNOB_TRAVEL - 2 : 0);
-    int knobY = getY() + (getHeight() - KNOB_HEIGHT) / 2;
-    Chrome.switchKnob(context, knobX, knobY, KNOB_WIDTH, KNOB_HEIGHT);
-
-    MinecraftClient client = MinecraftClient.getInstance();
-    int textY = getY() + (getHeight() - 8) / 2;
-    if (on) {
-      context.drawText(
-          client.textRenderer,
-          Text.translatable(LootLockLang.SWITCH_ON),
-          getX() + 4,
-          textY,
-          0xFF11320C,
-          false);
-    } else {
-      context.drawText(
-          client.textRenderer,
-          Text.translatable(LootLockLang.SWITCH_OFF),
-          getX() + getWidth() - 18,
-          textY,
-          0xFF2C2C2C,
-          false);
+  static int labelColor(boolean on, boolean active, boolean readOnly, boolean badWhenOff) {
+    if (!on && badWhenOff) {
+      return Palette.DENY_ON_PRESSED;
     }
+    if (!active) {
+      return Palette.BUTTON_TEXT_DISABLED;
+    }
+    if (readOnly) {
+      return on ? Palette.ALLOW_ON_PRESSED : Palette.BUTTON_TEXT_DISABLED;
+    }
+    return Palette.BUTTON_TEXT;
   }
 
   @Override
-  protected void appendClickableNarrations(
-      net.minecraft.client.gui.screen.narration.NarrationMessageBuilder builder) {
+  protected void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
+    context.drawGuiTexture(
+        sprite(active, readOnly, isSelected()), getX(), getY(), getWidth(), getHeight());
+    MinecraftClient client = MinecraftClient.getInstance();
+    Text label = getMessage();
+    int textX = getX() + (getWidth() - client.textRenderer.getWidth(label)) / 2;
+    int textY = getY() + (getHeight() - 8) / 2;
+    context.drawText(
+        client.textRenderer,
+        label,
+        textX,
+        textY,
+        labelColor(isOn(), active, readOnly, badWhenOff),
+        true);
+  }
+
+  @Override
+  protected void appendClickableNarrations(NarrationMessageBuilder builder) {
     appendDefaultNarrations(builder);
   }
 }

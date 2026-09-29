@@ -3,12 +3,13 @@ package com.grahambartley.lootlock.client.screen.inventory;
 import java.util.UUID;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
 import net.minecraft.client.gui.widget.PressableWidget;
 import net.minecraft.text.Text;
+import net.minecraft.util.Identifier;
 
 public final class ProfileDropdownRow extends PressableWidget {
   public static final int ROW_HEIGHT = 22;
-  public static final int ACTIONS_WIDTH = 80;
   static final int CHIP_SIZE = 12;
   static final int CHIP_INSET_X = 6;
 
@@ -16,7 +17,7 @@ public final class ProfileDropdownRow extends PressableWidget {
   private final int profileColor;
   private final String profileName;
   private final String metaText;
-  private final boolean active;
+  private final boolean current;
   private final Runnable onPressAction;
   private final Runnable onChipPressAction;
   private boolean suppressNameRender;
@@ -30,7 +31,7 @@ public final class ProfileDropdownRow extends PressableWidget {
       int profileColor,
       String profileName,
       String metaText,
-      boolean active,
+      boolean current,
       Runnable onPressAction,
       Runnable onChipPressAction) {
     super(x, y, width, ROW_HEIGHT, Text.literal(profileName));
@@ -38,7 +39,7 @@ public final class ProfileDropdownRow extends PressableWidget {
     this.profileColor = profileColor;
     this.profileName = profileName == null ? "" : profileName;
     this.metaText = metaText == null ? "" : metaText;
-    this.active = active;
+    this.current = current;
     this.onPressAction = onPressAction;
     this.onChipPressAction = onChipPressAction;
   }
@@ -88,32 +89,33 @@ public final class ProfileDropdownRow extends PressableWidget {
     }
   }
 
+  static Identifier sprite(boolean current, boolean hovered) {
+    return current ? Chrome.BUTTON.disabled() : Chrome.BUTTON.get(true, hovered);
+  }
+
+  static int nameColor(boolean current) {
+    return current ? Palette.CURRENT_PROFILE_NAME : Palette.BUTTON_TEXT;
+  }
+
   @Override
   protected void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
-    int bg = active ? 0xFF34301F : (isHovered() ? Palette.WELL_ROW : 0);
-    if (bg != 0) {
-      context.fill(getX(), getY(), getX() + getWidth(), getY() + getHeight(), bg);
-    }
-    if (active) {
-      context.fill(getX(), getY(), getX() + 3, getY() + getHeight(), Palette.GOLD);
-    }
+    context.drawGuiTexture(sprite(current, isSelected()), getX(), getY(), getWidth(), getHeight());
 
     int chipX = chipX();
     int chipY = chipY();
     Chrome.colorChip(context, chipX, chipY, CHIP_SIZE, CHIP_SIZE, profileColor);
 
     MinecraftClient client = MinecraftClient.getInstance();
-    int textX = chipX + CHIP_SIZE + 5;
-    int nameY = getY() + 3;
-    int metaY = nameY + 10;
+    int textX = nameRenderX();
+    int nameY = nameRenderY();
+    int metaY = nameY + 9;
 
-    int nameColor = active ? Palette.GOLD : Palette.ON_WELL;
     if (!suppressNameRender) {
       context.drawText(
-          client.textRenderer, Text.literal(profileName), textX, nameY, nameColor, false);
+          client.textRenderer, Text.literal(profileName), textX, nameY, nameColor(current), true);
     }
     context.drawText(
-        client.textRenderer, Text.literal(metaText), textX, metaY, Palette.ON_WELL_DIM, false);
+        client.textRenderer, Text.literal(metaText), textX, metaY, Palette.BUTTON_TEXT_DIM, true);
   }
 
   public int nameRenderX() {
@@ -121,12 +123,11 @@ public final class ProfileDropdownRow extends PressableWidget {
   }
 
   public int nameRenderY() {
-    return getY() + 3;
+    return getY() + 2;
   }
 
   @Override
-  protected void appendClickableNarrations(
-      net.minecraft.client.gui.screen.narration.NarrationMessageBuilder builder) {
+  protected void appendClickableNarrations(NarrationMessageBuilder builder) {
     appendDefaultNarrations(builder);
   }
 }

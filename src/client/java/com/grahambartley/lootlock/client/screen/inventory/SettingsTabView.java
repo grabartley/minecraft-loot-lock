@@ -17,6 +17,7 @@ import net.minecraft.client.gui.widget.ClickableWidget;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.text.OrderedText;
 import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 
 public final class SettingsTabView {
   private static final int SECTION_HEADER_HEIGHT = 12;
@@ -26,8 +27,6 @@ public final class SettingsTabView {
   private static final int ROW_DIVIDER_HEIGHT = 1;
   private static final int SWITCH_WIDTH = 42;
   private static final int SWITCH_HEIGHT = 16;
-  private static final int KBD_HEIGHT = 10;
-  private static final int KBD_PADDING_X = 4;
   private static final int LABEL_GAP = 6;
   private static final int NOTE_PADDING = 2;
   private static final int LINE_HEIGHT = 9;
@@ -49,11 +48,11 @@ public final class SettingsTabView {
   private int scrollOffset;
   private boolean showServerPolicy = true;
 
-  private VanillaSwitch blockedHudSwitch;
-  private VanillaSwitch profileCycleToastSwitch;
-  private VanillaSwitch toggleToastSwitch;
-  private VanillaSwitch confirmBeforeDeleteSwitch;
-  private VanillaSwitch policySwitch;
+  private OnOffButton blockedHudSwitch;
+  private OnOffButton profileCycleToastSwitch;
+  private OnOffButton toggleToastSwitch;
+  private OnOffButton confirmBeforeDeleteSwitch;
+  private OnOffButton policySwitch;
 
   public void setShowServerPolicy(boolean showServerPolicy) {
     this.showServerPolicy = showServerPolicy;
@@ -92,7 +91,7 @@ public final class SettingsTabView {
 
     if (showServerPolicy) {
       policySwitch =
-          new VanillaSwitch(
+          new OnOffButton(
               0,
               0,
               SWITCH_WIDTH,
@@ -109,8 +108,8 @@ public final class SettingsTabView {
     rebuildRows();
   }
 
-  private VanillaSwitch notificationSwitch(BooleanSupplier state, Runnable onToggle) {
-    return new VanillaSwitch(0, 0, SWITCH_WIDTH, SWITCH_HEIGHT, state, onToggle, false, false);
+  private OnOffButton notificationSwitch(BooleanSupplier state, Runnable onToggle) {
+    return new OnOffButton(0, 0, SWITCH_WIDTH, SWITCH_HEIGHT, state, onToggle, false, false);
   }
 
   public void setVisible(boolean visible) {
@@ -286,10 +285,10 @@ public final class SettingsTabView {
             (context, client, rowY, viewX, viewWidth) ->
                 context.drawText(
                     client.textRenderer,
-                    Text.translatable(labelKey),
+                    Text.translatable(labelKey).formatted(Formatting.UNDERLINE),
                     viewX,
                     rowY + SECTION_HEADER_TOP_PADDING,
-                    Palette.GOLD,
+                    Palette.INK,
                     false)));
     return cursorY + totalH;
   }
@@ -300,7 +299,7 @@ public final class SettingsTabView {
       int viewWidth,
       String nameKey,
       String descKey,
-      VanillaSwitch switchWidget) {
+      OnOffButton switchWidget) {
     int textWidth = viewWidth - SWITCH_WIDTH - LABEL_GAP;
     Text desc = Text.translatable(descKey);
     int descLines = wrappedLineCount(desc, textWidth);
@@ -326,7 +325,7 @@ public final class SettingsTabView {
                   Text.translatable(nameKey),
                   vx,
                   y + TOGGLE_ROW_TOP_PADDING,
-                  Palette.ON_WELL,
+                  Palette.INK,
                   false);
               context.drawTextWrapped(
                   client.textRenderer,
@@ -334,7 +333,7 @@ public final class SettingsTabView {
                   vx,
                   y + TOGGLE_ROW_TOP_PADDING + LINE_HEIGHT + TOGGLE_ROW_NAME_GAP,
                   textWidth,
-                  Palette.ON_WELL_DIM);
+                  Palette.INK_DIM);
             }));
     return cursorY + height;
   }
@@ -371,16 +370,9 @@ public final class SettingsTabView {
             height,
             (context, client, y, vx, vw) -> {
               context.drawText(
-                  client.textRenderer,
-                  Text.translatable(labelKey),
-                  vx,
-                  y + 3,
-                  Palette.ON_WELL,
-                  false);
-              int kbdWidth = client.textRenderer.getWidth(keyLabel) + KBD_PADDING_X * 2;
-              int kbdX = vx + vw - kbdWidth;
-              int kbdY = y + 2;
-              paintKbd(context, client, keyLabel, kbdX, kbdY, kbdWidth);
+                  client.textRenderer, Text.translatable(labelKey), vx, y + 3, Palette.INK, false);
+              int keyX = vx + vw - client.textRenderer.getWidth(keyLabel);
+              context.drawText(client.textRenderer, keyLabel, keyX, y + 3, Palette.INK_DIM, false);
             }));
     return cursorY + height;
   }
@@ -391,8 +383,7 @@ public final class SettingsTabView {
         new Row(
             cursorY,
             height,
-            (context, client, y, vx, vw) ->
-                context.fill(vx, y, vx + vw, y + 1, Palette.ROW_DIVIDER)));
+            (context, client, y, vx, vw) -> context.fill(vx, y, vx + vw, y + 1, Palette.SLOT_LO)));
     return cursorY + height;
   }
 
@@ -407,13 +398,7 @@ public final class SettingsTabView {
             height,
             (context, client, y, vx, vw) ->
                 context.drawTextWrapped(
-                    client.textRenderer, body, vx, y + NOTE_PADDING, vw, Palette.ON_WELL_DIM)));
-  }
-
-  private static void paintKbd(
-      DrawContext context, MinecraftClient client, Text text, int x, int y, int width) {
-    context.fill(x, y, x + width, y + KBD_HEIGHT, Palette.KBD_FILL);
-    context.drawText(client.textRenderer, text, x + KBD_PADDING_X, y + 1, Palette.ON_WELL, false);
+                    client.textRenderer, body, vx, y + NOTE_PADDING, vw, Palette.INK_DIM)));
   }
 
   static Text keyLabel(KeyBinding binding) {
@@ -464,7 +449,7 @@ public final class SettingsTabView {
     return showServerPolicy ? IN_WORLD_ABOUT_BODY : CLIENT_PREFS_ABOUT_BODY;
   }
 
-  VanillaSwitch policySwitchForTest() {
+  OnOffButton policySwitchForTest() {
     return policySwitch;
   }
 

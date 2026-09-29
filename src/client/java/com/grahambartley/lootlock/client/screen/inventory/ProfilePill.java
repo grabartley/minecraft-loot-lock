@@ -3,6 +3,7 @@ package com.grahambartley.lootlock.client.screen.inventory;
 import java.util.function.Supplier;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
 import net.minecraft.client.gui.widget.PressableWidget;
 import net.minecraft.text.Text;
 
@@ -37,7 +38,7 @@ public final class ProfilePill extends PressableWidget {
 
   @Override
   protected void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
-    Chrome.slot(context, getX(), getY(), getWidth(), getHeight());
+    Chrome.button(context, getX(), getY(), getWidth(), getHeight(), active, isSelected());
 
     int chipSize = 10;
     int chipX = getX() + 6;
@@ -46,23 +47,24 @@ public final class ProfilePill extends PressableWidget {
 
     MinecraftClient client = MinecraftClient.getInstance();
     int textY = getY() + (getHeight() - 8) / 2;
+    int textColor = active ? Palette.BUTTON_TEXT : Palette.BUTTON_TEXT_DISABLED;
 
     String name = nameSupplier.get();
     int nameX = chipX + chipSize + 6;
-    context.drawText(client.textRenderer, Text.literal(name), nameX, textY, Palette.INK, false);
+    context.drawText(client.textRenderer, Text.literal(name), nameX, textY, textColor, true);
 
     String meta = metaSupplier.get();
     int metaWidth = client.textRenderer.getWidth(meta);
     int caretX = getX() + getWidth() - 12;
     int metaX = caretX - 4 - metaWidth;
-    context.drawText(client.textRenderer, Text.literal(meta), metaX, textY, Palette.INK_DIM, false);
+    int metaColor = active ? Palette.BUTTON_TEXT_DIM : Palette.BUTTON_TEXT_DISABLED;
+    context.drawText(client.textRenderer, Text.literal(meta), metaX, textY, metaColor, true);
 
-    context.drawText(client.textRenderer, Text.literal("v"), caretX, textY, Palette.INK, false);
+    context.drawText(client.textRenderer, Text.literal("v"), caretX, textY, textColor, true);
   }
 
   @Override
-  protected void appendClickableNarrations(
-      net.minecraft.client.gui.screen.narration.NarrationMessageBuilder builder) {
+  protected void appendClickableNarrations(NarrationMessageBuilder builder) {
     appendDefaultNarrations(builder);
   }
 }

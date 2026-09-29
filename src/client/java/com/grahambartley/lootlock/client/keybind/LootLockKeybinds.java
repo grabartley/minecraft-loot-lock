@@ -4,8 +4,8 @@ import com.grahambartley.lootlock.client.LootLockClient;
 import com.grahambartley.lootlock.client.config.ClientSettings;
 import com.grahambartley.lootlock.client.network.ClientMutationSync;
 import com.grahambartley.lootlock.client.screen.inventory.GlobalEnableController;
-import com.grahambartley.lootlock.client.screen.inventory.LootLockInventoryPanel;
 import com.grahambartley.lootlock.client.screen.inventory.LootLockToast;
+import com.grahambartley.lootlock.client.screen.inventory.ProfileColors;
 import com.grahambartley.lootlock.client.state.ClientLootLockState;
 import com.grahambartley.lootlock.data.LootLockPlayerData;
 import com.grahambartley.lootlock.data.LootLockProfile;
@@ -100,7 +100,7 @@ public final class LootLockKeybinds {
     if (!settings.isEnableProfileCycleToast()) {
       return;
     }
-    int rgb = LootLockInventoryPanel.colorForProfile(nextProfile) & 0xFFFFFF;
+    int rgb = ProfileColors.colorForProfile(nextProfile) & 0xFFFFFF;
     LootLockToast.show(
         client,
         Text.translatable(LootLockLang.TOAST_PROFILE_SWITCHED),

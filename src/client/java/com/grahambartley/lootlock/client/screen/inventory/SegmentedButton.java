@@ -3,13 +3,18 @@ package com.grahambartley.lootlock.client.screen.inventory;
 import java.util.function.BooleanSupplier;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
 import net.minecraft.client.gui.widget.PressableWidget;
 import net.minecraft.text.Text;
+import net.minecraft.util.Identifier;
 
 public final class SegmentedButton extends PressableWidget {
+  static final int ACCENT_HEIGHT = 2;
+
   private final BooleanSupplier onSupplier;
   private final Runnable onPressAction;
-  private final int onColor;
+  private final int accentColor;
+  private final int selectedLabelColor;
 
   public SegmentedButton(
       int x,
@@ -17,13 +22,15 @@ public final class SegmentedButton extends PressableWidget {
       int width,
       int height,
       Text label,
-      int onColor,
+      int accentColor,
+      int selectedLabelColor,
       BooleanSupplier onSupplier,
       Runnable onPressAction) {
     super(x, y, width, height, label);
     this.onSupplier = onSupplier;
     this.onPressAction = onPressAction;
-    this.onColor = onColor;
+    this.accentColor = accentColor;
+    this.selectedLabelColor = selectedLabelColor;
   }
 
   @Override
@@ -33,32 +40,49 @@ public final class SegmentedButton extends PressableWidget {
     }
   }
 
-  @Override
-  protected void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
-    boolean on = onSupplier.getAsBoolean();
-    if (on) {
-      Chrome.coloredSegment(context, getX(), getY(), getWidth(), getHeight(), onColor);
-    } else {
-      Chrome.guiButton(context, getX(), getY(), getWidth(), getHeight());
+  static Identifier sprite(boolean selected, boolean active, boolean hovered) {
+    if (selected) {
+      return Chrome.BUTTON.disabled();
     }
+    return Chrome.BUTTON.get(active, hovered);
+  }
 
-    int textColor;
-    if (on) {
-      textColor = 0xFFFFFFFF;
-    } else if (!active) {
-      textColor = 0xFF9A9A9A;
-    } else {
-      textColor = 0xFF4A4A4A;
+  static int labelColor(boolean selected, boolean active, int selectedLabelColor) {
+    if (selected) {
+      return selectedLabelColor;
     }
-    MinecraftClient client = MinecraftClient.getInstance();
-    int textX = getX() + (getWidth() - client.textRenderer.getWidth(getMessage())) / 2;
-    int textY = getY() + (getHeight() - 8) / 2;
-    context.drawText(client.textRenderer, getMessage(), textX, textY, textColor, false);
+    return active ? Palette.BUTTON_TEXT : Palette.BUTTON_TEXT_DISABLED;
   }
 
   @Override
-  protected void appendClickableNarrations(
-      net.minecraft.client.gui.screen.narration.NarrationMessageBuilder builder) {
+  protected void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
+    boolean selected = onSupplier.getAsBoolean();
+    context.drawGuiTexture(
+        sprite(selected, active, isSelected()), getX(), getY(), getWidth(), getHeight());
+    if (selected) {
+      int accentBottom = getY() + getHeight() - 1;
+      context.fill(
+          getX() + 1,
+          accentBottom - ACCENT_HEIGHT,
+          getX() + getWidth() - 1,
+          accentBottom,
+          accentColor);
+    }
+
+    MinecraftClient client = MinecraftClient.getInstance();
+    int textX = getX() + (getWidth() - client.textRenderer.getWidth(getMessage())) / 2;
+    int textY = getY() + (getHeight() - 8) / 2 - (selected ? 1 : 0);
+    context.drawText(
+        client.textRenderer,
+        getMessage(),
+        textX,
+        textY,
+        labelColor(selected, active, selectedLabelColor),
+        true);
+  }
+
+  @Override
+  protected void appendClickableNarrations(NarrationMessageBuilder builder) {
     appendDefaultNarrations(builder);
   }
 }

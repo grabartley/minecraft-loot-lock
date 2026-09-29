@@ -43,7 +43,7 @@ How Loot Lock applies them:
 ## Code Structure
 
 - **Single Responsibility Principle.** One class, one concern. Extract a collaborator rather than growing a class sideways.
-- **No class exceeds 700 lines.** A class approaching the limit is split along responsibility seams, into small extracted helpers. Loot Lock has one known exception: `LootLockInventoryPanel` is still over the limit, and its split lands with the vanilla UI restyle (#176, #177) to avoid conflicting with it.
+- **No class exceeds 700 lines.** A class approaching the limit is split along responsibility seams, into small extracted helpers.
 - **Unit tests map one to one onto classes.** A test exercising `PickupGuard` is named `PickupGuardTest` and lives in the matching package. A test named after a scenario rather than a class is a test nobody can find.
 - **Logic worth testing has no Minecraft dependency.** Rule matching, share code decoding, mutation validation, and save debouncing are plain logic over plain data, so they are unit testable without a running game. Where this is possible it is not optional.
 

@@ -7,9 +7,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
+import net.minecraft.util.Identifier;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 
 class ProfileDropdownRowTest {
@@ -85,6 +87,23 @@ class ProfileDropdownRowTest {
 
     assertEquals(1, chipPresses.get());
     assertEquals(1, rowPresses.get());
+  }
+
+  @ParameterizedTest(name = "current={0}, hovered={1} -> {2}")
+  @CsvSource({
+    "true,  true,  widget/button_disabled",
+    "true,  false, widget/button_disabled",
+    "false, false, widget/button",
+    "false, true,  widget/button_highlighted",
+  })
+  void currentProfileRowReadsAsPressed(boolean current, boolean hovered, String expectedPath) {
+    assertEquals(Identifier.ofVanilla(expectedPath), ProfileDropdownRow.sprite(current, hovered));
+  }
+
+  @ParameterizedTest(name = "current={0} -> 0x{1}")
+  @CsvSource({"true, FFFFFF55", "false, FFFFFFFF"})
+  void currentProfileNameIsHighlighted(boolean current, String expectedHex) {
+    assertEquals(Integer.parseUnsignedInt(expectedHex, 16), ProfileDropdownRow.nameColor(current));
   }
 
   private static ProfileDropdownRow newRow(Runnable onPressAction, Runnable onChipPressAction) {

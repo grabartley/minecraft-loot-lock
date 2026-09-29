@@ -3,14 +3,16 @@ package com.grahambartley.lootlock.client.screen.inventory;
 import java.util.function.BooleanSupplier;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
 import net.minecraft.client.gui.widget.PressableWidget;
 import net.minecraft.text.Text;
+import net.minecraft.util.Identifier;
 
-public final class VanillaTab extends PressableWidget {
+public final class PanelTabButton extends PressableWidget {
   private final BooleanSupplier activeSupplier;
   private final Runnable onPressAction;
 
-  public VanillaTab(
+  public PanelTabButton(
       int x,
       int y,
       int width,
@@ -30,26 +32,38 @@ public final class VanillaTab extends PressableWidget {
     }
   }
 
-  @Override
-  protected void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
-    boolean on = activeSupplier.getAsBoolean();
-    int paintY = on ? getY() : getY() - 2;
-    if (on) {
-      Chrome.activeTab(context, getX(), paintY, getWidth(), getHeight());
-    } else {
-      Chrome.inactiveTab(context, getX(), paintY, getWidth(), getHeight());
-    }
+  static Identifier sprite(boolean selected, boolean active, boolean hovered) {
+    return Chrome.TAB.get(selected, active && hovered);
+  }
 
-    int textColor = on ? 0xFFFFFFFF : 0xFF4A4A4A;
-    MinecraftClient client = MinecraftClient.getInstance();
-    int textX = getX() + (getWidth() - client.textRenderer.getWidth(getMessage())) / 2;
-    int textY = paintY + (getHeight() - 8) / 2 + (on ? 2 : 0);
-    context.drawText(client.textRenderer, getMessage(), textX, textY, textColor, false);
+  static int labelColor(boolean selected, boolean active, boolean hovered) {
+    if (selected) {
+      return Palette.TITLE;
+    }
+    return active && hovered ? Palette.BUTTON_TEXT : Palette.BUTTON_TEXT_DISABLED;
   }
 
   @Override
-  protected void appendClickableNarrations(
-      net.minecraft.client.gui.screen.narration.NarrationMessageBuilder builder) {
+  protected void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
+    boolean selected = activeSupplier.getAsBoolean();
+    boolean hovered = isSelected();
+    context.drawGuiTexture(
+        sprite(selected, active, hovered), getX(), getY(), getWidth(), getHeight());
+
+    MinecraftClient client = MinecraftClient.getInstance();
+    int textX = getX() + (getWidth() - client.textRenderer.getWidth(getMessage())) / 2;
+    int textY = getY() + (getHeight() - 8) / 2 + 1;
+    context.drawText(
+        client.textRenderer,
+        getMessage(),
+        textX,
+        textY,
+        labelColor(selected, active, hovered),
+        false);
+  }
+
+  @Override
+  protected void appendClickableNarrations(NarrationMessageBuilder builder) {
     appendDefaultNarrations(builder);
   }
 }
