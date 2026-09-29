@@ -13,7 +13,7 @@ final class GameTestPlayers {
     return player;
   }
 
-  static void disconnectAndComplete(TestContext context, ServerPlayerEntity... players) {
+  static void removeAndComplete(TestContext context, ServerPlayerEntity... players) {
     for (ServerPlayerEntity player : players) {
       context.getWorld().getServer().getPlayerManager().remove(player);
     }

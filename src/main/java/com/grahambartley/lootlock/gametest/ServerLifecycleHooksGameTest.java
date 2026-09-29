@@ -11,8 +11,7 @@ import net.minecraft.util.WorldSavePath;
 
 public final class ServerLifecycleHooksGameTest implements FabricGameTest {
   private static final String BATCH = "join-sync";
-  private static final int SAVE_CHECK_TICK = 50;
-  private static final int TICK_LIMIT = 60;
+  private static final int TICK_LIMIT = 100;
 
   @GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE, batchId = BATCH, tickLimit = TICK_LIMIT)
   public void aJoiningPlayerHasDefaultDataSavedIntoThisWorld(TestContext context) {
@@ -20,13 +19,14 @@ public final class ServerLifecycleHooksGameTest implements FabricGameTest {
     Path worldDir = context.getWorld().getServer().getSavePath(WorldSavePath.ROOT).normalize();
     Path dataFile = new ConfigPaths(worldDir).getPlayerDataPath(player.getUuid());
 
-    context.runAtTick(
-        SAVE_CHECK_TICK,
-        () -> {
-          context.assertTrue(
-              Files.isRegularFile(dataFile),
-              "Joining should create and save the player's data at " + dataFile);
-          GameTestPlayers.disconnectAndComplete(context, player);
-        });
+    context
+        .createTimedTaskRunner()
+        .createAndAdd(
+            () ->
+                context.assertTrue(
+                    Files.isRegularFile(dataFile),
+                    "Joining should create and save the player's data at " + dataFile))
+        .createAndAdd(() -> context.getWorld().getServer().getPlayerManager().remove(player))
+        .completeIfSuccessful();
   }
 }

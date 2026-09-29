@@ -34,7 +34,7 @@ public final class ItemEntityMixinGameTest implements FabricGameTest {
     context.assertTrue(
         player.getInventory().count(Items.DIRT) == 1,
         "An allowed drop should land in the player's inventory");
-    GameTestPlayers.disconnectAndComplete(context, player);
+    GameTestPlayers.removeAndComplete(context, player);
   }
 
   @GameTest(templateName = TEMPLATE, batchId = BATCH, tickLimit = TICK_LIMIT)
@@ -49,7 +49,7 @@ public final class ItemEntityMixinGameTest implements FabricGameTest {
     context.assertTrue(
         player.getInventory().count(Items.STONE) == 0,
         "A denied drop should never reach the player's inventory");
-    GameTestPlayers.disconnectAndComplete(context, player);
+    GameTestPlayers.removeAndComplete(context, player);
   }
 
   @GameTest(templateName = TEMPLATE, batchId = BATCH, tickLimit = TICK_LIMIT)
@@ -64,7 +64,7 @@ public final class ItemEntityMixinGameTest implements FabricGameTest {
     context.assertTrue(
         player.getInventory().count(Items.STONE) == 0,
         "A deleted drop should never reach the player's inventory");
-    GameTestPlayers.disconnectAndComplete(context, player);
+    GameTestPlayers.removeAndComplete(context, player);
   }
 
   @GameTest(templateName = TEMPLATE, batchId = BATCH, tickLimit = TICK_LIMIT)
@@ -80,7 +80,7 @@ public final class ItemEntityMixinGameTest implements FabricGameTest {
 
     context.assertTrue(allowed.isRemoved(), "An allowlisted drop should be picked up");
     context.assertFalse(other.isRemoved(), "A drop missing from the allowlist should stay put");
-    GameTestPlayers.disconnectAndComplete(context, player);
+    GameTestPlayers.removeAndComplete(context, player);
   }
 
   @GameTest(templateName = TEMPLATE, batchId = BATCH, tickLimit = TICK_LIMIT)
@@ -97,9 +97,12 @@ public final class ItemEntityMixinGameTest implements FabricGameTest {
 
     context.assertFalse(blockedDrop.isRemoved(), "The filtering player should not pick up stone");
     context.assertTrue(
+        filtering.getInventory().count(Items.STONE) == 0,
+        "The filtering player's inventory should not receive stone");
+    context.assertTrue(
         unfiltered.getInventory().count(Items.STONE) == 1,
         "Another player's rules should not stop this player picking up stone");
-    GameTestPlayers.disconnectAndComplete(context, filtering, unfiltered);
+    GameTestPlayers.removeAndComplete(context, filtering, unfiltered);
   }
 
   @GameTest(templateName = TEMPLATE, batchId = BATCH, tickLimit = TICK_LIMIT)
@@ -114,7 +117,7 @@ public final class ItemEntityMixinGameTest implements FabricGameTest {
     drop.onPlayerCollision(player);
 
     context.assertTrue(drop.isRemoved(), "A disabled profile should not filter anything");
-    GameTestPlayers.disconnectAndComplete(context, player);
+    GameTestPlayers.removeAndComplete(context, player);
   }
 
   private static LootLockProfile setActiveProfile(
