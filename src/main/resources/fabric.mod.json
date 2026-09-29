@@ -24,6 +24,10 @@
     ],
     "modmenu": [
       "com.grahambartley.lootlock.client.modmenu.LootLockModMenuIntegration"
+    ],
+    "fabric-gametest": [
+      "com.grahambartley.lootlock.gametest.ItemEntityMixinGameTest",
+      "com.grahambartley.lootlock.gametest.ServerLifecycleHooksGameTest"
     ]
   },
   "mixins": [

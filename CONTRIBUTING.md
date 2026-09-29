@@ -33,4 +33,5 @@ Loot Lock supports dedicated server operation. `src/main` must stay server-safe.
 - Unit tests only: `./gradlew test`
 - Client tests only: `./gradlew clientTest`
 - Coverage report (unit and client tests): `./gradlew test clientTest` writes `build/reports/jacoco/test/html/index.html`
-- Dedicated server smoke boot: `mkdir -p run && echo "eula=true" > run/eula.txt`, then `./gradlew runServer --args="nogui"` and wait for `Done (` before typing `stop`
+- Gametests: `./gradlew runGametest` (report at `build/gametest-results.xml`)
+- Dedicated server smoke boot, as CI runs it: `.github/scripts/server-smoke-boot.sh` (accepts the EULA, waits for `Done (`, sends `stop`, and fails unless the server exits cleanly and logs `Loot Lock initialized`)
