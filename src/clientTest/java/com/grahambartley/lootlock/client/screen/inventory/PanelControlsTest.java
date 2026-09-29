@@ -17,4 +17,16 @@ class PanelControlsTest {
       int innerRight, boolean integrated, int expectedX) {
     assertEquals(expectedX, PanelControls.clientSwitchX(innerRight, integrated));
   }
+
+  @ParameterizedTest(name = "open={0}, enabled={1}, canDelete={2} -> {3}")
+  @CsvSource({
+    "true,  true,  true,  true",
+    "true,  true,  false, false",
+    "true,  false, true,  false",
+    "false, true,  true,  false",
+  })
+  void deleteSegmentNeedsOpenEnabledPanelAndServerPermission(
+      boolean open, boolean enabled, boolean canDelete, boolean expected) {
+    assertEquals(expected, PanelControls.deleteSegmentActive(open, enabled, canDelete));
+  }
 }

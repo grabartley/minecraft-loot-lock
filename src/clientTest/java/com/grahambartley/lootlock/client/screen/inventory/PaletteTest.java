@@ -54,7 +54,11 @@ class PaletteTest {
             "LEAVE_ON_PRESSED on pressed button",
             Palette.LEAVE_ON_PRESSED,
             "widget/button_disabled"),
-        Arguments.of("BUTTON_TEXT on button", Palette.BUTTON_TEXT, "widget/button"));
+        Arguments.of("BUTTON_TEXT on button", Palette.BUTTON_TEXT, "widget/button"),
+        Arguments.of(
+            "CURRENT_PROFILE_NAME on pressed button",
+            Palette.CURRENT_PROFILE_NAME,
+            "widget/button_disabled"));
   }
 
   @ParameterizedTest(name = "{0} hits >= 3:1 contrast")

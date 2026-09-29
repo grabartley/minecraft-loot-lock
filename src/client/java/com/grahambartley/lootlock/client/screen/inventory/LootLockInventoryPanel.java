@@ -211,8 +211,7 @@ public final class LootLockInventoryPanel {
               dropdown::toggle,
               () -> activeTab,
               this::setTab,
-              addUnlocked,
-              addLockable);
+              addUnlocked);
       TextFieldWidget renameField = dropdown.attach(host, controls.profilePill());
       applyLayout();
       rulesView.attach(this, addLockable);
@@ -227,14 +226,6 @@ public final class LootLockInventoryPanel {
 
     applyVisibility();
     refresh();
-  }
-
-  public int getPanelX() {
-    return panelX;
-  }
-
-  public int getPanelY() {
-    return panelY;
   }
 
   public int getContentInsetX() {
@@ -475,7 +466,7 @@ public final class LootLockInventoryPanel {
     return client != null && client.isIntegratedServerRunning();
   }
 
-  public void handleClientToggle() {
+  private void handleClientToggle() {
     GlobalEnableController.toggle(MinecraftClient.getInstance());
   }
 

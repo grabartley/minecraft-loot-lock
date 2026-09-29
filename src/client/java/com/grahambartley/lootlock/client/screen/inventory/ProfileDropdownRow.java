@@ -12,7 +12,6 @@ public final class ProfileDropdownRow extends PressableWidget {
   public static final int ROW_HEIGHT = 22;
   static final int CHIP_SIZE = 12;
   static final int CHIP_INSET_X = 6;
-  static final int CURRENT_NAME_COLOR = 0xFFFFFF55;
 
   private final UUID profileId;
   private final int profileColor;
@@ -95,7 +94,7 @@ public final class ProfileDropdownRow extends PressableWidget {
   }
 
   static int nameColor(boolean current) {
-    return current ? CURRENT_NAME_COLOR : Palette.BUTTON_TEXT;
+    return current ? Palette.CURRENT_PROFILE_NAME : Palette.BUTTON_TEXT;
   }
 
   @Override

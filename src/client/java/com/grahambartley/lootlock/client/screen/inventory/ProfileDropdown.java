@@ -5,7 +5,6 @@ import com.grahambartley.lootlock.client.network.ClientMutationSync;
 import com.grahambartley.lootlock.client.screen.ProfileImportScreen;
 import com.grahambartley.lootlock.client.screen.ProfileUiController;
 import com.grahambartley.lootlock.client.state.ClientLootLockState;
-import com.grahambartley.lootlock.data.FilterMode;
 import com.grahambartley.lootlock.data.LootLockPlayerData;
 import com.grahambartley.lootlock.data.LootLockProfile;
 import com.grahambartley.lootlock.network.PacketLimits;
@@ -256,12 +255,10 @@ final class ProfileDropdown {
 
     ButtonWidget newProfileButton =
         footerButton(
-            Text.translatable(LootLockLang.DROPDOWN_NEW_PROFILE).formatted(Formatting.GREEN),
-            this::createProfile,
-            y + 3);
+            Text.translatable(LootLockLang.DROPDOWN_NEW_PROFILE), this::createProfile, y + 3);
     ButtonWidget importButton =
         footerButton(
-            Text.translatable(LootLockLang.DROPDOWN_IMPORT_PROFILE).formatted(Formatting.AQUA),
+            Text.translatable(LootLockLang.DROPDOWN_IMPORT_PROFILE),
             this::openImportModal,
             y + 3 + FOOTER_BUTTON_HEIGHT + 3);
     for (ButtonWidget footer : List.of(newProfileButton, importButton)) {
@@ -271,6 +268,8 @@ final class ProfileDropdown {
       }
       widgets.add(footer);
     }
+    tintWhenActive(newProfileButton, Formatting.GREEN);
+    tintWhenActive(importButton, Formatting.AQUA);
 
     frameX = anchorX - FRAME_PAD;
     frameY = anchorY - FRAME_PAD;
@@ -296,7 +295,7 @@ final class ProfileDropdown {
           .append('=')
           .append(profile.getName())
           .append(':')
-          .append(ruleCountLabel(profile))
+          .append(ProfileLabels.ruleCountLabel(profile))
           .append(':')
           .append(profile.getColor());
     }
@@ -319,7 +318,7 @@ final class ProfileDropdown {
             profile.getId(),
             ProfileColors.colorForProfile(profile),
             profile.getName(),
-            ruleCountLabel(profile),
+            ProfileLabels.ruleCountLabel(profile),
             current,
             () -> ActiveProfileActions.activate(profile.getId()),
             () -> ProfileColors.cycleProfileColor(profile.getId())));
@@ -352,12 +351,19 @@ final class ProfileDropdown {
     export.setTooltip(Tooltip.of(Text.translatable(LootLockLang.BUTTON_MINI_EXPORT_TOOLTIP)));
     ButtonWidget delete =
         miniButton(
-            Text.translatable(LootLockLang.BUTTON_MINI_DELETE).formatted(Formatting.RED),
+            Text.translatable(LootLockLang.BUTTON_MINI_DELETE),
             () -> deleteProfile(profile),
             actionsX + gap * 4 + MINI_BUTTON_SIZE * 3,
             buttonY);
     delete.active = ProfileUiController.canDelete(profiles);
+    tintWhenActive(delete, Formatting.RED);
     widgets.addAll(List.of(rename, duplicate, export, delete));
+  }
+
+  static void tintWhenActive(ButtonWidget button, Formatting color) {
+    if (button.active) {
+      button.setMessage(button.getMessage().copy().formatted(color));
+    }
   }
 
   private static ButtonWidget miniButton(Text glyph, Runnable action, int x, int y) {
@@ -370,17 +376,6 @@ final class ProfileDropdown {
     return ButtonWidget.builder(label, b -> action.run())
         .dimensions(anchorX, y, anchorWidth, FOOTER_BUTTON_HEIGHT)
         .build();
-  }
-
-  static String ruleCountLabel(LootLockProfile profile) {
-    int n = profile.getRules() == null ? 0 : profile.getRules().size();
-    String key;
-    if (profile.getMode() == FilterMode.DENYLIST) {
-      key = n == 1 ? LootLockLang.PROFILE_META_DENY_ONE : LootLockLang.PROFILE_META_DENY_MANY;
-    } else {
-      key = n == 1 ? LootLockLang.PROFILE_META_ALLOW_ONE : LootLockLang.PROFILE_META_ALLOW_MANY;
-    }
-    return Text.translatable(key, n).getString();
   }
 
   private void startInlineRename(LootLockProfile profile) {

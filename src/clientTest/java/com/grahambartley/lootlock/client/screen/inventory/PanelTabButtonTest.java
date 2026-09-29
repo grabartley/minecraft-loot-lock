@@ -19,27 +19,34 @@ class PanelTabButtonTest {
     Bootstrap.initialize();
   }
 
-  @ParameterizedTest(name = "selected={0}, hovered={1} -> {2}")
+  @ParameterizedTest(name = "selected={0}, active={1}, hovered={2} -> {3}")
   @CsvSource({
-    "true,  false, widget/tab_selected",
-    "true,  true,  widget/tab_selected_highlighted",
-    "false, false, widget/tab",
-    "false, true,  widget/tab_highlighted",
+    "true,  true,  false, widget/tab_selected",
+    "true,  true,  true,  widget/tab_selected_highlighted",
+    "false, true,  false, widget/tab",
+    "false, true,  true,  widget/tab_highlighted",
+    "false, false, true,  widget/tab",
+    "true,  false, true,  widget/tab_selected",
   })
-  void spriteMatchesVanillaTabStates(boolean selected, boolean hovered, String expectedPath) {
-    assertEquals(Identifier.ofVanilla(expectedPath), PanelTabButton.sprite(selected, hovered));
+  void spriteOnlyHighlightsLiveTabs(
+      boolean selected, boolean active, boolean hovered, String expectedPath) {
+    assertEquals(
+        Identifier.ofVanilla(expectedPath), PanelTabButton.sprite(selected, active, hovered));
   }
 
-  @ParameterizedTest(name = "selected={0}, hovered={1} -> 0x{2}")
+  @ParameterizedTest(name = "selected={0}, active={1}, hovered={2} -> 0x{3}")
   @CsvSource({
-    "true,  false, FF404040",
-    "true,  true,  FF404040",
-    "false, false, FFA0A0A0",
-    "false, true,  FFFFFFFF",
+    "true,  true,  false, FF404040",
+    "true,  false, true,  FF404040",
+    "false, true,  false, FFA0A0A0",
+    "false, true,  true,  FFFFFFFF",
+    "false, false, true,  FFA0A0A0",
   })
-  void labelColorReadsOnEachTabFace(boolean selected, boolean hovered, String expectedHex) {
+  void labelColorReadsOnEachTabFace(
+      boolean selected, boolean active, boolean hovered, String expectedHex) {
     assertEquals(
-        Integer.parseUnsignedInt(expectedHex, 16), PanelTabButton.labelColor(selected, hovered));
+        Integer.parseUnsignedInt(expectedHex, 16),
+        PanelTabButton.labelColor(selected, active, hovered));
   }
 
   @Test

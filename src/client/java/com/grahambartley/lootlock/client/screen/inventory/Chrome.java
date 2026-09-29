@@ -9,7 +9,7 @@ public final class Chrome {
 
   public static final Identifier PANEL = Identifier.ofVanilla("recipe_book/overlay_recipe");
   public static final Identifier SLOT = Identifier.ofVanilla("container/slot");
-  public static final int SLOT_SIZE = 18;
+  private static final int SLOT_SIZE = 18;
 
   public static final ButtonTextures BUTTON =
       new ButtonTextures(

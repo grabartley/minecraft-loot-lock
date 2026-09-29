@@ -17,6 +17,7 @@ public final class Palette {
   public static final int BUTTON_TEXT = 0xFFFFFFFF;
   public static final int BUTTON_TEXT_DIM = 0xFFD0D0D0;
   public static final int BUTTON_TEXT_DISABLED = 0xFFA0A0A0;
+  public static final int CURRENT_PROFILE_NAME = 0xFFFFFF55;
 
   public static final int ALLOW = 0xFF4F9D43;
   public static final int DENY = 0xFFC0453A;

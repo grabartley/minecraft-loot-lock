@@ -38,14 +38,14 @@ final class PanelControls {
   private final SegmentedButton actionDeleteButton;
   private final PanelTabButton rulesTabButton;
   private final PanelTabButton settingsTabButton;
+  private final List<ClickableWidget> lockable;
 
   PanelControls(
       Runnable onClientToggle,
       Runnable onProfilePillPress,
       Supplier<PanelTab> activeTab,
       Consumer<PanelTab> onTabPress,
-      Consumer<ClickableWidget> addUnlocked,
-      Consumer<ClickableWidget> addLockable) {
+      Consumer<ClickableWidget> addWidget) {
     serverSwitch =
         new OnOffButton(
             0,
@@ -83,9 +83,7 @@ final class PanelControls {
                     .orElseGet(
                         () -> Text.translatable(LootLockLang.PROFILE_PLACEHOLDER).getString()),
             () ->
-                ActiveProfileActions.activeProfile()
-                    .map(ProfileDropdown::ruleCountLabel)
-                    .orElse(""),
+                ActiveProfileActions.activeProfile().map(ProfileLabels::ruleCountLabel).orElse(""),
             onProfilePillPress);
     nextProfileButton = navButton(">", 1);
     modeAllowButton =
@@ -120,9 +118,9 @@ final class PanelControls {
     settingsTabButton =
         tabButton(LootLockLang.TAB_SETTINGS, PanelTab.SETTINGS, activeTab, onTabPress);
 
-    addUnlocked.accept(serverSwitch);
-    addUnlocked.accept(clientSwitch);
-    for (ClickableWidget widget :
+    addWidget.accept(serverSwitch);
+    addWidget.accept(clientSwitch);
+    lockable =
         List.of(
             prevProfileButton,
             profilePill,
@@ -132,9 +130,8 @@ final class PanelControls {
             actionLeaveButton,
             actionDeleteButton,
             rulesTabButton,
-            settingsTabButton)) {
-      addLockable.accept(widget);
-    }
+            settingsTabButton);
+    lockable.forEach(addWidget);
   }
 
   private static ButtonWidget navButton(String glyph, int direction) {
@@ -229,9 +226,17 @@ final class PanelControls {
     return integrated ? rightAnchor : rightAnchor - CLIENT_SWITCH_OFFSET;
   }
 
+  static boolean deleteSegmentActive(boolean open, boolean globallyEnabled, boolean canDelete) {
+    return open && globallyEnabled && canDelete;
+  }
+
   void refresh(boolean open, boolean globallyEnabled, int innerRight, boolean integrated) {
+    for (ClickableWidget widget : lockable) {
+      widget.active = open && globallyEnabled;
+    }
     actionDeleteButton.active =
-        open && globallyEnabled && LootLockClient.getState().isAllowDeleteRejectedItems();
+        deleteSegmentActive(
+            open, globallyEnabled, LootLockClient.getState().isAllowDeleteRejectedItems());
     int ruleCount =
         ActiveProfileActions.activeProfile()
             .map(p -> p.getRules() == null ? 0 : p.getRules().size())
