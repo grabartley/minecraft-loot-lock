@@ -43,7 +43,7 @@ How Loot Lock applies them:
 ## Code Structure
 
 - **Single Responsibility Principle.** One class, one concern. Extract a collaborator rather than growing a class sideways.
-- **No class exceeds 700 lines.** A class approaching the limit is split along responsibility seams, into small extracted helpers.
+- **No class exceeds 700 lines.** A class approaching the limit is split along responsibility seams, into small extracted helpers. Loot Lock has one known exception: `LootLockInventoryPanel` is still over the limit, and its split lands with the vanilla UI restyle (#176, #177) to avoid conflicting with it.
 - **Unit tests map one to one onto classes.** A test exercising `PickupGuard` is named `PickupGuardTest` and lives in the matching package. A test named after a scenario rather than a class is a test nobody can find. Every test class has a production class of the same name without the `Test` suffix.
 - **Logic worth testing has no Minecraft dependency.** Rule matching, share code decoding, mutation validation, and save debouncing are plain logic over plain data, so they are unit testable without a running game. Where this is possible it is not optional.
 
@@ -53,7 +53,7 @@ Loom splits the mod into environment source sets:
 
 | Source set | Holds | Loaded on |
 |---|---|---|
-| `src/main` | Server-safe code: data model, config, networking, commands, the pickup mixin, the lang files, and the gametests | Both sides |
+| `src/main` | Server-safe code: data model, config, networking, commands, the mixins, the lang files, and the gametests | Both sides |
 | `src/client` | Screens, HUD, keybinds, client networking senders, and client mixins, all under `com.grahambartley.lootlock.client` | Client only |
 | `src/test` | Unit tests for `src/main` | Test runs |
 | `src/clientTest` | Unit tests for `src/client` | Test runs |
@@ -107,4 +107,4 @@ Every player-visible string goes through a translation key in `LootLockLang`. Th
 
 - Every change updates the documentation it invalidates, in the same pull request.
 - Reasoning behind an architectural decision belongs in an architecture decision record under [`docs/adr/`](adr/README.md), not in a comment and not in a commit message.
-- **The source carries no comments at all.** Not explanatory ones, not javadoc, not "why" ones. Naming and structure carry the meaning, and anything that genuinely needs explaining is either a decision record or a sign the code should be reshaped until it does not. A Checkstyle gate enforces this: a single `MatchXpath` rule in `config/checkstyle/checkstyle.xml` fails the build at `file:line` on any comment in any source set, javadoc included, and never edits source. `NoCommentsRuleTest` proves the rule catches every comment form and ignores comment-like text inside string literals. Too Many Chests records why a linter does this and a formatter must not in its ADR 0034.
+- **The source carries no comments at all.** Not explanatory ones, not javadoc, not "why" ones. Naming and structure carry the meaning, and anything that genuinely needs explaining is either a decision record or a sign the code should be reshaped until it does not. A Checkstyle gate enforces this: a single `MatchXpath` rule in `config/checkstyle/checkstyle.xml` fails the build at `file:line` on any comment in any source set, javadoc included, and never edits source. Too Many Chests records why a linter does this and a formatter must not in its ADR 0034.

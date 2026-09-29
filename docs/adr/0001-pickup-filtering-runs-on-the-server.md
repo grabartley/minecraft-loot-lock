@@ -17,9 +17,9 @@ The server makes every pickup decision. `ItemEntityMixin` injects at the head of
 
 `PickupGuard` reads the player's active profile from the server's own store. No profile, or a disabled one, always allows. If the server policy forbids deleting rejected items, a delete decision is downgraded to leave at decision time, whatever the profile says.
 
-Clients send intent, and the server resolves it. Every edit from the panel is a packet carrying the revision the client based its edit on. The server:
+Clients send intent, and the server resolves it. Every profile and enable edit from the panel is a packet carrying the revision the client based its edit on. The server policy packet carries no revision and is gated on operator permission instead. The server:
 
-- rejects the edit if that revision is stale;
+- rejects a profile or enable edit if its revision is stale;
 - keeps the profile id from its own record rather than the payload;
 - enforces the limits in `PacketLimits` on names, rule counts, and rule ids, and drops rule ids that do not parse;
 - downgrades delete to leave when the policy forbids it;

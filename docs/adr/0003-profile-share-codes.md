@@ -21,11 +21,11 @@ Only what describes the filter travels. The profile id, colour, and enabled stat
 
 - the code is at most 4096 characters and starts with `ll1.`;
 - the Base64 and DEFLATE layers are valid, and the decompressed payload stays under 256 KiB;
-- the JSON parses and `v` is exactly `1`;
+- the JSON parses and `v` reads as the version `1`;
 - the name is 1 to 32 characters, and the mode and action are known values;
 - there are at most 1024 rules, and every rule is a parseable id of at most 256 characters.
 
-Any failure returns a reason, which maps to a translated error message. Nothing is created from a code that fails any check.
+A failure returns a reason, which maps to a translated error message, and nothing is created from a code that fails any check. The version check is looser than intended: Gson's `getAsInt` accepts `"1"` and `1.5`, and throws instead of returning a reason for a non-numeric `v`. That is tracked in #185, and this record describes the intended contract once it is fixed.
 
 The panel's import path then goes through the normal create packet, so the server applies its own validation on top, as it does for every client edit (see [ADR 0001](0001-pickup-filtering-runs-on-the-server.md)).
 
