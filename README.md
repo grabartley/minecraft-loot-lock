@@ -1,5 +1,5 @@
 <p align="center">
-<img src="docs/banner.png" alt="Loot Lock Banner" width="800">
+<img src="https://raw.githubusercontent.com/grabartley/minecraft-loot-lock/main/docs/banner.png" alt="Loot Lock Banner" width="800">
 </p>
 
 <p align="center">
@@ -15,7 +15,7 @@
 Stop letting your inventory turn into a graveyard of rotten flesh and wheat seeds. Loot Lock lets every player on the server decide exactly which ground items they want to pick up, and ignores everything else. No more inventory tetris after every cave run. No more shift-clicking junk into hoppers for ten minutes after a raid.
 
 <p align="center">
-<img src="docs/grab_what_you_want.gif" alt="Allowlist mode picking up only the items the active profile permits">
+<img src="https://raw.githubusercontent.com/grabartley/minecraft-loot-lock/main/docs/grab_what_you_want.gif" alt="Allowlist mode picking up only the items the active profile permits">
 </p>
 
 ## Built For
@@ -86,7 +86,7 @@ Inside the Rules tab:
 - Operators can pre-stage profiles for new players with `/lootlock` commands before they ever log in.
 
 <p align="center">
-<img src="docs/deny_chickens.gif" alt="Denylist mode blocking unwanted chicken drops on pickup">
+<img src="https://raw.githubusercontent.com/grabartley/minecraft-loot-lock/main/docs/deny_chickens.gif" alt="Denylist mode blocking unwanted chicken drops on pickup">
 </p>
 
 ## Controls
@@ -167,7 +167,7 @@ Profile data is server-authoritative and saved per player UUID alongside other w
 ## Compatibility
 
 - **Minecraft:** `1.21.1`
-- **Loader:** Fabric `0.19.3+`
+- **Loader:** Fabric `0.16.5+`
 - **Fabric API:** `0.116.12+1.21.1` minimum
 - **Java:** `21+`
 - **Environments:** dedicated server and integrated server, with or without client mod installed
@@ -176,7 +176,7 @@ Profile data is server-authoritative and saved per player UUID alongside other w
 
 | Dependency | Version | Required | Purpose |
 | --- | --- | --- | --- |
-| Fabric Loader | `>=0.19.3` | Yes | Mod loader |
+| Fabric Loader | `>=0.16.5` | Yes | Mod loader |
 | Fabric API | `>=0.116.12+1.21.1` | Yes | Fabric hooks and APIs |
 | Mod Menu | `>=11.0.4` | No | Opens Loot Lock client preferences from the mod list. Profiles, rules, and server policy are edited in-game by opening the Loot Lock panel from your inventory |
 
@@ -204,6 +204,20 @@ Codes are public by definition. Do not encode anything you would not paste into 
 ## Contributing translations
 
 Every player-visible string is wired through Minecraft's translation pipeline. To ship a new locale, copy `src/main/resources/assets/loot-lock/lang/en_us.json` to a new file named after your locale code (for example `de_de.json`, `es_es.json`, `ja_jp.json`) and translate the values. Keys must stay byte-for-byte identical, and `%s` placeholders must remain in the translated string. Submit your file as a PR. The build's translation-key coverage test enforces that every key referenced in code has a value in `en_us.json`, so the English bundle stays the source of truth for what needs translating.
+
+## Development
+
+Gradle and Fabric Loom, with Spotless formatting, JaCoCo coverage, Fabric GameTest, and CI/CD through GitHub Actions. The build targets Java 21.
+
+- `./gradlew check` runs formatting, the side-safety check, unit tests, client tests, and coverage
+- `./gradlew runClient` launches the dev client
+- `./gradlew runGametest` runs the in-game test suite on a headless server
+
+## Documentation
+
+- [`docs/standards.md`](docs/standards.md) covers the engineering standards shared across these mods, and how Loot Lock applies them
+- [`docs/adr/`](docs/adr/README.md) records the architecture decisions behind this mod and the reasoning for each
+- [`CONTRIBUTING.md`](CONTRIBUTING.md) covers local setup, the side-safety rules, and the validation to run before a pull request
 
 ## Open Source
 
