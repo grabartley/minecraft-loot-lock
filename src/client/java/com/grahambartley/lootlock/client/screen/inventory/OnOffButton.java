@@ -65,7 +65,7 @@ public final class OnOffButton extends PressableWidget {
 
   static Identifier sprite(boolean active, boolean readOnly, boolean hovered) {
     boolean interactive = active && !readOnly;
-    return Chrome.BUTTON.get(interactive, interactive && hovered);
+    return GuiSprites.BUTTON.get(interactive, interactive && hovered);
   }
 
   static int labelColor(boolean on, boolean active, boolean readOnly, boolean badWhenOff) {

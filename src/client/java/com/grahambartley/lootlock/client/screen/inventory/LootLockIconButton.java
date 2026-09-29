@@ -31,7 +31,7 @@ public final class LootLockIconButton extends ButtonWidget {
 
   @Override
   protected void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
-    Chrome.button(context, getX(), getY(), getWidth(), getHeight(), active, isSelected());
+    GuiSprites.button(context, getX(), getY(), getWidth(), getHeight(), active, isSelected());
     int width = getWidth() - 2;
     int height = getHeight() - 2;
     int iconX = getX() + 1;

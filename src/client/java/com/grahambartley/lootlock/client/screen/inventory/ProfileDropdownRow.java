@@ -90,7 +90,7 @@ public final class ProfileDropdownRow extends PressableWidget {
   }
 
   static Identifier sprite(boolean current, boolean hovered) {
-    return current ? Chrome.BUTTON.disabled() : Chrome.BUTTON.get(true, hovered);
+    return current ? GuiSprites.BUTTON.disabled() : GuiSprites.BUTTON.get(true, hovered);
   }
 
   static int nameColor(boolean current) {
@@ -103,7 +103,7 @@ public final class ProfileDropdownRow extends PressableWidget {
 
     int chipX = chipX();
     int chipY = chipY();
-    Chrome.colorChip(context, chipX, chipY, CHIP_SIZE, CHIP_SIZE, profileColor);
+    GuiSprites.colorChip(context, chipX, chipY, CHIP_SIZE, CHIP_SIZE, profileColor);
 
     MinecraftClient client = MinecraftClient.getInstance();
     int textX = nameRenderX();

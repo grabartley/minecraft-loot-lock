@@ -7,9 +7,16 @@ import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.toast.Toast;
 import net.minecraft.client.toast.ToastManager;
 import net.minecraft.text.OrderedText;
+import net.minecraft.text.Style;
 import net.minecraft.text.Text;
+import net.minecraft.text.TextColor;
 
 public final class LootLockToast implements Toast {
+  static final int BACKGROUND = 0xFF082C4C;
+  static final int TITLE_COLOR = 0xFFFFFF00;
+  static final int BODY_COLOR = 0xFFFFFFFF;
+  static final double MIN_TEXT_CONTRAST = 4.5;
+
   private static final long DEFAULT_DURATION_MS = 5000L;
   private static final int MIN_WIDTH = 160;
   private static final int MAX_WIDTH = 240;
@@ -19,6 +26,10 @@ public final class LootLockToast implements Toast {
   private static final int ICON_INSET = 6;
   private static final int TEXT_LEFT_PAD = ICON_INSET + ICON_SIZE + 6;
   private static final int TEXT_RIGHT_PAD = 8;
+  private static final int SPRITE_WIDTH = 160;
+  private static final int SPRITE_HEIGHT = 32;
+  private static final int BORDER = 4;
+  private static final int CLEAN_LEFT = 20;
 
   private final Text title;
   private final List<OrderedText> subtitleLines;
@@ -28,7 +39,7 @@ public final class LootLockToast implements Toast {
 
   public LootLockToast(Text title, Text subtitle) {
     this.title = title;
-    this.subtitleLines = wrapSubtitle(subtitle);
+    this.subtitleLines = wrapSubtitle(subtitle).stream().map(LootLockToast::readable).toList();
     this.durationMs = DEFAULT_DURATION_MS;
     this.width = computeWidth(title, subtitleLines);
     this.height = BASE_HEIGHT + Math.max(0, subtitleLines.size() - 1) * LINE_HEIGHT;
@@ -53,20 +64,17 @@ public final class LootLockToast implements Toast {
 
   @Override
   public Visibility draw(DrawContext context, ToastManager manager, long startTime) {
-    context.fill(0, 0, width, height, 0xFF1B1B1B);
-    context.fill(1, 1, width - 1, height - 1, 0xFFC6C6C6);
-    context.fill(2, 2, width - 2, 3, 0xFFFEFEFE);
-    context.fill(2, 2, 3, height - 2, 0xFFFEFEFE);
-    context.fill(2, height - 3, width - 2, height - 2, 0xFF545454);
-    context.fill(width - 3, 2, width - 2, height - 2, 0xFF545454);
+    drawBackground(context);
 
     TextRenderer tr = manager.getClient().textRenderer;
     int textX = TEXT_LEFT_PAD;
     int textY = 7;
-    context.drawText(tr, title, textX, textY, 0xFF3B3B3B, false);
+    if (title != null) {
+      context.drawText(tr, readable(title.asOrderedText()), textX, textY, TITLE_COLOR, false);
+    }
     int bodyY = textY + 11;
     for (int i = 0; i < subtitleLines.size(); i++) {
-      context.drawText(tr, subtitleLines.get(i), textX, bodyY + i * LINE_HEIGHT, 0xFF3B3B3B, false);
+      context.drawText(tr, subtitleLines.get(i), textX, bodyY + i * LINE_HEIGHT, BODY_COLOR, false);
     }
 
     context.drawTexture(
@@ -81,6 +89,95 @@ public final class LootLockToast implements Toast {
         ICON_SIZE);
 
     return startTime >= durationMs ? Visibility.HIDE : Visibility.SHOW;
+  }
+
+  private void drawBackground(DrawContext context) {
+    int right = SPRITE_WIDTH - BORDER;
+    int bottom = SPRITE_HEIGHT - BORDER;
+    int innerW = width - BORDER * 2;
+    int innerH = height - BORDER * 2;
+    int edgeW = right - CLEAN_LEFT;
+    int edgeH = bottom - BORDER;
+    blit(context, 0, 0, 0, 0, BORDER, BORDER);
+    blit(context, right, 0, width - BORDER, 0, BORDER, BORDER);
+    blit(context, 0, bottom, 0, height - BORDER, BORDER, BORDER);
+    blit(context, right, bottom, width - BORDER, height - BORDER, BORDER, BORDER);
+    for (int x = 0; x < innerW; x += edgeW) {
+      int w = Math.min(edgeW, innerW - x);
+      blit(context, CLEAN_LEFT, 0, BORDER + x, 0, w, BORDER);
+      blit(context, CLEAN_LEFT, bottom, BORDER + x, height - BORDER, w, BORDER);
+    }
+    for (int y = 0; y < innerH; y += edgeH) {
+      int h = Math.min(edgeH, innerH - y);
+      blit(context, 0, BORDER, 0, BORDER + y, BORDER, h);
+      blit(context, right, BORDER, width - BORDER, BORDER + y, BORDER, h);
+    }
+    for (int y = 0; y < innerH; y += edgeH) {
+      for (int x = 0; x < innerW; x += edgeW) {
+        blit(
+            context,
+            CLEAN_LEFT,
+            BORDER,
+            BORDER + x,
+            BORDER + y,
+            Math.min(edgeW, innerW - x),
+            Math.min(edgeH, innerH - y));
+      }
+    }
+  }
+
+  private static void blit(DrawContext context, int u, int v, int x, int y, int w, int h) {
+    context.drawGuiTexture(GuiSprites.TOAST, SPRITE_WIDTH, SPRITE_HEIGHT, u, v, x, y, w, h);
+  }
+
+  static OrderedText readable(OrderedText text) {
+    return visitor ->
+        text.accept((index, style, codePoint) -> visitor.accept(index, readable(style), codePoint));
+  }
+
+  static Style readable(Style style) {
+    TextColor color = style.getColor();
+    if (color == null) {
+      return style;
+    }
+    int rgb = color.getRgb() & 0xFFFFFF;
+    int adjusted = readableColor(rgb);
+    return adjusted == rgb ? style : style.withColor(TextColor.fromRgb(adjusted));
+  }
+
+  static int readableColor(int rgb) {
+    int current = rgb & 0xFFFFFF;
+    for (int step = 0; step < 20 && contrast(current, BACKGROUND) < MIN_TEXT_CONTRAST; step++) {
+      current = towardWhite(current, 0.1f);
+    }
+    return current;
+  }
+
+  private static int towardWhite(int rgb, float t) {
+    int r = (rgb >> 16) & 0xFF;
+    int g = (rgb >> 8) & 0xFF;
+    int b = rgb & 0xFF;
+    r = Math.round(r + (255 - r) * t);
+    g = Math.round(g + (255 - g) * t);
+    b = Math.round(b + (255 - b) * t);
+    return (r << 16) | (g << 8) | b;
+  }
+
+  static double contrast(int rgbA, int rgbB) {
+    double la = luminance(rgbA);
+    double lb = luminance(rgbB);
+    return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+  }
+
+  private static double luminance(int rgb) {
+    return 0.2126 * channel((rgb >> 16) & 0xFF)
+        + 0.7152 * channel((rgb >> 8) & 0xFF)
+        + 0.0722 * channel(rgb & 0xFF);
+  }
+
+  private static double channel(int value) {
+    double c = value / 255.0;
+    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
   }
 
   private static List<OrderedText> wrapSubtitle(Text subtitle) {

@@ -42,9 +42,9 @@ public final class SegmentedButton extends PressableWidget {
 
   static Identifier sprite(boolean selected, boolean active, boolean hovered) {
     if (selected) {
-      return Chrome.BUTTON.disabled();
+      return GuiSprites.BUTTON.disabled();
     }
-    return Chrome.BUTTON.get(active, hovered);
+    return GuiSprites.BUTTON.get(active, hovered);
   }
 
   static int labelColor(boolean selected, boolean active, int selectedLabelColor) {

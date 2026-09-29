@@ -316,17 +316,17 @@ public final class LootLockInventoryPanel {
     settingsView.relayout();
   }
 
-  public void paintChrome(DrawContext context) {
+  public void paintBackground(DrawContext context) {
     if (!open || !fitsOnScreen) {
       return;
     }
-    Chrome.panel(context, panelX, panelY, WIDTH, currentHeight);
+    GuiSprites.panel(context, panelX, panelY, WIDTH, currentHeight);
     int wellX = panelX + SIDE_PADDING;
     int wellWidth = WIDTH - SIDE_PADDING * 2;
     if (!clientPrefsMode) {
-      Chrome.inset(context, wellX, profileWellY, wellWidth, profileWellH);
-      Chrome.inset(context, wellX, controlsWellY, wellWidth, controlsWellH);
-      Chrome.inset(context, wellX, summaryY, wellWidth, SUMMARY_HEIGHT);
+      GuiSprites.inset(context, wellX, profileWellY, wellWidth, profileWellH);
+      GuiSprites.inset(context, wellX, controlsWellY, wellWidth, controlsWellH);
+      GuiSprites.inset(context, wellX, summaryY, wellWidth, SUMMARY_HEIGHT);
       context.fill(
           wellX + 1,
           summaryY + 1,
@@ -336,7 +336,7 @@ public final class LootLockInventoryPanel {
               ActiveProfileActions.globallyEnabled(),
               ActiveProfileActions.activeProfile().orElse(null)));
     }
-    Chrome.inset(context, wellX, contentY, wellWidth, contentHeight);
+    GuiSprites.inset(context, wellX, contentY, wellWidth, contentHeight);
     if (!clientPrefsMode && activeTab == PanelTab.RULES) {
       paintRulesWellOverlays(context, wellX, wellWidth);
     }
