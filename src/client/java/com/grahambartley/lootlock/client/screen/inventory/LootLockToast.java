@@ -1,5 +1,6 @@
 package com.grahambartley.lootlock.client.screen.inventory;
 
+import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
@@ -31,14 +32,14 @@ public final class LootLockToast implements Toast {
   private static final int BORDER = 4;
   private static final int CLEAN_LEFT = 20;
 
-  private final Text title;
+  private final OrderedText title;
   private final List<OrderedText> subtitleLines;
   private final long durationMs;
   private final int width;
   private final int height;
 
   public LootLockToast(Text title, Text subtitle) {
-    this.title = title;
+    this.title = title == null ? null : readable(title.asOrderedText());
     this.subtitleLines = wrapSubtitle(subtitle).stream().map(LootLockToast::readable).toList();
     this.durationMs = DEFAULT_DURATION_MS;
     this.width = computeWidth(title, subtitleLines);
@@ -70,7 +71,7 @@ public final class LootLockToast implements Toast {
     int textX = TEXT_LEFT_PAD;
     int textY = 7;
     if (title != null) {
-      context.drawText(tr, readable(title.asOrderedText()), textX, textY, TITLE_COLOR, false);
+      context.drawText(tr, title, textX, textY, TITLE_COLOR, false);
     }
     int bodyY = textY + 11;
     for (int i = 0; i < subtitleLines.size(); i++) {
@@ -92,42 +93,49 @@ public final class LootLockToast implements Toast {
   }
 
   private void drawBackground(DrawContext context) {
+    for (Tile tile : backgroundTiles(width, height)) {
+      context.drawGuiTexture(
+          GuiSprites.TOAST,
+          SPRITE_WIDTH,
+          SPRITE_HEIGHT,
+          tile.u(),
+          tile.v(),
+          tile.x(),
+          tile.y(),
+          tile.width(),
+          tile.height());
+    }
+  }
+
+  record Tile(int u, int v, int x, int y, int width, int height) {}
+
+  static List<Tile> backgroundTiles(int width, int height) {
     int right = SPRITE_WIDTH - BORDER;
     int bottom = SPRITE_HEIGHT - BORDER;
     int innerW = width - BORDER * 2;
     int innerH = height - BORDER * 2;
     int edgeW = right - CLEAN_LEFT;
     int edgeH = bottom - BORDER;
-    blit(context, 0, 0, 0, 0, BORDER, BORDER);
-    blit(context, right, 0, width - BORDER, 0, BORDER, BORDER);
-    blit(context, 0, bottom, 0, height - BORDER, BORDER, BORDER);
-    blit(context, right, bottom, width - BORDER, height - BORDER, BORDER, BORDER);
+    List<Tile> tiles = new ArrayList<>();
+    tiles.add(new Tile(0, 0, 0, 0, BORDER, BORDER));
+    tiles.add(new Tile(right, 0, width - BORDER, 0, BORDER, BORDER));
+    tiles.add(new Tile(0, bottom, 0, height - BORDER, BORDER, BORDER));
+    tiles.add(new Tile(right, bottom, width - BORDER, height - BORDER, BORDER, BORDER));
     for (int x = 0; x < innerW; x += edgeW) {
       int w = Math.min(edgeW, innerW - x);
-      blit(context, CLEAN_LEFT, 0, BORDER + x, 0, w, BORDER);
-      blit(context, CLEAN_LEFT, bottom, BORDER + x, height - BORDER, w, BORDER);
+      tiles.add(new Tile(CLEAN_LEFT, 0, BORDER + x, 0, w, BORDER));
+      tiles.add(new Tile(CLEAN_LEFT, bottom, BORDER + x, height - BORDER, w, BORDER));
     }
     for (int y = 0; y < innerH; y += edgeH) {
       int h = Math.min(edgeH, innerH - y);
-      blit(context, 0, BORDER, 0, BORDER + y, BORDER, h);
-      blit(context, right, BORDER, width - BORDER, BORDER + y, BORDER, h);
-    }
-    for (int y = 0; y < innerH; y += edgeH) {
+      tiles.add(new Tile(0, BORDER, 0, BORDER + y, BORDER, h));
+      tiles.add(new Tile(right, BORDER, width - BORDER, BORDER + y, BORDER, h));
       for (int x = 0; x < innerW; x += edgeW) {
-        blit(
-            context,
-            CLEAN_LEFT,
-            BORDER,
-            BORDER + x,
-            BORDER + y,
-            Math.min(edgeW, innerW - x),
-            Math.min(edgeH, innerH - y));
+        tiles.add(
+            new Tile(CLEAN_LEFT, BORDER, BORDER + x, BORDER + y, Math.min(edgeW, innerW - x), h));
       }
     }
-  }
-
-  private static void blit(DrawContext context, int u, int v, int x, int y, int w, int h) {
-    context.drawGuiTexture(GuiSprites.TOAST, SPRITE_WIDTH, SPRITE_HEIGHT, u, v, x, y, w, h);
+    return tiles;
   }
 
   static OrderedText readable(OrderedText text) {

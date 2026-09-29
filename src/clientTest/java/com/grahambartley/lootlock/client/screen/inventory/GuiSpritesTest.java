@@ -1,6 +1,7 @@
 package com.grahambartley.lootlock.client.screen.inventory;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
@@ -52,6 +53,19 @@ class GuiSpritesTest {
       String meta = new String(stream.readAllBytes(), StandardCharsets.UTF_8);
       assertTrue(meta.contains("nine_slice"), id + " is not nine-sliced: " + meta);
     }
+  }
+
+  @ParameterizedTest(name = "{0} sprite stays plain so region blits sample it directly")
+  @MethodSource("regionBlitSpriteIds")
+  void regionBlitSpriteHasNoScalingMetadata(String label, Identifier id) throws IOException {
+    try (InputStream stream =
+        GuiSpritesTest.class.getResourceAsStream(spritePath(id, ".png.mcmeta"))) {
+      assertNull(stream, id + " gained sprite scaling metadata");
+    }
+  }
+
+  static Stream<Arguments> regionBlitSpriteIds() {
+    return Stream.of(Arguments.of("toast", GuiSprites.TOAST));
   }
 
   private static String spritePath(Identifier id, String suffix) {

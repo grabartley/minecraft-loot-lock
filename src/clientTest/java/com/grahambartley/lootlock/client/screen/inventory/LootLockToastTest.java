@@ -26,6 +26,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -59,7 +60,7 @@ class LootLockToastTest {
   void readableColorMeetsContrastOnTheSprite(String label, int argb) throws IOException {
     int adjusted = LootLockToast.readableColor(argb & 0xFFFFFF);
 
-    double ratio = contrast(adjusted, spritePixel(80, 16));
+    double ratio = LootLockToast.contrast(adjusted, spritePixel(80, 16) & 0xFFFFFF);
     assertTrue(
         ratio >= MIN_CONTRAST, String.format("%s -> %06X at %.2f:1", label, adjusted, ratio));
   }
@@ -79,7 +80,8 @@ class LootLockToastTest {
   @ParameterizedTest(name = "{0} text is readable on the toast")
   @MethodSource("fixedTextColors")
   void fixedTextColoursMeetContrast(String label, int argb) throws IOException {
-    assertTrue(contrast(argb & 0xFFFFFF, spritePixel(80, 16)) >= MIN_CONTRAST);
+    assertTrue(
+        LootLockToast.contrast(argb & 0xFFFFFF, spritePixel(80, 16) & 0xFFFFFF) >= MIN_CONTRAST);
   }
 
   @Test
@@ -110,35 +112,80 @@ class LootLockToastTest {
     assertEquals(LootLockToast.readableColor(0x2C5FA5), colors.get(1).getRgb());
   }
 
-  private static int spritePixel(int x, int y) throws IOException {
-    try (InputStream stream =
-        LootLockToastTest.class.getResourceAsStream(
-            "/assets/minecraft/textures/gui/sprites/toast/system.png")) {
-      assertNotNull(stream);
-      BufferedImage image = ImageIO.read(stream);
-      Raster raster = image.getRaster();
-      int[] samples = raster.getPixel(x, y, (int[]) null);
-      if (image.getColorModel() instanceof IndexColorModel indexed) {
-        return indexed.getRGB(samples[0]);
+  @ParameterizedTest(name = "#{0} on #{1} is {2}:1")
+  @CsvSource({
+    "FFFFFF, 000000, 21.0",
+    "000000, FFFFFF, 21.0",
+    "767676, FFFFFF, 4.54",
+    "777777, FFFFFF, 4.48",
+    "FFFFFF, FFFFFF, 1.0",
+  })
+  void contrastMatchesWcagReferenceValues(String a, String b, double expected) {
+    assertEquals(
+        expected, LootLockToast.contrast(Integer.parseInt(a, 16), Integer.parseInt(b, 16)), 0.01);
+  }
+
+  @ParameterizedTest(name = "{0}x{1} toast is tiled exactly from the clean sprite")
+  @CsvSource({"160, 32", "200, 42", "240, 52", "161, 33", "239, 62"})
+  void backgroundTilesCoverTheToastExactlyFromCleanSpritePixels(int width, int height)
+      throws IOException {
+    int[][] coverage = new int[width][height];
+    for (LootLockToast.Tile tile : LootLockToast.backgroundTiles(width, height)) {
+      for (int dx = 0; dx < tile.width(); dx++) {
+        for (int dy = 0; dy < tile.height(); dy++) {
+          int x = tile.x() + dx;
+          int y = tile.y() + dy;
+          coverage[x][y]++;
+          int source = spritePixel(tile.u() + dx, tile.v() + dy);
+          if (x >= 4 && x < width - 4 && y >= 4 && y < height - 4) {
+            assertEquals(LootLockToast.BACKGROUND, source, "interior at " + x + "," + y);
+          }
+          if (x < 4 || x >= width - 4 || y < 4 || y >= height - 4) {
+            assertEquals(
+                spritePixel(frameU(x, width), frameV(y, height)),
+                source,
+                "frame at " + x + "," + y);
+          }
+        }
       }
-      return 0xFF000000 | samples[0] << 16 | samples[1] << 8 | samples[2];
+    }
+    for (int x = 0; x < width; x++) {
+      for (int y = 0; y < height; y++) {
+        assertEquals(1, coverage[x][y], "coverage at " + x + "," + y);
+      }
     }
   }
 
-  private static double contrast(int rgbA, int rgbB) {
-    double la = luminance(rgbA);
-    double lb = luminance(rgbB);
-    return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+  private static int frameU(int x, int width) {
+    if (x < 4) {
+      return x;
+    }
+    return x >= width - 4 ? 160 - (width - x) : 80;
   }
 
-  private static double luminance(int rgb) {
-    return 0.2126 * channel((rgb >> 16) & 0xFF)
-        + 0.7152 * channel((rgb >> 8) & 0xFF)
-        + 0.0722 * channel(rgb & 0xFF);
+  private static int frameV(int y, int height) {
+    if (y < 4) {
+      return y;
+    }
+    return y >= height - 4 ? 32 - (height - y) : 16;
   }
 
-  private static double channel(int value) {
-    double c = value / 255.0;
-    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  private static BufferedImage sprite;
+
+  private static int spritePixel(int x, int y) throws IOException {
+    if (sprite == null) {
+      try (InputStream stream =
+          LootLockToastTest.class.getResourceAsStream(
+              "/assets/minecraft/textures/gui/sprites/toast/system.png")) {
+        assertNotNull(stream);
+        sprite = ImageIO.read(stream);
+      }
+    }
+    Raster raster = sprite.getRaster();
+    int[] samples = raster.getPixel(x, y, (int[]) null);
+    if (sprite.getColorModel() instanceof IndexColorModel indexed) {
+      return indexed.getRGB(samples[0]);
+    }
+    return 0xFF000000 | samples[0] << 16 | samples[1] << 8 | samples[2];
   }
 }

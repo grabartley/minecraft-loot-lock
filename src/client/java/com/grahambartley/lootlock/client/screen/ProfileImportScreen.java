@@ -31,12 +31,12 @@ public final class ProfileImportScreen extends Screen {
   private static final int ROW_GAP = 8;
   private static final int DESCRIPTION_MAX_LINES = 2;
   private static final int DESCRIPTION_COLOR = 0xFFA0A0A0;
-  private static final int ERROR_COLOR = 0xFFFF5555;
 
   private final Screen returnTo;
   private TextFieldWidget codeField;
   private Text inlineError;
   private int contentLeft;
+  private int contentWidth;
   private int descriptionY;
   private int errorY;
 
@@ -58,7 +58,7 @@ public final class ProfileImportScreen extends Screen {
   @Override
   protected void init() {
     super.init();
-    int contentWidth = Math.min(CONTENT_WIDTH, width - 20);
+    contentWidth = Math.min(CONTENT_WIDTH, width - 20);
     contentLeft = (width - contentWidth) / 2;
     descriptionY = contentTop(height);
     int fieldY = descriptionY + LINE_HEIGHT * DESCRIPTION_MAX_LINES + ROW_GAP;
@@ -95,7 +95,6 @@ public final class ProfileImportScreen extends Screen {
   public void render(DrawContext context, int mouseX, int mouseY, float delta) {
     super.render(context, mouseX, mouseY, delta);
     context.drawCenteredTextWithShadow(textRenderer, title, width / 2, TITLE_Y, 0xFFFFFFFF);
-    int contentWidth = width - contentLeft * 2;
     int lineY = descriptionY;
     for (OrderedText line :
         textRenderer.wrapLines(
@@ -104,7 +103,7 @@ public final class ProfileImportScreen extends Screen {
       lineY += LINE_HEIGHT;
     }
     if (inlineError != null) {
-      context.drawCenteredTextWithShadow(textRenderer, inlineError, width / 2, errorY, ERROR_COLOR);
+      context.drawCenteredTextWithShadow(textRenderer, inlineError, width / 2, errorY, 0xFFFFFFFF);
     }
   }
 

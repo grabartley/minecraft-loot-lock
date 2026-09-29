@@ -9,7 +9,7 @@ public final class GuiSprites {
 
   public static final Identifier PANEL = Identifier.ofVanilla("recipe_book/overlay_recipe");
   public static final Identifier SLOT = Identifier.ofVanilla("container/slot");
-  public static final Identifier TOAST = Identifier.ofVanilla("toast/system");
+  static final Identifier TOAST = Identifier.ofVanilla("toast/system");
   private static final int SLOT_SIZE = 18;
 
   public static final ButtonTextures BUTTON =
