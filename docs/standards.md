@@ -34,7 +34,7 @@ Family rules:
 How Loot Lock applies them:
 
 - Server policy lives in `<world>/lootlock/server-policy.json` and currently holds one field, `allowDeleteRejectedItems`, which defaults to `true`.
-- A `LevelStorage` mixin opens a `WorldSession` as soon as a level storage session is created, before the server exists. The session loads the server policy and creates the per-player store and the pickup guard for that world. `SERVER_STARTED` opens the session only if no session is open for that world yet, and `SERVER_STOPPED` closes it.
+- A `LevelStorage` mixin opens a `WorldSession` as soon as a level storage session is created, before the server exists. The session loads the server policy and creates the per-player store and the pickup guard for that world, and writes nothing to disk until the first player data save. `SERVER_STARTED` opens the session only if no session is open for that world yet, and `SERVER_STOPPED` closes it.
 - A missing or unreadable policy file yields defaults. The file is only written when an operator changes the policy.
 - Per-player data lives beside it in `<world>/lootlock/players/<uuid>.json`. A player file that cannot be read is moved aside as `<uuid>.broken.<timestamp>.json` rather than overwritten, and the player starts from defaults. See [ADR 0002](adr/0002-per-player-json-store.md).
 - `/lootlock policy` and `/lootlock player <target> ...` require permission level 2, and so does the policy packet the in-game panel sends. Players manage their own profiles without operator permission.
@@ -44,7 +44,7 @@ How Loot Lock applies them:
 
 - **Single Responsibility Principle.** One class, one concern. Extract a collaborator rather than growing a class sideways.
 - **No class exceeds 700 lines.** A class approaching the limit is split along responsibility seams, into small extracted helpers. Loot Lock has one known exception: `LootLockInventoryPanel` is still over the limit, and its split lands with the vanilla UI restyle (#176, #177) to avoid conflicting with it.
-- **Unit tests map one to one onto classes.** A test exercising `PickupGuard` is named `PickupGuardTest` and lives in the matching package. A test named after a scenario rather than a class is a test nobody can find. Every test class has a production class of the same name without the `Test` suffix.
+- **Unit tests map one to one onto classes.** A test exercising `PickupGuard` is named `PickupGuardTest` and lives in the matching package. A test named after a scenario rather than a class is a test nobody can find.
 - **Logic worth testing has no Minecraft dependency.** Rule matching, share code decoding, mutation validation, and save debouncing are plain logic over plain data, so they are unit testable without a running game. Where this is possible it is not optional.
 
 ## Build And Source Layout
@@ -65,7 +65,7 @@ Everything targets Java 21, pinned in `.java-version`. The mod version in `gradl
 ## Testing
 
 - Any new behavioural code ships with unit tests in the same pull request. Documentation-only and configuration-only changes are exempt.
-- `./gradlew check` runs formatting, the side-safety check, the no-comments gate, unit tests, client tests, and the JaCoCo coverage report.
+- `./gradlew check` runs formatting, the side-safety check, unit tests, client tests, and the JaCoCo coverage report.
 - Gametests cover behaviour that only exists in a running world: pickups, networking, persistence, and anything involving more than one player. They live in `src/main/java/com/grahambartley/lootlock/gametest`, are named after the class they exercise with a `GameTest` suffix (`ItemEntityMixinGameTest`), and are registered under the `fabric-gametest` entrypoint in `fabric.mod.json`. Structure templates live in `src/main/resources/data/loot-lock/gametest/structure`.
 - `./gradlew runGametest` runs them on a headless server in `build/gametest` and writes `build/gametest-results.xml`.
 - Anything that moves or destroys items gets a test asserting where every item ended up: in the inventory, on the ground, or deliberately deleted. Absence of an exception is not evidence of correctness.
@@ -107,4 +107,4 @@ Every player-visible string goes through a translation key in `LootLockLang`. Th
 
 - Every change updates the documentation it invalidates, in the same pull request.
 - Reasoning behind an architectural decision belongs in an architecture decision record under [`docs/adr/`](adr/README.md), not in a comment and not in a commit message.
-- **The source carries no comments at all.** Not explanatory ones, not javadoc, not "why" ones. Naming and structure carry the meaning, and anything that genuinely needs explaining is either a decision record or a sign the code should be reshaped until it does not. A Checkstyle gate enforces this: a single `MatchXpath` rule in `config/checkstyle/checkstyle.xml` fails the build at `file:line` on any comment in any source set, javadoc included, and never edits source. Too Many Chests records why a linter does this and a formatter must not in its ADR 0034.
+- **The source carries no comments at all.** Not explanatory ones, not javadoc, not "why" ones. Naming and structure carry the meaning, and anything that genuinely needs explaining is either a decision record or a sign the code should be reshaped until it does not. Loot Lock still carries comments from before this standard; they are being stripped and a Checkstyle gate added to enforce the rule (#178).

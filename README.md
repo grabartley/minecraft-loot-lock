@@ -207,9 +207,9 @@ Every player-visible string is wired through Minecraft's translation pipeline. T
 
 ## Development
 
-Gradle and Fabric Loom, with Spotless formatting, a Checkstyle no-comments gate, JaCoCo coverage, Fabric GameTest, and CI/CD through GitHub Actions. The build targets Java 21.
+Gradle and Fabric Loom, with Spotless formatting, JaCoCo coverage, Fabric GameTest, and CI/CD through GitHub Actions. The build targets Java 21.
 
-- `./gradlew check` runs formatting, the side-safety check, the no-comments gate, unit tests, client tests, and coverage
+- `./gradlew check` runs formatting, the side-safety check, unit tests, client tests, and coverage
 - `./gradlew runClient` launches the dev client
 - `./gradlew runGametest` runs the in-game test suite on a headless server
 
