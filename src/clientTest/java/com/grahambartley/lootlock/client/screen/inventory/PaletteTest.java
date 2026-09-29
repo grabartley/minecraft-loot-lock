@@ -8,7 +8,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-class PaletteProfileContrastTest {
+class PaletteTest {
 
   private static final double MIN_CONTRAST = 3.0;
 
