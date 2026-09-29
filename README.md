@@ -41,10 +41,10 @@ Stop letting your inventory turn into a graveyard of rotten flesh and wheat seed
 - **Leave on ground or delete** rejected items. Delete mode includes safety confirmations and an operator opt-out.
 
 ### In-game UI
-- **Docked panel** that slides out beside your inventory, no separate full-screen menu detour.
-- **Rules tab** with live item search, multi-select, drag-and-drop add, and a gold-border drop target with a soft flash so you know the drop landed.
+- **Docked panel** that slides out beside your inventory, drawn with vanilla GUI sprites so it looks like part of the game. No separate full-screen menu detour.
+- **Rules tab** with live item search, multi-select, drag-and-drop add, and a highlighted drop target with a soft flash so you know the drop landed.
 - **Settings tab** for HUD toasts, safety confirmations, and a built-in keybind cheatsheet.
-- **Inline profile rename** by clicking the profile pill, plus one-click cycle arrows and a colour chip per profile.
+- **Profile dropdown** from the profile pill with inline rename, duplicate, export, and delete, plus one-click cycle arrows and a colour chip per profile.
 
 ### Feedback
 - **Blocked-item toast** that briefly tells you which item was filtered out (toggleable).

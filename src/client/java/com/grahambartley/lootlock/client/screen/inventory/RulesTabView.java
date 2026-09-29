@@ -22,7 +22,6 @@ import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.ClickableWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 
 public final class RulesTabView {
@@ -421,13 +420,13 @@ public final class RulesTabView {
     }
     context.drawText(
         client.textRenderer,
-        Text.translatable(bulkKey, bulkCount).formatted(Formatting.GRAY),
+        Text.translatable(bulkKey, bulkCount),
         viewX,
         bulkY,
-        0xFF9A9AA4,
+        Palette.INK_DIM,
         false);
     if (showingSearch) {
-      drawHintWithKbds(context, client, viewX + viewWidth, bulkY);
+      drawHint(context, client, viewX + viewWidth, bulkY);
     }
 
     if (visibleResults.isEmpty()) {
@@ -447,10 +446,10 @@ public final class RulesTabView {
       int bigWidth = client.textRenderer.getWidth(big);
       context.drawText(
           client.textRenderer,
-          big.copy().formatted(Formatting.GRAY),
+          big,
           viewX + (viewWidth - bigWidth) / 2,
           centerY - 6,
-          0xFFCFCFD6,
+          Palette.INK,
           false);
       int subY = centerY + 4;
       int lineHeight = 10;
@@ -458,41 +457,25 @@ public final class RulesTabView {
         int subWidth = client.textRenderer.getWidth(sub);
         context.drawText(
             client.textRenderer,
-            sub.copy().formatted(Formatting.GRAY),
+            sub,
             viewX + (viewWidth - subWidth) / 2,
             subY,
-            0xFF9A9AA4,
+            Palette.INK_DIM,
             false);
         subY += lineHeight;
       }
     }
   }
 
-  private static void drawHintWithKbds(
-      DrawContext context, MinecraftClient client, int rightX, int y) {
-    Text shift = Text.translatable(LootLockLang.RULES_HINT_SHIFT);
-    Text range = Text.translatable(LootLockLang.RULES_HINT_RANGE);
-    Text cmd = Text.translatable(LootLockLang.RULES_HINT_CTRL);
-    Text pick = Text.translatable(LootLockLang.RULES_HINT_PICK);
-    int cmdW = client.textRenderer.getWidth(cmd) + 4;
-    int shiftW = client.textRenderer.getWidth(shift) + 4;
-    int rangeW = client.textRenderer.getWidth(range);
-    int pickW = client.textRenderer.getWidth(pick);
-    int totalW = shiftW + rangeW + cmdW + pickW;
-    int cursorX = rightX - totalW;
-    paintKbd(context, client, shift, cursorX, y, shiftW);
-    cursorX += shiftW;
-    context.drawText(client.textRenderer, range, cursorX, y, 0xFF9A9AA4, false);
-    cursorX += rangeW;
-    paintKbd(context, client, cmd, cursorX, y, cmdW);
-    cursorX += cmdW;
-    context.drawText(client.textRenderer, pick, cursorX, y, 0xFF9A9AA4, false);
-  }
-
-  private static void paintKbd(
-      DrawContext context, MinecraftClient client, Text text, int x, int y, int width) {
-    context.fill(x, y - 1, x + width, y + 9, Palette.KBD_FILL);
-    context.drawText(client.textRenderer, text, x + 2, y, 0xFFDCDCE2, false);
+  private static void drawHint(DrawContext context, MinecraftClient client, int rightX, int y) {
+    Text hint =
+        Text.empty()
+            .append(Text.translatable(LootLockLang.RULES_HINT_SHIFT).withColor(Palette.INK))
+            .append(Text.translatable(LootLockLang.RULES_HINT_RANGE))
+            .append(Text.translatable(LootLockLang.RULES_HINT_CTRL).withColor(Palette.INK))
+            .append(Text.translatable(LootLockLang.RULES_HINT_PICK));
+    int x = rightX - client.textRenderer.getWidth(hint);
+    context.drawText(client.textRenderer, hint, x, y, Palette.INK_DIM, false);
   }
 
   Set<String> ownedItemIds() {

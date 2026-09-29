@@ -2,22 +2,17 @@ package com.grahambartley.lootlock.client.screen.inventory;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.grahambartley.lootlock.client.LootLockClient;
-import com.grahambartley.lootlock.client.state.ClientDraftProfile;
-import com.grahambartley.lootlock.client.state.ClientLootLockState.ClientDraftSaveRequest;
 import com.grahambartley.lootlock.data.FilterMode;
 import com.grahambartley.lootlock.data.LootLockProfile;
 import com.grahambartley.lootlock.data.RejectedItemAction;
-import com.grahambartley.lootlock.network.ServerToClientPackets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Consumer;
 import java.util.function.LongSupplier;
 import java.util.stream.Stream;
 import net.minecraft.Bootstrap;
@@ -34,11 +29,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 class LootLockInventoryPanelTest {
 
-  private static final int LAST_PALETTE_INDEX = Palette.PROFILE_COLORS.length - 1;
-
   private LongSupplier originalClock;
-  private Consumer<ClientDraftSaveRequest> originalDispatcher;
-  private List<ClientDraftSaveRequest> captured;
   private AtomicLong now;
   private LootLockInventoryPanel panel;
 
@@ -54,16 +45,12 @@ class LootLockInventoryPanelTest {
     now = new AtomicLong(1000L);
     LootLockInventoryPanel.clockMillis = now::get;
     LootLockClient.getState().clear();
-    originalDispatcher = LootLockInventoryPanel.saveRequestDispatcher;
-    captured = new ArrayList<>();
-    LootLockInventoryPanel.saveRequestDispatcher = captured::add;
     panel = new LootLockInventoryPanel();
   }
 
   @AfterEach
   void restoreStatics() {
     LootLockInventoryPanel.clockMillis = originalClock;
-    LootLockInventoryPanel.saveRequestDispatcher = originalDispatcher;
     LootLockClient.getState().clear();
   }
 
@@ -163,17 +150,14 @@ class LootLockInventoryPanelTest {
         collected.stream().anyMatch(w -> w instanceof ProfilePill),
         "ProfilePill should not be created in client-prefs mode");
     assertFalse(
-        collected.stream().anyMatch(w -> w instanceof NavArrowButton),
-        "NavArrowButton should not be created in client-prefs mode");
-    assertFalse(
         collected.stream().anyMatch(w -> w instanceof SegmentedButton),
         "SegmentedButton (mode/action) should not be created in client-prefs mode");
     assertFalse(
-        collected.stream().anyMatch(w -> w instanceof VanillaTab),
-        "VanillaTab (tab row) should not be created in client-prefs mode");
+        collected.stream().anyMatch(w -> w instanceof PanelTabButton),
+        "PanelTabButton (tab row) should not be created in client-prefs mode");
     for (ClickableWidget widget : collected) {
       assertTrue(
-          widget instanceof VanillaSwitch,
+          widget instanceof OnOffButton,
           "Only notification + safety switches should remain, got "
               + widget.getClass().getSimpleName());
     }
@@ -208,104 +192,39 @@ class LootLockInventoryPanelTest {
     assertFalse(panel.handleInlineRenameChar('e', 0));
   }
 
-  static Stream<Arguments> nextColorCases() {
+  static Stream<Arguments> summaryAccentCases() {
     return Stream.of(
-        Arguments.of("advance by one", Palette.PROFILE_COLORS[0], Palette.PROFILE_COLORS[1]),
-        Arguments.of("advance past mid", Palette.PROFILE_COLORS[4], Palette.PROFILE_COLORS[5]),
-        Arguments.of(
-            "wrap from last to first",
-            Palette.PROFILE_COLORS[LAST_PALETTE_INDEX],
-            Palette.PROFILE_COLORS[0]),
-        Arguments.of("treat unset (0) as index 0", 0, Palette.PROFILE_COLORS[1]));
-  }
-
-  @ParameterizedTest(name = "{0}: {1} -> {2}")
-  @MethodSource("nextColorCases")
-  void nextProfileColorAdvancesOrWraps(String label, int current, int expected) {
-    assertEquals(expected, LootLockInventoryPanel.nextProfileColor(current));
-  }
-
-  static Stream<Arguments> colorForProfileCases() {
-    return Stream.of(
-        Arguments.of(
-            "legacy (color 0) falls back to palette default", 0, Palette.PROFILE_COLORS[0]),
-        Arguments.of(
-            "persisted color is returned", Palette.PROFILE_COLORS[3], Palette.PROFILE_COLORS[3]));
+        Arguments.of("disabled overrides profile", false, FilterMode.ALLOWLIST, Palette.LEAVE),
+        Arguments.of("no active profile", true, null, Palette.SLOT_LO),
+        Arguments.of("allowlist", true, FilterMode.ALLOWLIST, Palette.ALLOW),
+        Arguments.of("denylist", true, FilterMode.DENYLIST, Palette.DENY));
   }
 
   @ParameterizedTest(name = "{0}")
-  @MethodSource("colorForProfileCases")
-  void colorForProfileReturnsExpected(String label, int storedColor, int expected) {
-    LootLockProfile profile = newProfile(storedColor);
+  @MethodSource("summaryAccentCases")
+  void summaryAccentFollowsEnabledStateAndMode(
+      String label, boolean enabled, FilterMode mode, int expected) {
+    LootLockProfile profile = mode == null ? null : newProfile(mode);
 
-    assertEquals(expected, LootLockInventoryPanel.colorForProfile(profile));
+    assertEquals(expected, LootLockInventoryPanel.summaryAccent(enabled, profile));
   }
 
-  @Test
-  void cycleProfileColorMarksDraftDirtyAndProducesSaveRequest() {
-    LootLockProfile profile = newProfile(0);
-    primeClientState(profile);
-
-    panel.cycleProfileColor(profile.getId());
-
-    ClientDraftProfile draft = LootLockClient.getState().getDraftProfile().orElseThrow();
-    assertTrue(draft.isDirty());
-    assertEquals(Palette.PROFILE_COLORS[1], draft.getDraft().getColor());
-
-    assertEquals(1, captured.size());
-    ClientDraftSaveRequest saveRequest = captured.get(0);
-    assertEquals(Palette.PROFILE_COLORS[1], saveRequest.profile().getColor());
-    assertNotEquals(0, saveRequest.profile().getColor());
-    assertEquals(7L, saveRequest.baseRevision());
+  static Stream<Arguments> blendCases() {
+    return Stream.of(
+        Arguments.of(0f, 0xFF000000, 0xFFFFFFFF, 0xFF000000),
+        Arguments.of(1f, 0xFF000000, 0xFFFFFFFF, 0xFFFFFFFF),
+        Arguments.of(0.5f, 0xFF000000, 0xFFFFFFFF, 0xFF7F7F7F),
+        Arguments.of(0.5f, 0x00204060, 0xFF204060, 0x7F204060));
   }
 
-  @Test
-  void cycleProfileColorWrapsLastPaletteEntryBackToFirst() {
-    LootLockProfile profile = newProfile(Palette.PROFILE_COLORS[LAST_PALETTE_INDEX]);
-    primeClientState(profile);
-
-    panel.cycleProfileColor(profile.getId());
-
-    ClientDraftProfile draft = LootLockClient.getState().getDraftProfile().orElseThrow();
-    assertEquals(Palette.PROFILE_COLORS[0], draft.getDraft().getColor());
-    assertEquals(1, captured.size());
-    assertEquals(Palette.PROFILE_COLORS[0], captured.get(0).profile().getColor());
+  @ParameterizedTest(name = "blend(0x{1}, 0x{2}, {0})")
+  @MethodSource("blendCases")
+  void blendArgbInterpolatesEachChannel(float t, int from, int to, int expected) {
+    assertEquals(expected, LootLockInventoryPanel.blendArgb(from, to, t));
   }
 
-  @Test
-  void cycleProfileColorIsNoOpWhenProfileMissing() {
-    LootLockProfile profile = newProfile(0);
-    primeClientState(profile);
-
-    panel.cycleProfileColor(UUID.randomUUID());
-
-    assertTrue(LootLockClient.getState().getDraftProfile().isEmpty());
-    assertTrue(captured.isEmpty());
-  }
-
-  @Test
-  void cycleProfileColorIsNoOpWithoutSnapshot() {
-    panel.cycleProfileColor(UUID.randomUUID());
-
-    assertTrue(LootLockClient.getState().getDraftProfile().isEmpty());
-    assertTrue(captured.isEmpty());
-  }
-
-  private static LootLockProfile newProfile(int color) {
+  private static LootLockProfile newProfile(FilterMode mode) {
     return new LootLockProfile(
-        UUID.randomUUID(),
-        "Profile",
-        FilterMode.DENYLIST,
-        RejectedItemAction.LEAVE_ON_GROUND,
-        true,
-        color,
-        List.of());
-  }
-
-  private static void primeClientState(LootLockProfile profile) {
-    LootLockClient.getState()
-        .onAuthoritativeSync(
-            new ServerToClientPackets.SyncPayload(
-                1, UUID.randomUUID(), 7L, profile.getId(), List.of(profile), true, true));
+        UUID.randomUUID(), "Profile", mode, RejectedItemAction.LEAVE_ON_GROUND, true, 0, List.of());
   }
 }

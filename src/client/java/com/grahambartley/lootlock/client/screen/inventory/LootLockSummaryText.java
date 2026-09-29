@@ -14,11 +14,11 @@ public final class LootLockSummaryText {
   public static MutableText build(boolean enabled, LootLockProfile profile) {
     if (!enabled) {
       return Text.translatable(LootLockLang.SUMMARY_OFF_PREFIX)
-          .append(Text.translatable(LootLockLang.SUMMARY_OFF_WORD).formatted(Formatting.GRAY))
+          .append(Text.translatable(LootLockLang.SUMMARY_OFF_WORD).withColor(Palette.OFF_ON_SLOT))
           .append(Text.translatable(LootLockLang.SUMMARY_OFF_SUFFIX));
     }
     if (profile == null) {
-      return Text.translatable(LootLockLang.SUMMARY_NO_ACTIVE).formatted(Formatting.GRAY);
+      return Text.translatable(LootLockLang.SUMMARY_NO_ACTIVE).withColor(Palette.OFF_ON_SLOT);
     }
 
     int ruleCount = profile.getRules() == null ? 0 : profile.getRules().size();
@@ -28,20 +28,21 @@ public final class LootLockSummaryText {
     if (mode == FilterMode.DENYLIST) {
       if (ruleCount == 0) {
         return Text.empty()
-            .append(Text.translatable(LootLockLang.MODE_DENYLIST).formatted(Formatting.RED))
+            .append(Text.translatable(LootLockLang.MODE_DENYLIST).withColor(Palette.DENY_ON_SLOT))
             .append(Text.translatable(LootLockLang.SUMMARY_DENYLIST_EMPTY));
       }
       MutableText tail =
           deleteAction
               ? Text.translatable(LootLockLang.SUMMARY_TAIL_DELETE_PREFIX_SHORT)
                   .append(
-                      Text.translatable(LootLockLang.SUMMARY_DELETE_WORD).formatted(Formatting.RED))
+                      Text.translatable(LootLockLang.SUMMARY_DELETE_WORD)
+                          .withColor(Palette.DENY_ON_SLOT))
                   .append(Text.translatable(LootLockLang.SUMMARY_TAIL_DELETE_SUFFIX))
               : Text.translatable(LootLockLang.SUMMARY_TAIL_LEAVE_SHORT);
       return Text.empty()
-          .append(Text.translatable(LootLockLang.MODE_DENYLIST).formatted(Formatting.RED))
+          .append(Text.translatable(LootLockLang.MODE_DENYLIST).withColor(Palette.DENY_ON_SLOT))
           .append(Text.translatable(LootLockLang.SUMMARY_SEPARATOR))
-          .append(Text.literal(String.valueOf(ruleCount)).formatted(Formatting.WHITE))
+          .append(Text.literal(String.valueOf(ruleCount)).formatted(Formatting.BOLD))
           .append(
               Text.translatable(
                   ruleCount == 1
@@ -52,20 +53,21 @@ public final class LootLockSummaryText {
 
     if (ruleCount == 0) {
       return Text.empty()
-          .append(Text.translatable(LootLockLang.MODE_ALLOWLIST).formatted(Formatting.GREEN))
+          .append(Text.translatable(LootLockLang.MODE_ALLOWLIST).withColor(Palette.ALLOW_ON_SLOT))
           .append(Text.translatable(LootLockLang.SUMMARY_ALLOWLIST_EMPTY));
     }
     MutableText tail =
         deleteAction
             ? Text.translatable(LootLockLang.SUMMARY_TAIL_DELETE_PREFIX_LONG)
                 .append(
-                    Text.translatable(LootLockLang.SUMMARY_DELETE_WORD).formatted(Formatting.RED))
+                    Text.translatable(LootLockLang.SUMMARY_DELETE_WORD)
+                        .withColor(Palette.DENY_ON_SLOT))
                 .append(Text.translatable(LootLockLang.SUMMARY_TAIL_DELETE_SUFFIX))
             : Text.translatable(LootLockLang.SUMMARY_TAIL_LEAVE_LONG);
     return Text.empty()
-        .append(Text.translatable(LootLockLang.MODE_ALLOWLIST).formatted(Formatting.GREEN))
+        .append(Text.translatable(LootLockLang.MODE_ALLOWLIST).withColor(Palette.ALLOW_ON_SLOT))
         .append(Text.translatable(LootLockLang.SUMMARY_ALLOWLIST_INTRO))
-        .append(Text.literal(String.valueOf(ruleCount)).formatted(Formatting.WHITE))
+        .append(Text.literal(String.valueOf(ruleCount)).formatted(Formatting.BOLD))
         .append(
             Text.translatable(
                 ruleCount == 1

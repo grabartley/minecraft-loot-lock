@@ -5,11 +5,11 @@ import com.grahambartley.lootlock.text.LootLockLang;
 import java.util.function.BooleanSupplier;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
 import net.minecraft.client.gui.widget.PressableWidget;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
 
 public final class RuleRowButton extends PressableWidget {
   public static final int ROW_HEIGHT = 22;
@@ -56,72 +56,62 @@ public final class RuleRowButton extends PressableWidget {
     }
   }
 
+  static int rowWash(boolean selected, boolean hovered) {
+    if (selected) {
+      return Palette.SELECTED_WASH;
+    }
+    return hovered ? Palette.HOVER_WASH : 0;
+  }
+
   @Override
   protected void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
     boolean selected = selectedSupplier != null && selectedSupplier.getAsBoolean();
     boolean hovered = isHovered();
+    int x2 = getX() + getWidth();
+    int y2 = getY() + getHeight();
 
-    int rowBg;
-    if (selected) {
-      rowBg = 0xFF3A4A6B;
-    } else if (hovered) {
-      rowBg = Palette.WELL_ROW;
-    } else {
-      rowBg = 0;
-    }
-    if (rowBg != 0) {
-      context.fill(getX(), getY(), getX() + getWidth(), getY() + getHeight(), rowBg);
+    int wash = rowWash(selected, hovered);
+    if (wash != 0) {
+      context.fill(getX(), getY(), x2, y2, wash);
     }
     if (selected) {
-      int outline = 0xFF6F8FCE;
-      context.fill(getX(), getY(), getX() + getWidth(), getY() + 1, outline);
-      context.fill(
-          getX(), getY() + getHeight() - 1, getX() + getWidth(), getY() + getHeight(), outline);
-      context.fill(getX(), getY(), getX() + 1, getY() + getHeight(), outline);
-      context.fill(
-          getX() + getWidth() - 1, getY(), getX() + getWidth(), getY() + getHeight(), outline);
+      context.drawBorder(getX(), getY(), getWidth(), getHeight(), Palette.SLOT_HI);
     }
 
     MinecraftClient client = MinecraftClient.getInstance();
     int iconX = getX() + ICON_INSET;
     int iconY = getY() + (getHeight() - ICON_SIZE) / 2;
+    Chrome.slot(context, iconX - 1, iconY - 1);
     if (icon != null) {
       context.drawItem(new ItemStack(icon), iconX, iconY);
-    } else {
-      Chrome.slot(context, iconX, iconY, ICON_SIZE, ICON_SIZE);
-      if (itemId != null && itemId.startsWith(RuleEntry.TAG_PREFIX)) {
-        String glyph = RuleEntry.TAG_PREFIX;
-        int gx = iconX + (ICON_SIZE - client.textRenderer.getWidth(glyph)) / 2;
-        int gy = iconY + (ICON_SIZE - 8) / 2;
-        context.drawText(client.textRenderer, Text.literal(glyph), gx, gy, Palette.GOLD, false);
-      }
+    } else if (itemId != null && itemId.startsWith(RuleEntry.TAG_PREFIX)) {
+      String glyph = RuleEntry.TAG_PREFIX;
+      int gx = iconX + (ICON_SIZE - client.textRenderer.getWidth(glyph)) / 2;
+      int gy = iconY + (ICON_SIZE - 8) / 2;
+      context.drawText(client.textRenderer, Text.literal(glyph), gx, gy, Palette.SLOT_HI, true);
+    }
+    if (hovered) {
+      context.fill(iconX, iconY, iconX + ICON_SIZE, iconY + ICON_SIZE, Palette.SELECTED_WASH);
     }
 
     int textX = iconX + ICON_SIZE + 4;
     int nameY = getY() + 3;
     int idY = nameY + 10;
 
-    int pillWidth = 0;
+    int inListWidth = 0;
     if (inList) {
-      Text pillText = Text.translatable(LootLockLang.RULES_ROW_IN_LIST);
-      pillWidth = client.textRenderer.getWidth(pillText) + 6;
-      int pillX = getX() + getWidth() - pillWidth - 3;
-      int pillY = getY() + (getHeight() - 10) / 2;
-      context.fill(pillX, pillY, pillX + pillWidth, pillY + 10, 0xFF3A3A42);
-      context.drawText(
-          client.textRenderer,
-          pillText.copy().formatted(Formatting.GRAY),
-          pillX + 3,
-          pillY + 1,
-          0xFF9A9AA4,
-          false);
+      Text inListText = Text.translatable(LootLockLang.RULES_ROW_IN_LIST);
+      inListWidth = client.textRenderer.getWidth(inListText);
+      int inListX = x2 - inListWidth - 4;
+      int inListY = getY() + (getHeight() - 8) / 2;
+      context.drawText(client.textRenderer, inListText, inListX, inListY, Palette.INK_DIM, false);
     }
 
-    int textMaxWidth = getWidth() - (textX - getX()) - (pillWidth > 0 ? pillWidth + 6 : 4);
+    int textMaxWidth = getWidth() - (textX - getX()) - (inListWidth > 0 ? inListWidth + 8 : 4);
     Text nameText = ellipsize(client, Text.literal(displayName), textMaxWidth);
     Text idText = ellipsize(client, Text.literal(itemId), textMaxWidth);
-    context.drawText(client.textRenderer, nameText, textX, nameY, 0xFFECECF0, false);
-    context.drawText(client.textRenderer, idText, textX, idY, 0xFF9A9AA4, false);
+    context.drawText(client.textRenderer, nameText, textX, nameY, Palette.INK, false);
+    context.drawText(client.textRenderer, idText, textX, idY, Palette.INK_DIM, false);
   }
 
   private static Text ellipsize(MinecraftClient client, Text full, int maxWidth) {
@@ -137,8 +127,7 @@ public final class RuleRowButton extends PressableWidget {
   }
 
   @Override
-  protected void appendClickableNarrations(
-      net.minecraft.client.gui.screen.narration.NarrationMessageBuilder builder) {
+  protected void appendClickableNarrations(NarrationMessageBuilder builder) {
     appendDefaultNarrations(builder);
   }
 }
