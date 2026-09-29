@@ -1,18 +1,18 @@
 {
-	"required": true,
-	"package": "com.grahambartley.lootlock.client.mixin",
-	"compatibilityLevel": "JAVA_21",
-	"client": [
-		"AbstractInventoryScreenMixin",
-		"HandledScreenAccessor",
-		"HandledScreenInputMixin",
-		"InventoryScreenMixin",
-		"ScreenAccessor"
-	],
-	"injectors": {
-		"defaultRequire": 1
-	},
-	"overwrites": {
-		"requireAnnotations": true
-	}
+  "required": true,
+  "package": "com.grahambartley.lootlock.client.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "AbstractInventoryScreenMixin",
+    "HandledScreenAccessor",
+    "HandledScreenInputMixin",
+    "InventoryScreenMixin",
+    "ScreenAccessor"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "overwrites": {
+    "requireAnnotations": true
+  }
 }

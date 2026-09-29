@@ -1,13 +1,13 @@
 package com.grahambartley.lootlock.client.screen.inventory;
 
 import com.grahambartley.lootlock.client.LootLockClient;
+import com.grahambartley.lootlock.client.network.ClientMutationSync;
 import com.grahambartley.lootlock.client.screen.RuleListController;
 import com.grahambartley.lootlock.client.state.ClientDraftProfile;
 import com.grahambartley.lootlock.client.state.ClientLootLockState;
 import com.grahambartley.lootlock.client.state.ClientLootLockState.ClientDraftSaveRequest;
 import com.grahambartley.lootlock.data.LootLockPlayerData;
 import com.grahambartley.lootlock.data.RuleEntry;
-import com.grahambartley.lootlock.network.ClientMutationSync;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;

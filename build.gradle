@@ -2,7 +2,8 @@ plugins {
 	id 'net.fabricmc.fabric-loom-remap' version "${loom_version}"
 	id 'maven-publish'
 	id 'com.diffplug.spotless' version '6.25.0'
-id 'com.modrinth.minotaur' version '2.9.0'
+	id 'jacoco'
+	id 'com.modrinth.minotaur' version '2.9.0'
 }
 
 import java.nio.charset.StandardCharsets
@@ -10,6 +11,10 @@ import java.nio.charset.StandardCharsets
 // findProperty("version") can never fall through: Project.version defaults to the string "unspecified"
 version = gradle.startParameter.projectProperties.getOrDefault("version", project.mod_version)
 group = project.maven_group
+
+base {
+	archivesName = project.archives_base_name
+}
 
 repositories {
 	// Add repositories to retrieve artifacts from in here.
@@ -29,7 +34,13 @@ loom {
 			sourceSet sourceSets.client
 		}
 	}
+}
 
+sourceSets {
+	clientTest {
+		compileClasspath += sourceSets.client.compileClasspath + sourceSets.client.output + sourceSets.main.output + sourceSets.test.output
+		runtimeClasspath += sourceSets.client.runtimeClasspath + sourceSets.client.output + sourceSets.main.output + sourceSets.test.output
+	}
 }
 
 dependencies {
@@ -40,17 +51,56 @@ dependencies {
 
 	// Fabric API. This is technically optional, but you probably want it anyway.
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
-	modCompileOnly "com.terraformersmc:modmenu:11.0.4"
+	modCompileOnly "com.terraformersmc:modmenu:${project.modmenu_version}"
+	modLocalRuntime "com.terraformersmc:modmenu:${project.modmenu_version}"
 
 	testImplementation "net.fabricmc:fabric-loader-junit:${project.loader_version}"
 	testImplementation "org.junit.jupiter:junit-jupiter:${project.junit_version}"
 	testImplementation "org.junit.jupiter:junit-jupiter-params:${project.junit_version}"
 	testImplementation "org.mockito:mockito-core:${project.mockito_version}"
 	testImplementation "org.mockito:mockito-junit-jupiter:${project.mockito_version}"
+	testRuntimeOnly "org.junit.platform:junit-platform-launcher"
+
+	clientTestImplementation "net.fabricmc:fabric-loader-junit:${project.loader_version}"
+	clientTestImplementation "org.junit.jupiter:junit-jupiter:${project.junit_version}"
+	clientTestImplementation "org.junit.jupiter:junit-jupiter-params:${project.junit_version}"
+	clientTestImplementation "org.mockito:mockito-core:${project.mockito_version}"
+	clientTestImplementation "org.mockito:mockito-junit-jupiter:${project.mockito_version}"
+	clientTestRuntimeOnly "org.junit.platform:junit-platform-launcher"
 }
 
 test {
 	useJUnitPlatform()
+	testLogging {
+		events "passed", "skipped", "failed"
+		exceptionFormat "full"
+	}
+	finalizedBy jacocoTestReport
+}
+
+tasks.register("clientTest", Test) {
+	group = "verification"
+	description = "Runs client-side unit tests."
+	useJUnitPlatform()
+	testClassesDirs = sourceSets.clientTest.output.classesDirs
+	classpath = sourceSets.clientTest.runtimeClasspath
+	testLogging {
+		events "passed", "skipped", "failed"
+		exceptionFormat "full"
+	}
+}
+
+jacoco {
+	toolVersion = "0.8.12"
+}
+
+jacocoTestReport {
+	dependsOn test
+	reports {
+		xml.required = true
+		html.required = true
+		csv.required = false
+	}
 }
 
 processResources {
@@ -99,6 +149,7 @@ tasks.register("verifyMainSourceSideSafety") {
 tasks.named("check") {
 	dependsOn("verifyMainSourceSideSafety")
 	dependsOn("spotlessCheck")
+	dependsOn("clientTest")
 }
 
 spotless {
@@ -112,6 +163,7 @@ spotless {
 	}
 	format 'misc', {
 		target '**/*.gradle', '**/*.md', '**/.gitignore'
+		targetExclude '.claude/**', '**/.claude/**', 'build/**', '.gradle/**'
 		trimTrailingWhitespace()
 		indentWithTabs()
 		endWithNewline()
@@ -129,11 +181,10 @@ java {
 }
 
 jar {
-	def projectName = project.name
-	inputs.property "projectName", projectName
+	inputs.property "archivesName", project.base.archivesName
 
 	from("LICENSE") {
-		rename { "${it}_$projectName"}
+		rename { "${it}_${inputs.properties.archivesName}"}
 	}
 }
 
@@ -141,6 +192,7 @@ jar {
 publishing {
 	publications {
 		create("mavenJava", MavenPublication) {
+			artifactId = project.archives_base_name
 			from components.java
 		}
 	}

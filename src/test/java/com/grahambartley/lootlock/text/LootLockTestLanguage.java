@@ -26,7 +26,7 @@ public final class LootLockTestLanguage {
   }
 
   static Map<String, String> loadEnUs() {
-    Path path = Path.of("src/client/resources/assets/loot-lock/lang/en_us.json");
+    Path path = Path.of("src/main/resources/assets/loot-lock/lang/en_us.json");
     try {
       String json = Files.readString(path);
       JsonObject obj = JsonParser.parseString(json).getAsJsonObject();

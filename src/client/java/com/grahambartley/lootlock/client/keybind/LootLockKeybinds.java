@@ -2,13 +2,13 @@ package com.grahambartley.lootlock.client.keybind;
 
 import com.grahambartley.lootlock.client.LootLockClient;
 import com.grahambartley.lootlock.client.config.ClientSettings;
+import com.grahambartley.lootlock.client.network.ClientMutationSync;
 import com.grahambartley.lootlock.client.screen.inventory.GlobalEnableController;
 import com.grahambartley.lootlock.client.screen.inventory.LootLockInventoryPanel;
 import com.grahambartley.lootlock.client.screen.inventory.LootLockToast;
 import com.grahambartley.lootlock.client.state.ClientLootLockState;
 import com.grahambartley.lootlock.data.LootLockPlayerData;
 import com.grahambartley.lootlock.data.LootLockProfile;
-import com.grahambartley.lootlock.network.ClientMutationSync;
 import com.grahambartley.lootlock.text.LootLockLang;
 import java.util.Optional;
 import java.util.UUID;

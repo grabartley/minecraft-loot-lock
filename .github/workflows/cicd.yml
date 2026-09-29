@@ -35,6 +35,7 @@ jobs:
       contents: write
       checks: write
       pull-requests: write
+      issues: write
 
     steps:
       - name: Checkout repository
@@ -75,18 +76,36 @@ jobs:
         uses: mikepenz/action-junit-report@v4
         if: success() || failure()
         with:
-          report_paths: "**/build/test-results/test/TEST-*.xml"
+          report_paths: "**/build/test-results/*/TEST-*.xml"
           detailed_summary: true
           include_passed: true
 
-      - name: Publish game test report
+      - name: Publish gametest report
         uses: mikepenz/action-junit-report@v4
         if: success() || failure()
         with:
-          report_paths: "**/build/gametest-results.xml"
+          report_paths: build/gametest-results.xml
+          check_name: Gametest Report
           detailed_summary: true
           include_passed: true
-          check_name: Game Test Report
+
+      - name: Upload gametest run dir on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gametest-run-${{ github.sha }}
+          if-no-files-found: ignore
+          path: build/gametest/
+
+      - name: Upload server logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-logs-${{ github.sha }}
+          if-no-files-found: ignore
+          path: |
+            run/logs/
+            run/crash-reports/
 
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
@@ -111,19 +130,43 @@ jobs:
       - name: Compute next version
         if: github.event_name == 'workflow_dispatch'
         id: semver
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          LATEST_TAG=$(git describe --tags --abbrev=0 --match='v*' 2>/dev/null || echo "v0.0.0")
-          LATEST_VERSION=${LATEST_TAG#v}
-          IFS='.' read -r MAJOR MINOR PATCH <<< "$LATEST_VERSION"
+          set -euo pipefail
+
+          PREV_RELEASE=$(gh release list --limit 100 --json tagName,publishedAt \
+            --jq 'map(select(.publishedAt != null))
+                  | sort_by(.publishedAt)
+                  | reverse
+                  | .[0] // {tagName: "v0.0.0", publishedAt: ""}
+                  | "\(.tagName)\t\(.publishedAt)"')
+
+          PREV_TAG=$(cut -f1 <<< "$PREV_RELEASE")
+          PREV_PUBLISHED=$(cut -f2 <<< "$PREV_RELEASE")
+          PREV_VERSION=${PREV_TAG#v}
+
+          if [[ ! "$PREV_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Could not parse a semver version from previous release tag '${PREV_TAG}'"
+            exit 1
+          fi
+
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$PREV_VERSION"
           case "${{ inputs.bump }}" in
             major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
             minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
             patch) PATCH=$((PATCH + 1)) ;;
           esac
           NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
-          echo "Previous: ${LATEST_VERSION}"
+
+          echo "Previous: ${PREV_VERSION} (published ${PREV_PUBLISHED:-never})"
           echo "New:      ${NEW_VERSION}"
-          echo "new_version=${NEW_VERSION}" >> $GITHUB_OUTPUT
+
+          {
+            echo "new_version=${NEW_VERSION}"
+            echo "prev_tag=${PREV_TAG}"
+            echo "prev_published=${PREV_PUBLISHED}"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Map release type to Modrinth version type
         if: github.event_name == 'workflow_dispatch'
@@ -183,3 +226,54 @@ jobs:
         env:
           MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
           MOD_RELEASE_TYPE: ${{ steps.release_meta.outputs.modrinth_type }}
+
+      - name: Create and apply release milestone
+        if: github.event_name == 'workflow_dispatch'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MILESTONE: v${{ steps.semver.outputs.new_version }}
+          PREV_PUBLISHED: ${{ steps.semver.outputs.prev_published }}
+        run: |
+          set -uo pipefail
+
+          if [ -z "$PREV_PUBLISHED" ]; then
+            echo "No previous release; treating every merged pull request as part of ${MILESTONE}."
+            PREV_PUBLISHED="1970-01-01T00:00:00Z"
+          fi
+
+          ISSUES=$(gh pr list --state merged --base main --limit 300 \
+            --json mergedAt,closingIssuesReferences \
+            --jq "[.[]
+                   | select(.mergedAt != null and .mergedAt > \"${PREV_PUBLISHED}\")
+                   | .closingIssuesReferences[].number]
+                  | unique | .[]")
+
+          if [ -z "$ISSUES" ]; then
+            echo "::warning::No closed issues found since ${PREV_PUBLISHED}; skipping ${MILESTONE} milestone."
+            exit 0
+          fi
+
+          NUMBER=$(gh api "repos/${GITHUB_REPOSITORY}/milestones?state=all&per_page=100" \
+            --jq "map(select(.title == \"${MILESTONE}\")) | .[0].number // empty")
+
+          if [ -z "$NUMBER" ]; then
+            NUMBER=$(gh api -X POST "repos/${GITHUB_REPOSITORY}/milestones" \
+              -f title="${MILESTONE}" \
+              -f description="Shipped in ${MILESTONE}." \
+              --jq .number)
+            echo "Created milestone ${MILESTONE} (#${NUMBER})."
+          else
+            echo "Reusing existing milestone ${MILESTONE} (#${NUMBER})."
+          fi
+
+          for issue in $ISSUES; do
+            if gh issue edit "$issue" --milestone "${MILESTONE}" >/dev/null 2>&1; then
+              echo "  #${issue} -> ${MILESTONE}"
+            else
+              echo "::warning::Could not set ${MILESTONE} on issue #${issue}"
+            fi
+          done
+
+          gh api -X PATCH "repos/${GITHUB_REPOSITORY}/milestones/${NUMBER}" \
+            -f state=closed --jq '"Closed milestone \(.title)."'
