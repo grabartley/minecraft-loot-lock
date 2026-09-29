@@ -22,7 +22,7 @@ Clients send intent, and the server resolves it. Every profile and enable edit f
 - rejects a profile or enable edit if its revision is stale;
 - keeps the profile id from its own record rather than the payload;
 - enforces the limits in `PacketLimits` on names, rule counts, and rule ids, and drops rule ids that do not parse;
-- downgrades delete to leave when the policy forbids it;
+- downgrades delete to leave on profile updates when the policy forbids it (a created or copied profile keeps its stored action, and `PickupGuard` applies the policy when a pickup is decided);
 - requires permission level 2 for the server policy packet;
 - and answers every edit, accepted or rejected, with an authoritative sync of the player's data.
 

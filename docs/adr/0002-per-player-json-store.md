@@ -19,7 +19,7 @@ A corrupt or unreadable file must never stop a player joining or a server starti
 - **Save on a debounce.** Every change increments the data's revision and marks the entry dirty. The server tick saves an entry once 40 ticks have passed since its most recent change, so a burst of edits is one write.
 - **Save at the edges.** Disconnect saves a dirty entry and evicts it from the cache. Server stop flushes every dirty entry.
 - **Write atomically.** A save writes a `.tmp` sibling and moves it over the real file with an atomic move.
-- **Never destroy a bad file.** A file that fails to read or parse is moved aside as `<uuid>.broken.<timestamp>.json`, and the player starts from defaults.
+- **Never destroy a bad file.** A file that fails to read or parse is moved aside as `<uuid>.broken.<timestamp>.json` when the move succeeds, and the player starts from defaults. If the move fails it is only logged, and the next save overwrites the original.
 - **Version the schema.** Each file carries a `schemaVersion`. Older versions are migrated forward on load by `ConfigMigration`. A version newer than the mod knows is treated like a corrupt file.
 - **One thread.** The cache is only touched on the server thread, which is where Fabric's lifecycle events, tick events, commands, and play packet receivers all run, so it needs no locking.
 

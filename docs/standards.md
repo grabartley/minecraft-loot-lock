@@ -26,7 +26,7 @@ Family rules:
 
 - Server configuration is persisted as JSON in the world save directory, so configuration is per world rather than global.
 - It loads from the `LevelStorage.Session` before the server is constructed, because some values are needed earlier than server start.
-- A bad edit never prevents a server starting: a missing or malformed file falls back to defaults.
+- A missing file, or one that is not valid JSON, falls back to defaults rather than preventing the server starting.
 - Mutating commands require **OP permission level 2**.
 - Configuration changes sync to connected clients, so client-side UI reflects live server state.
 - Every setting reachable from a configuration screen is also reachable from the command tree, and new settings share their validation between the two rather than reimplementing it.
@@ -35,7 +35,7 @@ How Loot Lock applies them:
 
 - Server policy lives in `<world>/lootlock/server-policy.json` and currently holds one field, `allowDeleteRejectedItems`, which defaults to `true`.
 - A `LevelStorage` mixin opens a `WorldSession` as soon as a level storage session is created, before the server exists. The session loads the server policy and creates the per-player store and the pickup guard for that world, and writes nothing to disk until the first player data save. `SERVER_STARTED` opens the session only if no session is open for that world yet, and `SERVER_STOPPED` closes it.
-- A missing or unreadable policy file yields defaults. The file is only written when an operator changes the policy.
+- A missing policy file, or one that is not valid JSON, yields defaults. The file is only written when an operator changes the policy.
 - Per-player data lives beside it in `<world>/lootlock/players/<uuid>.json`. A player file that cannot be read is moved aside as `<uuid>.broken.<timestamp>.json` rather than overwritten, and the player starts from defaults. See [ADR 0002](adr/0002-per-player-json-store.md).
 - `/lootlock policy` and `/lootlock player <target> ...` require permission level 2, and so does the policy packet the in-game panel sends. Players manage their own profiles without operator permission.
 - Everything that affects filtering has a `/lootlock` command: the on and off switch, profiles, the active profile, mode, rejected-item action, rules, share codes, and the server policy. A player on a vanilla client can therefore be fully managed by an operator. Profile rename and profile colour are panel-only, since neither changes what gets picked up.
@@ -44,7 +44,7 @@ How Loot Lock applies them:
 
 - **Single Responsibility Principle.** One class, one concern. Extract a collaborator rather than growing a class sideways.
 - **No class exceeds 700 lines.** A class approaching the limit is split along responsibility seams, into small extracted helpers. Loot Lock has one known exception: `LootLockInventoryPanel` is still over the limit, and its split lands with the vanilla UI restyle (#176, #177) to avoid conflicting with it.
-- **Unit tests map one to one onto classes.** A test exercising `PickupGuard` is named `PickupGuardTest` and lives in the matching package. A test named after a scenario rather than a class is a test nobody can find.
+- **Unit tests map one to one onto classes.** A test exercising `PickupGuard` is named `PickupGuardTest` and lives in the matching package. A test named after a scenario rather than a class is a test nobody can find. Loot Lock has two such tests left, `PaletteProfileContrastTest` and `ProfileColorCycleTest`, which are folded into their classes' tests alongside the comment gate (#178).
 - **Logic worth testing has no Minecraft dependency.** Rule matching, share code decoding, mutation validation, and save debouncing are plain logic over plain data, so they are unit testable without a running game. Where this is possible it is not optional.
 
 ## Build And Source Layout

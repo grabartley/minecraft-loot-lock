@@ -27,7 +27,7 @@ Only what describes the filter travels. The profile id, colour, and enabled stat
 
 A failure returns a reason, which maps to a translated error message, and nothing is created from a code that fails any check. The version check is looser than intended: Gson's `getAsInt` accepts `"1"` and `1.5`, and throws instead of returning a reason for a non-numeric `v`. That is tracked in #185, and this record describes the intended contract once it is fixed.
 
-The panel's import path then goes through the normal create packet, so the server applies its own validation on top, as it does for every client edit (see [ADR 0001](0001-pickup-filtering-runs-on-the-server.md)).
+The panel's import path then goes through the normal create packet, so the server applies its own limits and revision checks on top (see [ADR 0001](0001-pickup-filtering-runs-on-the-server.md)).
 
 ## Consequences
 
