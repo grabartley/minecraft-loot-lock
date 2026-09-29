@@ -13,13 +13,6 @@ import net.minecraft.util.Identifier;
 public final class UnobtainableItems {
   private UnobtainableItems() {}
 
-  // Items that appear in non-OPERATOR creative tabs but aren't realistically
-  // useful as LootLock rule targets:
-  //   BEDROCK — only obtainable via /give in survival
-  //   END_PORTAL_FRAME — same
-  //   KNOWLEDGE_BOOK — only via /give, vanishes on use
-  //   DRAGON_EGG — extreme edge case (piston pushing)
-  //   SPAWNER — only via silk touch (impossible in vanilla, but mods may)
   private static final Set<Item> EXPLICIT_BLOCKLIST =
       Set.of(
           Items.BEDROCK,

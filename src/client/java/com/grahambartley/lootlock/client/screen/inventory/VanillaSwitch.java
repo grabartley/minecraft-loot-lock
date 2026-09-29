@@ -8,11 +8,6 @@ import net.minecraft.client.gui.widget.PressableWidget;
 import net.minecraft.client.sound.SoundManager;
 import net.minecraft.text.Text;
 
-/**
- * Compact vanilla-style toggle switch widget used for the Client (interactive) and Server
- * (read-only) toggles in the panel header. Paints a 42x16 switch with a sliding knob and ON / OFF
- * text matching the design.
- */
 public final class VanillaSwitch extends PressableWidget {
   private static final int KNOB_WIDTH = 17;
   private static final int KNOB_HEIGHT = 12;

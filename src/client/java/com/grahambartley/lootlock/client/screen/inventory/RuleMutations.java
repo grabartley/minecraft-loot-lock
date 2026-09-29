@@ -12,15 +12,9 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Helpers that mutate the active profile's rule set through the existing draft + save mutation
- * sync. Centralises the add / remove / clear flow so the Rules tab view and any external entry
- * point (drag-to-add slot mixin, command bridge) all go through one tested path.
- */
 public final class RuleMutations {
   private RuleMutations() {}
 
-  /** Returns true when at least one new rule was added. */
   public static boolean addToActiveProfile(Collection<String> itemIds) {
     if (itemIds == null || itemIds.isEmpty()) {
       return false;

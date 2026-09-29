@@ -18,22 +18,6 @@ import net.minecraft.client.option.KeyBinding;
 import net.minecraft.text.OrderedText;
 import net.minecraft.text.Text;
 
-/**
- * Settings tab content rendered inside the docked Loot Lock panel. Hosts five sections that mirror
- * {@code ux_redesign_2/Loot Lock.html}'s {@code renderSettingsView}:
- *
- * <ul>
- *   <li>NOTIFICATIONS: three toggles backed by {@link ClientSettings}.
- *   <li>SAFETY: confirm-before-delete toggle.
- *   <li>SERVER POLICY: allow-delete-rejected-items switch, read-only for non-operators on dedicated
- *       servers.
- *   <li>CONTROLS: read-only Toggle Loot Lock and Cycle Loot Profile keybind summary.
- *   <li>ABOUT: per-player storage + operator command blurb.
- * </ul>
- *
- * <p>The content scrolls vertically when it overflows the panel's content well; out-of-view widgets
- * are parked off-screen so stale hover/click cannot reach them.
- */
 public final class SettingsTabView {
   private static final int SECTION_HEADER_HEIGHT = 12;
   private static final int SECTION_HEADER_TOP_PADDING = 10;
@@ -51,7 +35,6 @@ public final class SettingsTabView {
   private static final int TOGGLE_ROW_NAME_GAP = 2;
   private static final int TOGGLE_ROW_BOTTOM_PADDING = 4;
 
-  /** Operator permission level required to see and use the SERVER POLICY OPERATOR section. */
   static final int OPERATOR_PERMISSION_LEVEL = 2;
 
   static final String IN_WORLD_ABOUT_BODY = LootLockLang.SETTINGS_ABOUT_IN_WORLD;
@@ -72,12 +55,6 @@ public final class SettingsTabView {
   private VanillaSwitch confirmBeforeDeleteSwitch;
   private VanillaSwitch policySwitch;
 
-  /**
-   * Hides the SERVER POLICY section and skips constructing its switch. Used by the Mod Menu client
-   * prefs screen, where the per-world server policy has no current world to target. Must be set
-   * before {@link #attach(LootLockInventoryPanel, Consumer)} since attach is what builds the
-   * widgets.
-   */
   public void setShowServerPolicy(boolean showServerPolicy) {
     this.showServerPolicy = showServerPolicy;
   }
@@ -148,14 +125,12 @@ public final class SettingsTabView {
     }
   }
 
-  /** Re-derives row positions when the panel content area moves. */
   public void relayout() {
     if (visible) {
       rebuildRows();
     }
   }
 
-  /** Forwards a mouse-wheel event to the settings list, scrolling when inside the content well. */
   public boolean mouseScrolled(double mouseX, double mouseY, double amount) {
     if (!visible || panel == null) {
       return false;
@@ -364,7 +339,6 @@ public final class SettingsTabView {
     return cursorY + height;
   }
 
-  /** Hides the widget when it scrolls outside the panel's content well so it stops painting. */
   private void applyWidgetClipping(ClickableWidget widget, int widgetY) {
     if (!visible || panel == null) {
       widget.visible = false;
@@ -449,7 +423,6 @@ public final class SettingsTabView {
     return binding.getBoundKeyLocalizedText();
   }
 
-  /** True when the local player has permission level >= 2. */
   public static boolean isOperator(MinecraftClient client) {
     if (client == null || client.player == null) {
       return false;
@@ -457,11 +430,6 @@ public final class SettingsTabView {
     return client.player.hasPermissionLevel(OPERATOR_PERMISSION_LEVEL);
   }
 
-  /**
-   * The SERVER POLICY switch is read-only when the client is connected to a dedicated server and
-   * the local player is not an operator. On integrated singleplayer or as an operator on a
-   * dedicated server, the switch is interactive.
-   */
   public static boolean isPolicySwitchReadOnly(MinecraftClient client) {
     if (client == null) {
       return true;
@@ -469,7 +437,6 @@ public final class SettingsTabView {
     return isPolicySwitchReadOnly(client.isIntegratedServerRunning(), isOperator(client));
   }
 
-  /** Pure decision used by {@link #isPolicySwitchReadOnly(MinecraftClient)} and unit tests. */
   static boolean isPolicySwitchReadOnly(boolean integratedServer, boolean operator) {
     if (integratedServer) {
       return false;
@@ -477,12 +444,6 @@ public final class SettingsTabView {
     return !operator;
   }
 
-  /**
-   * Returns the ordered list of section labels that {@link #rebuildRows()} will render given the
-   * current visibility flag. Pure helper used by unit tests so the section presence decision is
-   * verifiable without standing up the full panel. Keep this in sync with {@link #rebuildRows()}:
-   * the {@code addSectionHeader(...)} calls there are the source of truth for what actually paints.
-   */
   static List<String> sectionLabels(boolean showServerPolicy) {
     if (showServerPolicy) {
       return List.of(
@@ -499,7 +460,6 @@ public final class SettingsTabView {
         LootLockLang.SETTINGS_SECTION_ABOUT);
   }
 
-  /** Returns the ABOUT section body text appropriate for the current visibility mode. */
   static String aboutBody(boolean showServerPolicy) {
     return showServerPolicy ? IN_WORLD_ABOUT_BODY : CLIENT_PREFS_ABOUT_BODY;
   }
@@ -523,25 +483,19 @@ public final class SettingsTabView {
     manager.replaceAndSave(copy);
   }
 
-  /** Flips the blocked-item toast setting and persists. Wired to the NOTIFICATIONS row switch. */
   static void toggleBlockedHud(ClientSettingsManager manager) {
     mutateSettings(
         manager, s -> s.setShowBlockedHudNotification(!s.isShowBlockedHudNotification()));
   }
 
-  /** Flips the profile-switch toast setting and persists. Wired to the NOTIFICATIONS row switch. */
   static void toggleProfileCycleToast(ClientSettingsManager manager) {
     mutateSettings(manager, s -> s.setEnableProfileCycleToast(!s.isEnableProfileCycleToast()));
   }
 
-  /**
-   * Flips the Loot Lock toggle toast setting and persists. Wired to the NOTIFICATIONS row switch.
-   */
   static void toggleToggleToast(ClientSettingsManager manager) {
     mutateSettings(manager, s -> s.setEnableToggleToast(!s.isEnableToggleToast()));
   }
 
-  /** Flips the confirm-before-delete setting and persists. Wired to the SAFETY row switch. */
   static void toggleConfirmBeforeDelete(ClientSettingsManager manager) {
     mutateSettings(
         manager, s -> s.setConfirmBeforeEnablingDelete(!s.isConfirmBeforeEnablingDelete()));
@@ -552,7 +506,6 @@ public final class SettingsTabView {
     ClientMutationSync.sendServerPolicyUpdateRequest(next);
   }
 
-  // Test-only accessors -----------------------------------------------------
   List<Row> rowsForTest() {
     return rows;
   }

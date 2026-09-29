@@ -26,36 +26,26 @@ public final class LootLockKeybinds {
   private static KeyBinding TOGGLE_ENABLED;
   private static KeyBinding CYCLE_PROFILE;
 
-  /**
-   * Returns true if the given key event matches the cycle-profile binding. Used by the inventory
-   * screen mixin so the user can cycle profiles via hotkey while the inventory is open, which would
-   * otherwise be swallowed because vanilla suspends in-game keybinds while a Screen is showing.
-   */
   public static boolean matchesCycleProfile(int keyCode, int scanCode) {
     return CYCLE_PROFILE != null && CYCLE_PROFILE.matchesKey(keyCode, scanCode);
   }
 
-  /** Returns true if the given key event matches the toggle-enabled binding. */
   public static boolean matchesToggleEnabled(int keyCode, int scanCode) {
     return TOGGLE_ENABLED != null && TOGGLE_ENABLED.matchesKey(keyCode, scanCode);
   }
 
-  /** Exposes the toggle-enabled binding so UI surfaces can read its current key label. */
   public static KeyBinding getToggleEnabled() {
     return TOGGLE_ENABLED;
   }
 
-  /** Exposes the cycle-profile binding so UI surfaces can read its current key label. */
   public static KeyBinding getCycleProfile() {
     return CYCLE_PROFILE;
   }
 
-  /** Fires the cycle-profile action directly. Public so the screen hook can drive it. */
   public static void cycleProfileNow(MinecraftClient client) {
     cycleProfile(client);
   }
 
-  /** Fires the toggle-enabled action directly. Public so the screen hook can drive it. */
   public static void toggleEnabledNow(MinecraftClient client) {
     GlobalEnableController.toggle(client);
   }
@@ -75,7 +65,6 @@ public final class LootLockKeybinds {
   private static void onEndClientTick(MinecraftClient client) {
     while (TOGGLE_ENABLED.wasPressed()) {
       if (client.player == null || client.world == null) {
-        // Drain queued presses while world is unavailable to prevent delayed toggles.
         continue;
       }
       toggleEnabledNow(client);

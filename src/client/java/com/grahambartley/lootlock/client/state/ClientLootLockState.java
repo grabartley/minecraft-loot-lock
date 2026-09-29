@@ -35,8 +35,6 @@ public final class ClientLootLockState {
       return;
     }
 
-    // Sync is authoritative proof that the server supports LootLock, even if
-    // capabilities was delayed or not observed before this packet.
     serverSupportsLootLock = true;
     synced = true;
     snapshot = toSnapshot(payload);
@@ -65,8 +63,6 @@ public final class ClientLootLockState {
   }
 
   public Optional<LootLockPlayerData> getSnapshot() {
-    // Snapshot stays mutable by design for upcoming draft-edit workflows.
-    // Read-only UI paths should treat this as immutable and copy before mutation.
     return Optional.ofNullable(snapshot);
   }
 

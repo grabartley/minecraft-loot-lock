@@ -128,7 +128,6 @@ public final class LootLockProfile {
     this.enabled = enabled;
   }
 
-  /** Persisted ARGB profile colour. {@code 0} means unset; renderers fall back to the default. */
   public int getColor() {
     return color;
   }

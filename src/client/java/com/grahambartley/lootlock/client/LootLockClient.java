@@ -52,10 +52,6 @@ public class LootLockClient implements ClientModInitializer {
     CommonLifecycleEvents.TAGS_LOADED.register(
         (registries, client) -> RulesTagCatalog.invalidate());
 
-    // Hook the survival inventory's mouse scroll so wheeling over the Rules results list paginates
-    // through items. Vanilla InventoryScreen does not declare mouseScrolled, so a direct mixin into
-    // the method cannot find a target. Using the Fabric screen event sidesteps that and only
-    // suppresses the wheel event when the panel actually consumed it.
     ScreenEvents.AFTER_INIT.register(
         (client, screen, scaledWidth, scaledHeight) -> {
           if (!(screen instanceof InventoryScreen)) {
@@ -75,7 +71,6 @@ public class LootLockClient implements ClientModInitializer {
                   });
         });
 
-    // Play payload receivers already run on the client thread, no execute() hop is needed.
     ClientPlayNetworking.registerGlobalReceiver(
         ServerToClientPackets.ServerCapabilitiesPayload.ID,
         (payload, context) -> {

@@ -9,8 +9,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 public final class LootLockConfig {
-  // Server policy fields in lootlock/server-policy.json:
-  // - allowDeleteRejectedItems (boolean, default: true)
   private static final Gson GSON = new Gson();
 
   private final boolean allowDeleteRejectedItems;

@@ -39,7 +39,6 @@ public final class ServerToClientPackets {
     }
 
     LootLockPlayerData data = LootLock.PLAYER_DATA_MANAGER.get(player);
-    // clientCanEdit reflects data ownership: self-data sync always grants edit rights.
     ServerPlayNetworking.send(
         player, syncPayloadOf(data, true, LootLock.SERVER_CONFIG.allowDeleteRejectedItems()));
   }
@@ -56,8 +55,6 @@ public final class ServerToClientPackets {
         data.getPlayerUuid(),
         data.getRevision(),
         data.getActiveProfileId(),
-        // Defensive copy: a later mutation of the manager's backing list must not poison an
-        // in-flight payload before it is encoded.
         List.copyOf(data.getProfiles()),
         clientCanEdit,
         allowDeleteRejectedItems);

@@ -14,12 +14,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-/**
- * Inputs that are declared on {@link HandledScreen} but not overridden in {@link InventoryScreen}.
- * Bundles the inventory-keybind swallow (so typing into the Rules tab search field doesn't close
- * the screen) and the drag-to-add release handler (so dropping a cursor stack on the panel adds the
- * item rather than throwing it into the world).
- */
 @Mixin(HandledScreen.class)
 public abstract class HandledScreenInputMixin {
 
@@ -35,8 +29,6 @@ public abstract class HandledScreenInputMixin {
       return;
     }
     MinecraftClient client = MinecraftClient.getInstance();
-    // Inline-rename field has top priority while active: Enter / Escape / typing belong to it,
-    // and the inventory key must be swallowed so typing it into the field doesn't close the screen.
     if (panel.isInlineRenameActive()) {
       if (client != null
           && client.options != null
@@ -58,9 +50,6 @@ public abstract class HandledScreenInputMixin {
       }
       return;
     }
-    // Vanilla freezes in-game keybinds while a Screen is open; manually fire the Loot Lock cycle
-    // and toggle bindings when the panel is open and the user is not typing into the search field
-    // so the hotkeys are consistent inside and outside the inventory.
     if (!panel.isOpen() || client == null) {
       return;
     }
@@ -100,8 +89,6 @@ public abstract class HandledScreenInputMixin {
     if (itemId == null) {
       return;
     }
-    // Keep the stack on the cursor so the user can put it back; vanilla would otherwise drop the
-    // whole stack into the world from this release.
     panel.setTab(PanelTab.RULES);
     panel.flashDropSuccess();
     panel.setDropArmed(false);

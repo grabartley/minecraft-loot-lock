@@ -23,7 +23,6 @@ import java.util.function.LongSupplier;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.screen.ingame.InventoryScreen;
 import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.ClickableWidget;
@@ -35,31 +34,15 @@ import net.minecraft.entity.effect.StatusEffectUtil;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
+import org.lwjgl.glfw.GLFW;
 
-/**
- * Docked Loot Lock panel rendered alongside the survival inventory, styled pixel-faithful to the
- * vanilla Minecraft GUI prototype in {@code ux_redesign_2/Loot Lock.html}. Composes the brand
- * header (icon + title + Client interactive switch + Server read-only switch), a profile bar with
- * cycle arrows and a dropdown manager, master Mode and Action segmented controls, a plain-English
- * live summary, a tab strip, and a content well for the active tab. The whole region below the
- * header dims and stops accepting input when the global Client toggle is off.
- */
 public final class LootLockInventoryPanel {
   public static final int WIDTH = 270;
 
-  /** Natural / maximum height; the actual rendered height is clamped to fit the screen. */
   public static final int HEIGHT = 360;
 
-  /**
-   * Minimum panel height that still renders a usable layout — below this we just hide the panel.
-   */
   private static final int MIN_HEIGHT = 200;
 
-  /**
-   * Sticky panel-open state survives inventory close so the user does not have to re-open the
-   * docked panel after every detour. Lives on the class so the next {@link InventoryScreen} that
-   * re-attaches a panel can restore it.
-   */
   private static boolean STICKY_OPEN_STATE = false;
 
   private static PanelTab STICKY_ACTIVE_TAB = PanelTab.RULES;
@@ -78,20 +61,14 @@ public final class LootLockInventoryPanel {
     PENDING_DROPDOWN_REOPEN = true;
   }
 
-  /** Drop-flash starts as a forest green and fades to the well's normal fill over the duration. */
   static final int FLASH_START_COLOR = 0xFF3F5A3A;
 
   static final long FLASH_DURATION_MILLIS = 500L;
 
   private static final int ARMED_BORDER_THICKNESS = 3;
 
-  /** Test seam: swap in a deterministic clock to verify flash timing without a real game loop. */
   static LongSupplier clockMillis = System::currentTimeMillis;
 
-  /**
-   * Test seam: swap to capture or stub the save-request dispatch so unit tests can exercise the
-   * draft-save round-trip without a live network handler.
-   */
   static Consumer<ClientLootLockState.ClientDraftSaveRequest> saveRequestDispatcher =
       ClientMutationSync::sendSaveRequest;
 
@@ -121,7 +98,6 @@ public final class LootLockInventoryPanel {
   private int panelY;
   private int currentHeight = HEIGHT;
 
-  /** True when the screen is too small to render the panel even at MIN_HEIGHT — hide it. */
   private boolean fitsOnScreen = true;
 
   private boolean open;
@@ -129,12 +105,6 @@ public final class LootLockInventoryPanel {
   private boolean dropArmed;
   private long flashStartMillis = -1L;
 
-  /**
-   * When true, the panel renders a stripped-down chrome with just the header and content well,
-   * locks to the SETTINGS tab, and hides per-world widgets (profile bar, mode/action buttons,
-   * switches, tab row). Used by the Mod Menu config screen, where no world is loaded and per-world
-   * editing would have no target. Must be set before {@link #attach}.
-   */
   private boolean clientPrefsMode;
 
   private VanillaTab rulesTabButton;
@@ -150,7 +120,6 @@ public final class LootLockInventoryPanel {
   private SegmentedButton actionDeleteButton;
   private ButtonWidget newProfileButton;
 
-  // Anchor + signature used to rebuild the dropdown widgets when the profile list changes.
   private int dropdownAnchorX;
   private int dropdownAnchorY;
   private int dropdownAnchorWidth;
@@ -160,11 +129,9 @@ public final class LootLockInventoryPanel {
   private int dropdownFrameW;
   private int dropdownFrameH;
 
-  // Inline-rename overlay shown in place of a dropdown row's name while editing.
   private UUID renamingProfileId;
   private TextFieldWidget renameField;
 
-  // Position references for paint code that draws labels.
   private int headerY;
   private int profileY;
   private int profileWellY;
@@ -182,12 +149,10 @@ public final class LootLockInventoryPanel {
     return open;
   }
 
-  /** True when the panel is open and the user is typing into the Rules tab search input. */
   public boolean isSearchFieldFocused() {
     return open && activeTab == PanelTab.RULES && rulesView.isSearchFieldFocused();
   }
 
-  /** Forward a mouse-wheel event to the active tab so the user can scroll its content. */
   public boolean handleMouseScroll(double mouseX, double mouseY, double amount) {
     if (!open) {
       return false;
@@ -198,7 +163,6 @@ public final class LootLockInventoryPanel {
     return settingsView.mouseScrolled(mouseX, mouseY, amount);
   }
 
-  /** True when the given screen-space point falls inside the panel's rectangle. */
   public boolean containsPoint(double mouseX, double mouseY) {
     return open
         && fitsOnScreen
@@ -208,12 +172,10 @@ public final class LootLockInventoryPanel {
         && mouseY < panelY + currentHeight;
   }
 
-  /** Live current height; differs from {@link #HEIGHT} when clamped to a small screen. */
   public int getCurrentHeight() {
     return currentHeight;
   }
 
-  /** True when the screen had room to actually render the panel. */
   public boolean fitsOnScreen() {
     return fitsOnScreen;
   }
@@ -234,14 +196,6 @@ public final class LootLockInventoryPanel {
     applyVisibility();
   }
 
-  /**
-   * Switches the panel into client-prefs mode, used by the Mod Menu config screen. In this mode the
-   * panel hides the per-world chrome (profile bar, mode/action controls, summary, tab row, header
-   * switches) and locks the active tab to SETTINGS with the SERVER POLICY section hidden. Must be
-   * called before {@link #attach}, since attach is what materializes the chrome decisions into
-   * widgets. Calling after attach throws so the misuse fails loud rather than silently rendering a
-   * half-stripped panel.
-   */
   public void setClientPrefsMode(boolean clientPrefsMode) {
     if (!allWidgets.isEmpty()) {
       throw new IllegalStateException(
@@ -258,12 +212,6 @@ public final class LootLockInventoryPanel {
     setOpen(!open);
   }
 
-  /**
-   * Flag that the rules content well should paint its 3px gold drop-armed border on the next frame.
-   * Driven per frame from the screen-mixin based on the live cursor stack + mouse position; the
-   * caller sets it back to false as soon as the cursor leaves the panel or the stack returns to a
-   * slot.
-   */
   public void setDropArmed(boolean armed) {
     this.dropArmed = armed;
   }
@@ -272,11 +220,6 @@ public final class LootLockInventoryPanel {
     return dropArmed;
   }
 
-  /**
-   * Triggers a one-shot drop-flash that fades the rules content well from {@link
-   * #FLASH_START_COLOR} back to {@link Palette#WELL} over {@link #FLASH_DURATION_MILLIS}. A
-   * subsequent call resets the timer so back-to-back adds re-flash cleanly.
-   */
   public void flashDropSuccess() {
     this.flashStartMillis = clockMillis.getAsLong();
   }
@@ -285,7 +228,6 @@ public final class LootLockInventoryPanel {
     return flashProgress() < 1f;
   }
 
-  /** Returns 0..1 progress through the current flash, or 1 when no flash is active. */
   public float flashProgress() {
     if (flashStartMillis < 0L) {
       return 1f;
@@ -298,7 +240,6 @@ public final class LootLockInventoryPanel {
     return (float) elapsed / (float) FLASH_DURATION_MILLIS;
   }
 
-  /** Clears the Rules-tab search field. Routes through the rules view so layout stays in sync. */
   public void clearRulesSearch() {
     rulesView.clearSearch();
   }
@@ -317,7 +258,6 @@ public final class LootLockInventoryPanel {
     int innerWidth = innerRight - innerLeft;
     int cursorY = panelY + SIDE_PADDING;
 
-    // Header: icon + title + Client + Server switches in one row.
     headerY = cursorY;
     if (!clientPrefsMode) {
       int switchY = cursorY + (HEADER_HEIGHT - SWITCH_HEIGHT) / 2;
@@ -352,8 +292,6 @@ public final class LootLockInventoryPanel {
     cursorY += HEADER_HEIGHT + 6;
 
     if (!clientPrefsMode) {
-      // Profile bar lives inside a dark recessed well per CSS (.profile-bar.well). Pad 4px around
-      // the row so the chrome reads as the prototype's recessed pill carrier.
       profileWellY = cursorY;
       profileWellH = PROFILE_ROW_HEIGHT + 8;
       profileY = cursorY + 4;
@@ -399,14 +337,11 @@ public final class LootLockInventoryPanel {
       lockableWidgets.add(nextProfileButton);
       cursorY = profileWellY + profileWellH + 6;
 
-      // Controls section: dark well containing the Mode + Action rows. Labels render in light text
-      // (#d2d2d8) inside the well, per CSS .ctl-label color.
       int controlsPad = 5;
       controlsWellY = cursorY;
       controlsWellH = controlsPad * 2 + CONTROL_ROW_HEIGHT * 2 + 2;
       cursorY = controlsWellY + controlsPad;
 
-      // Mode row.
       modeY = cursorY;
       int segLeft = innerLeft + CTL_LABEL_WIDTH;
       int segWidth = (innerRight - segLeft) / 2;
@@ -438,7 +373,6 @@ public final class LootLockInventoryPanel {
       lockableWidgets.add(modeDenyButton);
       cursorY += CONTROL_ROW_HEIGHT + 2;
 
-      // Action row.
       actionY = cursorY;
       actionLeaveButton =
           new SegmentedButton(
@@ -474,11 +408,9 @@ public final class LootLockInventoryPanel {
       lockableWidgets.add(actionDeleteButton);
       cursorY = controlsWellY + controlsWellH + 6;
 
-      // Summary block (painted in render()).
       summaryY = cursorY;
       cursorY += SUMMARY_HEIGHT + 6;
 
-      // Tab strip.
       tabsY = cursorY;
       int tabWidth = innerWidth / 2;
       rulesTabButton =
@@ -508,7 +440,6 @@ public final class LootLockInventoryPanel {
       cursorY += TAB_HEIGHT;
     }
 
-    // Content well: dark recessed background, host for the active tab.
     contentY = cursorY;
     contentHeight = (panelY + HEIGHT - SIDE_PADDING) - cursorY;
     if (!clientPrefsMode) {
@@ -530,17 +461,12 @@ public final class LootLockInventoryPanel {
         });
 
     if (!clientPrefsMode) {
-      // Span the popup across the full panel inner width so segmented controls below don't peek
-      // through, and flush the frame top with the profile well's bottom so there's no visible gap.
       dropdownAnchorX = innerLeft + DROPDOWN_FRAME_PAD;
       dropdownAnchorY = profileWellY + profileWellH + DROPDOWN_FRAME_PAD;
       dropdownAnchorWidth = innerWidth - DROPDOWN_FRAME_PAD * 2;
       dropdownSignature = "";
       rebuildDropdownIfStale();
 
-      // Mount the rename field as a host child up front (hidden) so vanilla's keyPressed /
-      // charTyped routing reaches it naturally when we mark it focused during inline rename. The
-      // field is repositioned on-demand inside startInlineRename().
       renameField =
           new TextFieldWidget(
               MinecraftClient.getInstance().textRenderer,
@@ -568,46 +494,27 @@ public final class LootLockInventoryPanel {
     return panelY;
   }
 
-  /** Live X of the content well's inner inset, used by tab views to render container-relative. */
   public int getContentInsetX() {
     return panelX + SIDE_PADDING + CONTENT_PADDING;
   }
 
-  /** Live Y of the content well's inner inset. Tracks panelY through relocate(). */
   public int getContentInsetY() {
     return contentY + CONTENT_PADDING;
   }
 
-  /** Live width of the content inset area. */
   public int getContentInsetWidth() {
     return WIDTH - SIDE_PADDING * 2 - CONTENT_PADDING * 2;
   }
 
-  /** Live height of the content inset area. */
   public int getContentInsetHeight() {
     return contentHeight - CONTENT_PADDING * 2;
   }
 
-  /**
-   * Returns true when the supplied right-edge boundary leaves enough room for the panel and the
-   * screen is tall enough to fit at least the minimum panel height. Callers use this to decide
-   * whether to render the docked panel inline or open the dedicated {@link LootLockScreen}.
-   */
   public static boolean canDock(int anchorX, int scaledWidth, int scaledHeight) {
     int margin = 2;
     return anchorX + WIDTH + margin <= scaledWidth && scaledHeight >= MIN_HEIGHT + margin * 2;
   }
 
-  /**
-   * Recomputes the panel anchor and dimensions, then snaps every widget to the resulting layout.
-   * Called once per frame from the host so changes to the recipe-book layout, window size or GUI
-   * scale flow through naturally. The panel is vertically centered in the available screen height
-   * and horizontally anchored at {@code anchorX}.
-   *
-   * @param anchorX preferred X (docked: inventory's right edge + gap; full-screen: screen center)
-   * @param scaledWidth current screen width in GUI units
-   * @param scaledHeight current screen height in GUI units
-   */
   public void layout(int anchorX, int scaledWidth, int scaledHeight) {
     int margin = 2;
     int availableHeight = scaledHeight - margin * 2;
@@ -627,14 +534,12 @@ public final class LootLockInventoryPanel {
     applyLayout();
   }
 
-  /** Repositions every widget + layout reference based on current panelX, panelY, currentHeight. */
   private void applyLayout() {
     int innerLeft = panelX + SIDE_PADDING;
     int innerRight = panelX + WIDTH - SIDE_PADDING;
     int innerWidth = innerRight - innerLeft;
     int cursorY = panelY + SIDE_PADDING;
 
-    // Header.
     headerY = cursorY;
     if (!clientPrefsMode) {
       int switchY = cursorY + (HEADER_HEIGHT - SWITCH_HEIGHT) / 2;
@@ -650,7 +555,6 @@ public final class LootLockInventoryPanel {
     cursorY += HEADER_HEIGHT + 6;
 
     if (!clientPrefsMode) {
-      // Profile well + arrows + pill.
       profileWellY = cursorY;
       profileWellH = PROFILE_ROW_HEIGHT + 8;
       profileY = cursorY + 4;
@@ -669,7 +573,6 @@ public final class LootLockInventoryPanel {
       }
       cursorY = profileWellY + profileWellH + 6;
 
-      // Controls well.
       int controlsPad = 5;
       controlsWellY = cursorY;
       controlsWellH = controlsPad * 2 + CONTROL_ROW_HEIGHT * 2 + 2;
@@ -693,7 +596,6 @@ public final class LootLockInventoryPanel {
       }
       cursorY = controlsWellY + controlsWellH + 6;
 
-      // Summary, tabs.
       summaryY = cursorY;
       cursorY += SUMMARY_HEIGHT + 6;
       tabsY = cursorY;
@@ -707,17 +609,13 @@ public final class LootLockInventoryPanel {
       cursorY += TAB_HEIGHT;
     }
 
-    // Content well — takes the remaining space so a shorter panel just shows fewer rows.
     contentY = cursorY;
     contentHeight = (panelY + currentHeight - SIDE_PADDING) - cursorY;
     if (contentHeight < CONTENT_PADDING * 2 + 20) {
-      // Bottom out before going negative; rules view will clamp visibleRows to its floor.
       contentHeight = CONTENT_PADDING * 2 + 20;
     }
 
     if (!clientPrefsMode) {
-      // Re-anchor dropdown to span the full panel inner width with the frame flush against the
-      // profile well's bottom edge — see attach() for the layout reasoning.
       dropdownAnchorX = innerLeft + DROPDOWN_FRAME_PAD;
       dropdownAnchorY = profileWellY + profileWellH + DROPDOWN_FRAME_PAD;
       dropdownAnchorWidth = innerWidth - DROPDOWN_FRAME_PAD * 2;
@@ -729,10 +627,6 @@ public final class LootLockInventoryPanel {
     settingsView.relayout();
   }
 
-  /**
-   * Paints the chrome (panel frame, dark wells, summary block backing, content well). Must run
-   * BEFORE the host screen renders its widget children so the wells sit behind everything.
-   */
   public void paintChrome(DrawContext context) {
     if (!open || !fitsOnScreen) {
       return;
@@ -765,11 +659,6 @@ public final class LootLockInventoryPanel {
     paintRulesWellOverlays(context);
   }
 
-  /**
-   * Paints the drop-flash fill and the drop-armed gold inset on the rules content well, when
-   * active. Runs as part of {@link #paintChrome} so widgets render on top, letting the flash bleed
-   * through row gutters and the armed border sit between the well edge and the widget inset.
-   */
   private void paintRulesWellOverlays(DrawContext context) {
     if (activeTab != PanelTab.RULES) {
       return;
@@ -813,17 +702,12 @@ public final class LootLockInventoryPanel {
     return (a << 24) | (r << 16) | (g << 8) | b;
   }
 
-  /**
-   * Paints labels, text, and the brand icon on TOP of the widgets so they read clearly. Must run
-   * AFTER the host screen renders its widget children.
-   */
   public void paintForeground(DrawContext context, int mouseX, int mouseY, float delta) {
     if (!open || !fitsOnScreen) {
       return;
     }
     MinecraftClient client = MinecraftClient.getInstance();
 
-    // Header: brand icon + title text on the left.
     int iconSize = 22;
     int iconX = panelX + SIDE_PADDING + 1;
     int iconY = headerY + (HEADER_HEIGHT - iconSize) / 2;
@@ -862,7 +746,6 @@ public final class LootLockInventoryPanel {
           false);
     }
 
-    // Mode + Action labels in light text on the dark controls well.
     context.drawText(
         client.textRenderer,
         Text.translatable(LootLockLang.PANEL_LABEL_MODE),
@@ -878,7 +761,6 @@ public final class LootLockInventoryPanel {
         0xFFD2D2D8,
         false);
 
-    // Summary text on top of its colored block.
     Optional<LootLockProfile> activeProfile = activeProfile();
     boolean globallyEnabled = currentGloballyEnabled();
     context.drawTextWrapped(
@@ -902,13 +784,6 @@ public final class LootLockInventoryPanel {
     }
   }
 
-  /**
-   * Paints a compact horizontal strip of active status-effect icons floating above the panel. We
-   * suppress the vanilla effect column via mixin (it would otherwise overlap the panel), so this
-   * strip is what keeps active effects visible without conflicting with the recipe book on the
-   * inventory's left side. Icon-only, hover shows the same name + remaining-duration tooltip the
-   * vanilla HUD uses.
-   */
   private void paintEffectsStrip(DrawContext context, int mouseX, int mouseY) {
     MinecraftClient client = MinecraftClient.getInstance();
     if (client == null || client.player == null) {
@@ -971,17 +846,11 @@ public final class LootLockInventoryPanel {
     }
   }
 
-  /**
-   * Paints the dropdown popup chrome and re-renders the dropdown widgets on top of the host's
-   * widget render pass. Without this overlay step the mode/action button widgets, which the host
-   * renders after the chrome pass, would punch through the dropdown popup.
-   */
   private void renderDropdown(DrawContext context, int mouseX, int mouseY, float delta) {
     if (dropdownWidgets.isEmpty()) {
       return;
     }
     MinecraftClient client = MinecraftClient.getInstance();
-    // Drop shadow + dark well + small header strip per design 03-after.png.
     context.fill(
         dropdownFrameX + 3,
         dropdownFrameY + 3,
@@ -1014,11 +883,6 @@ public final class LootLockInventoryPanel {
     paintChipHoverTooltip(context, mouseX, mouseY);
   }
 
-  /**
-   * Renders a "Change colour" tooltip at the cursor for whichever dropdown row's chip is currently
-   * hovered. Skipped during inline rename so the field's caret-area hover doesn't compete with the
-   * tooltip.
-   */
   private void paintChipHoverTooltip(DrawContext context, int mouseX, int mouseY) {
     if (isInlineRenameActive()) {
       return;
@@ -1067,9 +931,6 @@ public final class LootLockInventoryPanel {
           activeProfile().map(p -> p.getRules() == null ? 0 : p.getRules().size()).orElse(0);
       rulesTabButton.setMessage(Text.translatable(LootLockLang.TAB_RULES_COUNT, ruleCount));
     }
-    // Hide the Server toggle when on an integrated single-player server — there's no real peer to
-    // mirror, and the toggle just adds visual noise. When hidden, slide the Client switch right so
-    // the header doesn't have a vacant gap.
     boolean integrated = isIntegratedSingleplayer();
     if (serverSwitch != null) {
       serverSwitch.visible = open && !integrated;
@@ -1099,20 +960,11 @@ public final class LootLockInventoryPanel {
     handleClientToggle();
   }
 
-  /**
-   * Resolves the persisted profile colour, falling back to {@link Palette#PROFILE_COLORS}{@code
-   * [0]} when no colour is set (i.e. profiles created before the chip-cycle UI shipped).
-   */
   public static int colorForProfile(LootLockProfile profile) {
     int color = profile.getColor();
     return color == 0 ? Palette.PROFILE_COLORS[0] : color;
   }
 
-  /**
-   * Advances {@code profileId}'s colour to the next entry in {@link Palette#PROFILE_COLORS},
-   * wrapping back to index 0 from the last. Persists through the standard draft-save pipeline so
-   * the change reflects in the dropdown row, the profile pill, and survives a sync round-trip.
-   */
   public void cycleProfileColor(UUID profileId) {
     if (profileId == null) {
       return;
@@ -1142,7 +994,6 @@ public final class LootLockInventoryPanel {
             });
   }
 
-  /** Index lookup tolerant of an unset (0) colour: returns the next palette entry, wrapping. */
   static int nextProfileColor(int currentColor) {
     int[] palette = Palette.PROFILE_COLORS;
     int currentIndex = 0;
@@ -1176,7 +1027,6 @@ public final class LootLockInventoryPanel {
   private void applyVisibility() {
     for (ClickableWidget widget : allWidgets) {
       if (widget == renameField) {
-        // Rename field has its own visibility lifecycle driven by start/cancelInlineRename.
         widget.visible = open && renamingProfileId != null;
       } else {
         widget.visible = open;
@@ -1196,13 +1046,6 @@ public final class LootLockInventoryPanel {
     }
   }
 
-  /**
-   * Returns true if the dropdown is currently open and the click was inside its frame. Routes the
-   * click through the dropdown's own widgets so a row click does not leak through to the inventory
-   * slots underneath. When the click is inside the frame but no widget claimed it, the dropdown
-   * stays open. When the click is outside the frame, the dropdown closes and the click bubbles to
-   * vanilla.
-   */
   public boolean handleDropdownMouseClick(double mouseX, double mouseY, int button) {
     if (!open || !dropdownOpen) {
       return false;
@@ -1245,11 +1088,8 @@ public final class LootLockInventoryPanel {
     return true;
   }
 
-  /** Rebuilds dropdown widgets if the profile list signature has changed since the last build. */
   private void rebuildDropdownIfStale() {
     if (isInlineRenameActive()) {
-      // Skip rebuild while the user is editing — the row layout would otherwise jump under their
-      // cursor. Commit or cancel triggers the next rebuild via refresh().
       return;
     }
     Optional<LootLockPlayerData> snapshotOptional = LootLockClient.getState().getSnapshot();
@@ -1509,11 +1349,6 @@ public final class LootLockInventoryPanel {
     startInlineRename(profile);
   }
 
-  /**
-   * Begins an inline rename for the supplied profile: creates a focused text field positioned over
-   * the row's name baseline, pre-fills the existing name with all characters selected, and hides
-   * the row's static name label so the field reads cleanly.
-   */
   private void startInlineRename(LootLockProfile profile) {
     if (renameField == null) {
       return;
@@ -1591,28 +1426,25 @@ public final class LootLockInventoryPanel {
     return null;
   }
 
-  /** Returns true if an inline rename is currently in progress. */
   public boolean isInlineRenameActive() {
     return renamingProfileId != null && renameField != null && renameField.visible;
   }
 
-  /** Routes a key press to the rename field when active. Enter commits, Escape aborts. */
   public boolean handleInlineRenameKey(int keyCode, int scanCode, int modifiers) {
     if (!isInlineRenameActive()) {
       return false;
     }
-    if (keyCode == 257 || keyCode == 335) { // GLFW_KEY_ENTER, GLFW_KEY_KP_ENTER
+    if (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER) {
       commitInlineRename();
       return true;
     }
-    if (keyCode == 256) { // GLFW_KEY_ESCAPE
+    if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
       cancelInlineRename();
       return true;
     }
     return renameField.keyPressed(keyCode, scanCode, modifiers);
   }
 
-  /** Routes a char input to the rename field when active. */
   public boolean handleInlineRenameChar(char chr, int modifiers) {
     if (!isInlineRenameActive()) {
       return false;
@@ -1679,9 +1511,6 @@ public final class LootLockInventoryPanel {
     }
     LootLockPlayerData snapshot = snapshotOptional.get();
     String name = ProfileUiController.nextDuplicateName(snapshot.getProfiles(), "New Profile");
-    // Leave the dropdown open so the newly added row appears in place and the user can immediately
-    // rename / duplicate / delete it without re-opening the popup. The next refresh() picks up the
-    // server-confirmed profile and rebuilds the dropdown rows.
     ClientMutationSync.sendCreateRequest(snapshot.getRevision(), name, null);
   }
 

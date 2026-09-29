@@ -20,7 +20,6 @@ public class LootLock implements ModInitializer {
   public static final Logger LOGGER = LoggerFactory.getLogger(LootLockConstants.MOD_ID);
   public static volatile ServerPlayerDataManager PLAYER_DATA_MANAGER;
   public static volatile PickupGuard PICKUP_GUARD;
-  // Updated at startup and mutated at runtime by server policy command and GUI paths.
   public static volatile LootLockConfig SERVER_CONFIG = LootLockConfig.defaults();
 
   @Override

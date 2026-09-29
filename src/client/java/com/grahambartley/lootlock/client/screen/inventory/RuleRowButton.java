@@ -11,15 +11,6 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 
-/**
- * One row inside the Rules tab's content well. Renders a 16x16 item icon, the item display name in
- * white, and the namespaced id in dim grey beneath. Selected rows pick up a blue accent + outline
- * matching the prototype's {@code .row.selected} state. An optional "in list" pill tag is painted
- * on the right side when the item is already part of the active profile.
- *
- * <p>Modifier-aware clicks (Shift / Ctrl / Cmd / double) are handled by the host {@link
- * RulesTabView}; this widget just delegates {@link #onPress()} with no extra context.
- */
 public final class RuleRowButton extends PressableWidget {
   public static final int ROW_HEIGHT = 22;
   private static final int ICON_SIZE = 16;
@@ -82,7 +73,6 @@ public final class RuleRowButton extends PressableWidget {
       context.fill(getX(), getY(), getX() + getWidth(), getY() + getHeight(), rowBg);
     }
     if (selected) {
-      // 1px blue outline matching .row.selected box-shadow inset 0 0 0 2px.
       int outline = 0xFF6F8FCE;
       context.fill(getX(), getY(), getX() + getWidth(), getY() + 1, outline);
       context.fill(

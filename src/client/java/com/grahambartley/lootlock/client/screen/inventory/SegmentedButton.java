@@ -6,11 +6,6 @@ import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.widget.PressableWidget;
 import net.minecraft.text.Text;
 
-/**
- * One half of a segmented control. Renders with a vanilla beveled face when off, and with a colored
- * on-state (allow=green, deny=red, leave=grey, delete=red) when on. Matches the prototype's {@code
- * .seg} CSS class.
- */
 public final class SegmentedButton extends PressableWidget {
   private final BooleanSupplier onSupplier;
   private final Runnable onPressAction;

@@ -9,12 +9,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-/**
- * Vanilla {@code drawStatusEffects} renders an active potion-effect column directly to the right of
- * the inventory background, which is the same screen real estate the Loot Lock docked panel
- * occupies. We cancel it while the panel is open and paint our own compact icon-only strip inside
- * the panel header so the user can still see active effects without losing them to the panel.
- */
 @Mixin(AbstractInventoryScreen.class)
 public abstract class AbstractInventoryScreenMixin {
 

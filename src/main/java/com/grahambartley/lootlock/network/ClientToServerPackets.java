@@ -23,7 +23,6 @@ public final class ClientToServerPackets {
 
   private ClientToServerPackets() {}
 
-  // Play payload receivers already run on the server thread, no execute() hop is needed.
   public static void register() {
     ServerPlayNetworking.registerGlobalReceiver(
         HelloPayload.ID,
@@ -246,8 +245,6 @@ public final class ClientToServerPackets {
           "Rejected C2S profile mutation for {}: {}", player.getUuid(), result.reason());
     }
     if (result.success()) {
-      // The manager returns the cached mutable player data entry, so these in-place mutations are
-      // persisted when markDirty is called.
       LootLock.PLAYER_DATA_MANAGER.markDirty(player);
     }
     ServerToClientPackets.sendAuthoritativeSync(player);
@@ -273,7 +270,6 @@ public final class ClientToServerPackets {
 
   private static LootLockProfile sanitizeProfile(
       LootLockProfile profile, UUID profileId, boolean allowDeleteRejectedItems) {
-    // Profile ID is taken from the existing record, not payload data, to prevent ID-spoofing.
     return cloneProfile(
         profile, profileId, sanitizeName(profile.getName()), allowDeleteRejectedItems);
   }

@@ -6,10 +6,6 @@ import com.grahambartley.lootlock.network.ClientToServerPackets;
 import java.util.UUID;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 
-// sendSaveRequest uses the ClientDraftProfile lifecycle for multi-field
-// profile UPDATEs that capture baseRevision at edit-start time.
-// sendCreate/sendDelete/sendActivate are one-shot mutations with no
-// editing lifecycle, they capture the current revision at send time.
 public final class ClientMutationSync {
   private ClientMutationSync() {}
 

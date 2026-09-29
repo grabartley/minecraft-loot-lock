@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
-// Mutable draft is intentionally exposed to UI callers for low-friction form binding.
 public final class ClientDraftProfile {
   private final UUID profileId;
   private final long baseRevision;

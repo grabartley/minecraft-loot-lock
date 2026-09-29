@@ -7,12 +7,6 @@ import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.text.Text;
 
-/**
- * Mod Menu config screen that surfaces only the global client preferences (NOTIFICATIONS, SAFETY,
- * CONTROLS, ABOUT). Profiles, rules, and per-world server policy are intentionally absent because
- * Mod Menu can be opened from the title screen where no world is loaded. Users edit per-world state
- * by opening the Loot Lock panel from their inventory while in a world.
- */
 public final class LootLockClientPrefsScreen extends Screen {
   private final Screen returnTo;
   private LootLockInventoryPanel panel;
@@ -33,9 +27,6 @@ public final class LootLockClientPrefsScreen extends Screen {
     panel.setOpen(true);
   }
 
-  // Screen.render already draws the background before the widgets, so the chrome is painted from
-  // renderBackground rather than render; a manual renderBackground call here would blur and darken
-  // the chrome a second time.
   @Override
   public void renderBackground(DrawContext context, int mouseX, int mouseY, float delta) {
     super.renderBackground(context, mouseX, mouseY, delta);

@@ -9,10 +9,6 @@ import net.minecraft.item.Item;
 import net.minecraft.registry.Registries;
 import net.minecraft.util.Identifier;
 
-/**
- * Cached catalog of pickable items used to populate the Rules tab search. Skips items flagged as
- * unobtainable so the search results stay grounded in things a player can actually encounter.
- */
 public final class RulesItemCatalog {
   private static volatile List<ItemCandidate> cached;
 

@@ -7,16 +7,6 @@ import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.text.Text;
 
-/**
- * Dedicated full-screen surface used when the docked panel cannot fit alongside the inventory at
- * the current GUI scale or window size. The screen centers a {@link LootLockInventoryPanel} on top
- * of a dimmed backdrop and routes mouse and key input through the same handlers the docked panel
- * uses, so dropdown rows, inline rename, and the rules list scroll behaviour all work unchanged.
- *
- * <p>Drag-from-inventory is unavailable here by design — that affordance only makes sense while the
- * vanilla inventory slots are visible, which is why the docked-panel mode is preserved for low GUI
- * scales.
- */
 public final class LootLockScreen extends Screen {
   private final Screen returnTo;
   private LootLockInventoryPanel panel;
@@ -36,9 +26,6 @@ public final class LootLockScreen extends Screen {
     panel.setOpen(true);
   }
 
-  // Screen.render already draws the background before the widgets, so the chrome is painted from
-  // renderBackground rather than render; a manual renderBackground call here would blur and darken
-  // the chrome a second time.
   @Override
   public void renderBackground(DrawContext context, int mouseX, int mouseY, float delta) {
     super.renderBackground(context, mouseX, mouseY, delta);
@@ -91,7 +78,6 @@ public final class LootLockScreen extends Screen {
 
   @Override
   public boolean shouldPause() {
-    // Keep the world ticking like the inventory does so this screen feels like an inventory peer.
     return false;
   }
 }
