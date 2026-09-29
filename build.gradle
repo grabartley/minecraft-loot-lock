@@ -34,6 +34,25 @@ loom {
 			sourceSet sourceSets.client
 		}
 	}
+
+	runs {
+		client {
+			programArgs "--username", "DevPlayer"
+		}
+		gametest {
+			server()
+			name "Game Test"
+			vmArg "-ea"
+			runDir "build/gametest"
+			programArgs "--nogui"
+			property "fabric-api.gametest", "true"
+			property "fabric-api.gametest.report-file", "${project.buildDir}/gametest-results.xml"
+		}
+		gametestServer {
+			inherit gametest
+			name "Game Test Server"
+		}
+	}
 }
 
 sourceSets {
