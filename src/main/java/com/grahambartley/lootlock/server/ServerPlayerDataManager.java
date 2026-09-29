@@ -10,10 +10,6 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-// All access must be on the server main thread.
-// Fabric lifecycle events (JOIN, DISCONNECT, SERVER_STOPPING, END_SERVER_TICK)
-// all fire on the main thread. Adding command handlers, async chat, or
-// networking callbacks that touch this cache requires synchronization.
 public final class ServerPlayerDataManager {
   private static final Logger LOGGER = LoggerFactory.getLogger(ServerPlayerDataManager.class);
   static final long SAVE_DEBOUNCE_TICKS = 40;

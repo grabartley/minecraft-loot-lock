@@ -5,7 +5,6 @@ import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.widget.PressableWidget;
 import net.minecraft.text.Text;
 
-/** Compact triangular nav arrow used for previous / next profile navigation. */
 public final class NavArrowButton extends PressableWidget {
   private final Runnable onPressAction;
   private final boolean rightFacing;

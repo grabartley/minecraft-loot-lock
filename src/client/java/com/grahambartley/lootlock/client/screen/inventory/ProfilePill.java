@@ -6,11 +6,6 @@ import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.widget.PressableWidget;
 import net.minecraft.text.Text;
 
-/**
- * Recessed pill that shows the active profile and opens the dropdown manager on click. Composed of
- * a color chip, profile name, dimmed meta line, and a dropdown caret. Matches the prototype's
- * {@code .profile-current} class.
- */
 public final class ProfilePill extends PressableWidget {
   private final Supplier<Integer> colorSupplier;
   private final Supplier<String> nameSupplier;

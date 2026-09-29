@@ -25,16 +25,7 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 
-/**
- * Rules tab content: inline search field, multi-select results list with Shift / Ctrl modifiers and
- * double-click to add, current rules list shown when the search field is empty, and footer actions
- * for Add selected and Clear all.
- *
- * <p>Holds onto its widgets across show/hide via the {@code visible} flag so input routing keeps
- * flowing through the host screen's vanilla widget dispatch.
- */
 public final class RulesTabView {
-  /** Exposed so the inventory mixin can swallow the inventory keybind while the user is typing. */
   public boolean isSearchFieldFocused() {
     return searchField != null && searchField.isFocused();
   }
@@ -44,7 +35,6 @@ public final class RulesTabView {
   static final int FOOTER_HEIGHT = 16;
   static final int FOOTER_GAP = 4;
 
-  /** Upper bound on simultaneously-visible result rows. Extras are pre-created and hidden. */
   static final int MAX_ROWS = 8;
 
   private static final long DOUBLE_CLICK_MS = 300L;
@@ -54,9 +44,6 @@ public final class RulesTabView {
 
   private LootLockInventoryPanel panel;
   private int visibleRows = 4;
-  // Per-view offsets relative to the panel content inset origin. These never change after attach;
-  // all live positions are derived as panel.getContentInsetX/Y + offset to keep the view glued to
-  // the container as it moves (e.g. when the recipe book shifts the inventory).
   private int searchOffsetY;
   private int bulkOffsetY;
   private int rowsTopOffsetY;
@@ -96,8 +83,6 @@ public final class RulesTabView {
     addDrawableChild.accept(searchField);
     widgets.add(searchField);
 
-    // Pre-create the upper bound of row widgets so screen / GUI-scale changes can grow the
-    // visible-row count without re-mounting widgets through the host's children list.
     for (int i = 0; i < MAX_ROWS; i++) {
       int rowIndex = i;
       RuleRowButton row =
@@ -150,11 +135,6 @@ public final class RulesTabView {
     refresh();
   }
 
-  /**
-   * Recomputes widget positions + dimensions from the panel's live content-inset, including the
-   * visibleRows count derived from current panel height. Called from the panel whenever its anchor
-   * or height changes (window resize, GUI scale change, recipe-book open, etc.).
-   */
   public void relayout() {
     if (panel == null || searchField == null) {
       return;
@@ -183,7 +163,6 @@ public final class RulesTabView {
         row.setPosition(viewX, viewY + rowsTopOffsetY + i * rowStride);
         row.setWidth(viewWidth);
       } else {
-        // Park hidden rows off-screen so a stale hover from a previous layout cannot reach them.
         row.setPosition(-9999, -9999);
       }
     }
@@ -220,7 +199,6 @@ public final class RulesTabView {
     return viewY() + rowsBottomOffsetY;
   }
 
-  /** Resets the search field text. Triggers the change listener so results re-render. */
   public void clearSearch() {
     if (searchField != null && !searchField.getText().isEmpty()) {
       searchField.setText("");
@@ -277,7 +255,6 @@ public final class RulesTabView {
       visibleResults = ItemSearchController.filter(RulesItemCatalog.all(), query);
     }
 
-    // Clamp scroll to the windowed range so resizing or trimming results doesn't strand the user.
     int maxOffset = Math.max(0, visibleResults.size() - visibleRows);
     if (scrollOffset > maxOffset) {
       scrollOffset = maxOffset;
@@ -289,8 +266,6 @@ public final class RulesTabView {
     for (int i = 0; i < rowButtons.size(); i++) {
       RuleRowButton row = rowButtons.get(i);
       if (i >= visibleRows) {
-        // Row exists in the widget pool but is hidden because the current panel height can't fit
-        // it. relayout() also parks it off-screen so a stale hover can't fire.
         row.visible = false;
         continue;
       }
@@ -332,7 +307,6 @@ public final class RulesTabView {
     refresh();
   }
 
-  /** Called by the inventory mixin when the user wheels over the rules content area. */
   public boolean mouseScrolledInRows(double mouseX, double mouseY, double amount) {
     if (!visible
         || rowButtons.isEmpty()
@@ -384,8 +358,6 @@ public final class RulesTabView {
       return;
     }
 
-    // When showing current rules, only a double click removes the rule. Single click is a no-op
-    // so an accidental tap doesn't immediately destroy data.
     long now = System.currentTimeMillis();
     boolean doubleClick =
         now - lastClickTime < DOUBLE_CLICK_MS
@@ -435,7 +407,6 @@ public final class RulesTabView {
     int viewY = viewY();
     int viewWidth = viewWidth();
 
-    // Bulk bar above the rows: "N results" on left, modifier hint with kbd pills on right.
     int bulkY = viewY + bulkOffsetY;
     int bulkCount = visibleResults.size();
     String bulkKey;
@@ -549,9 +520,6 @@ public final class RulesTabView {
       net.minecraft.util.Identifier id = net.minecraft.util.Identifier.tryParse(itemId);
       net.minecraft.item.Item item =
           id == null ? null : net.minecraft.registry.Registries.ITEM.get(id);
-      // Use the registry's translated display name so casing matches "Diamond Sword" not the raw
-      // lowercase "diamond sword" path. Falls back to the path with title-casing if the item is
-      // missing from the registry (modded item that was removed).
       String displayName =
           item != null ? item.getName().getString() : titleCase(prettyName(itemId));
       candidates.add(new ItemCandidate(itemId, displayName, namespaceOf(itemId), item));
@@ -622,7 +590,6 @@ public final class RulesTabView {
         .orElse(null);
   }
 
-  // Test-only accessors -----------------------------------------------------
   RulesSelectionState selectionForTest() {
     return selection;
   }

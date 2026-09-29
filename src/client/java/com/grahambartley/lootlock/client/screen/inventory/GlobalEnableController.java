@@ -12,11 +12,6 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 
-/**
- * Single entry point used by both the inventory-panel Client toggle and the toggle-enabled keybind.
- * Computes the new whole-mod enabled state from the current snapshot, sends the authoritative
- * server packet, and surfaces a confirmation toast when the user has opted in.
- */
 public final class GlobalEnableController {
   private GlobalEnableController() {}
 
@@ -57,7 +52,6 @@ public final class GlobalEnableController {
             .formatted(nextEnabled ? Formatting.GREEN : Formatting.RED));
   }
 
-  /** Pure decision used by the controller and verifiable in unit tests. */
   public static boolean shouldShowToast(ClientSettings settings) {
     return settings != null && settings.isEnableToggleToast();
   }

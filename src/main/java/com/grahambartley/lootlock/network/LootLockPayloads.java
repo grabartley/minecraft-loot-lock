@@ -97,8 +97,6 @@ public final class LootLockPayloads {
     return new LootLockProfile(profileId, profileName, mode, action, enabled, color, rules);
   }
 
-  // The count arrives before its elements and sizes an allocation, so it must be bounded before
-  // it is trusted; a hostile peer can claim any varint regardless of actual payload size.
   static int readBoundedCount(PacketByteBuf buf, int max, String kind) {
     int count = buf.readVarInt();
     if (count < 0 || count > max) {

@@ -23,11 +23,6 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-/**
- * Mounts the Loot Lock docked panel onto the survival inventory screen. Adds a small entry button
- * beside the existing controls and a side-docked widget cluster that opens / closes when the button
- * is pressed. The inventory itself remains fully interactive.
- */
 @Mixin(InventoryScreen.class)
 public abstract class InventoryScreenMixin implements LootLockPanelHolder {
   @Unique private LootLockInventoryPanel lootlock$panel;
@@ -46,8 +41,6 @@ public abstract class InventoryScreenMixin implements LootLockPanelHolder {
       return;
     }
 
-    // Anchor everything to the vanilla inventory's actual top-left. Read via the HandledScreen
-    // getX()/getY() accessors so the position tracks the recipe-book layout shift on every render.
     int invX = ((HandledScreenAccessor) self).lootlock$getInvX();
     int invY = ((HandledScreenAccessor) self).lootlock$getInvY();
     int entryX = invX + 124;
@@ -68,18 +61,12 @@ public abstract class InventoryScreenMixin implements LootLockPanelHolder {
 
     lootlock$panel = new LootLockInventoryPanel();
     lootlock$panel.attach(self, panelX, panelY, accessor::lootlock$invokeAddDrawableChild);
-    // Restore sticky state so closing the inventory or detouring through a ConfirmScreen does not
-    // force the user to re-open the panel each time.
     lootlock$panel.setTab(LootLockInventoryPanel.getStickyActiveTab());
     lootlock$panel.setOpen(LootLockInventoryPanel.getStickyOpenState());
 
     InventoryOnboardingController.maybeShow(LootLockClient.getClientSettingsManager());
   }
 
-  /**
-   * Paint chrome (panel frame + dark wells + content well) BEFORE the host screen renders its
-   * widget children, so the wells sit behind the actual buttons rather than covering them.
-   */
   @Inject(method = "drawBackground", at = @At("TAIL"))
   private void lootlock$renderChromeBeforeWidgets(
       DrawContext context, float delta, int mouseX, int mouseY, CallbackInfo info) {
@@ -95,9 +82,6 @@ public abstract class InventoryScreenMixin implements LootLockPanelHolder {
       int scaledHeight = client.getWindow().getScaledHeight();
       int anchorX = invX + 176 + 4;
       if (!LootLockInventoryPanel.canDock(anchorX, scaledWidth, scaledHeight)) {
-        // Inline docking can't fit on this screen; collapse the docked panel and let the entry
-        // button open the dedicated screen instead. Suppressing isOpen also keeps the status
-        // effect HUD visible and avoids any phantom chrome.
         if (lootlock$panel.isOpen()) {
           lootlock$panel.setOpen(false);
         }
@@ -110,11 +94,6 @@ public abstract class InventoryScreenMixin implements LootLockPanelHolder {
     }
   }
 
-  /**
-   * Per-frame: arm the rules content well when the player is dragging a cursor stack over the open
-   * panel on the Rules tab. The flag clears the moment the cursor leaves the panel rectangle or the
-   * stack returns to a slot, so the gold inset reads as a live drop target.
-   */
   @Unique
   private void lootlock$updateDropArmedState(InventoryScreen self, int mouseX, int mouseY) {
     if (lootlock$panel == null) {
@@ -129,7 +108,6 @@ public abstract class InventoryScreenMixin implements LootLockPanelHolder {
     lootlock$panel.setDropArmed(armed);
   }
 
-  /** Paint foreground (labels, summary text, brand icon) AFTER widgets so labels read clearly. */
   @Inject(method = "render", at = @At("TAIL"))
   private void lootlock$renderForeground(
       DrawContext context, int mouseX, int mouseY, float delta, CallbackInfo info) {
@@ -138,12 +116,6 @@ public abstract class InventoryScreenMixin implements LootLockPanelHolder {
     }
   }
 
-  /**
-   * Drag-to-closed-button shortcut: when the panel is closed and the player releases a non-empty
-   * cursor stack over the brand entry button, open the panel, switch to Rules, clear the search,
-   * and route the stack through the same {@link DragToAddRouter} as the open-panel drop path.
-   * Flashes the success animation so the player sees the rule landed.
-   */
   @Inject(method = "mouseReleased", at = @At("HEAD"), cancellable = true)
   private void lootlock$catchDragReleaseOverEntryButton(
       double mouseX, double mouseY, int button, CallbackInfoReturnable<Boolean> info) {
@@ -242,8 +214,6 @@ public abstract class InventoryScreenMixin implements LootLockPanelHolder {
       }
       return;
     }
-    // No room to dock; open the dedicated screen which scales to any window. The current inventory
-    // is captured as the return target so closing the screen drops the player back into it.
     client.setScreen(new LootLockScreen(self));
   }
 

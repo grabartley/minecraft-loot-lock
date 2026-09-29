@@ -6,16 +6,6 @@ import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.widget.PressableWidget;
 import net.minecraft.text.Text;
 
-/**
- * One styled row inside the profile dropdown manager: color chip + profile name + meta line + four
- * mini action buttons (rename / duplicate / delete / export). Visually aligned with the prototype's
- * {@code .pf-opt} CSS row.
- *
- * <p>Click areas are split three ways: the colour chip on the left runs {@code onChipPressAction}
- * so the player can cycle the profile colour; the rest of the row's main area selects the profile;
- * and the right-side mini buttons are siblings registered separately. This widget only renders the
- * background, chip, and text — the per-row action buttons live on the panel itself.
- */
 public final class ProfileDropdownRow extends PressableWidget {
   public static final int ROW_HEIGHT = 22;
   public static final int ACTIONS_WIDTH = 80;
@@ -57,12 +47,10 @@ public final class ProfileDropdownRow extends PressableWidget {
     return profileId;
   }
 
-  /** Lets the panel hide the name during inline rename while leaving the chip and bg intact. */
   public void setSuppressNameRender(boolean suppressNameRender) {
     this.suppressNameRender = suppressNameRender;
   }
 
-  /** True when the supplied coordinate falls inside the chip rectangle. */
   public boolean isMouseOverChip(double mouseX, double mouseY) {
     int chipX = chipX();
     int chipY = chipY();
@@ -107,7 +95,6 @@ public final class ProfileDropdownRow extends PressableWidget {
       context.fill(getX(), getY(), getX() + getWidth(), getY() + getHeight(), bg);
     }
     if (active) {
-      // Gold left accent matching .pf-opt.active box-shadow inset 3px 0 0 gold.
       context.fill(getX(), getY(), getX() + 3, getY() + getHeight(), Palette.GOLD);
     }
 
@@ -129,12 +116,10 @@ public final class ProfileDropdownRow extends PressableWidget {
         client.textRenderer, Text.literal(metaText), textX, metaY, Palette.ON_WELL_DIM, false);
   }
 
-  /** Computes the screen X where the editable name should render, in line with profileName. */
   public int nameRenderX() {
     return chipX() + CHIP_SIZE + 5;
   }
 
-  /** Computes the screen Y where the editable name baseline sits. */
   public int nameRenderY() {
     return getY() + 3;
   }

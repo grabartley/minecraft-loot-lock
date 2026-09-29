@@ -97,9 +97,6 @@ public final class ProfileImportScreen extends Screen {
             .build());
   }
 
-  // Screen.render already draws the background before the widgets, so the card is painted from
-  // renderBackground rather than render; a manual renderBackground call here would blur and darken
-  // the card a second time.
   @Override
   public void renderBackground(DrawContext context, int mouseX, int mouseY, float delta) {
     super.renderBackground(context, mouseX, mouseY, delta);
