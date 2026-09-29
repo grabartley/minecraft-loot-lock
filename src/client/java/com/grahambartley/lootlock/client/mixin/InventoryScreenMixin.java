@@ -68,7 +68,7 @@ public abstract class InventoryScreenMixin implements LootLockPanelHolder {
   }
 
   @Inject(method = "drawBackground", at = @At("TAIL"))
-  private void lootlock$renderChromeBeforeWidgets(
+  private void lootlock$renderBackgroundBeforeWidgets(
       DrawContext context, float delta, int mouseX, int mouseY, CallbackInfo info) {
     InventoryScreen self = (InventoryScreen) (Object) this;
     int invX = ((HandledScreenAccessor) self).lootlock$getInvX();
@@ -90,7 +90,7 @@ public abstract class InventoryScreenMixin implements LootLockPanelHolder {
       lootlock$panel.layout(anchorX, scaledWidth, scaledHeight);
       lootlock$panel.refresh();
       lootlock$updateDropArmedState(self, mouseX, mouseY);
-      lootlock$panel.paintChrome(context);
+      lootlock$panel.paintBackground(context);
     }
   }
 

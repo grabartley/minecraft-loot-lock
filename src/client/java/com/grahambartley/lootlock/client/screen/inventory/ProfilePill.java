@@ -38,12 +38,12 @@ public final class ProfilePill extends PressableWidget {
 
   @Override
   protected void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
-    Chrome.button(context, getX(), getY(), getWidth(), getHeight(), active, isSelected());
+    GuiSprites.button(context, getX(), getY(), getWidth(), getHeight(), active, isSelected());
 
     int chipSize = 10;
     int chipX = getX() + 6;
     int chipY = getY() + (getHeight() - chipSize) / 2;
-    Chrome.colorChip(context, chipX, chipY, chipSize, chipSize, colorSupplier.get());
+    GuiSprites.colorChip(context, chipX, chipY, chipSize, chipSize, colorSupplier.get());
 
     MinecraftClient client = MinecraftClient.getInstance();
     int textY = getY() + (getHeight() - 8) / 2;

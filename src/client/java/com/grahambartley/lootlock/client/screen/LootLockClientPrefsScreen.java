@@ -33,7 +33,7 @@ public final class LootLockClientPrefsScreen extends Screen {
     if (panel != null) {
       int anchorX = (width - LootLockInventoryPanel.WIDTH) / 2;
       panel.layout(anchorX, width, height);
-      panel.paintChrome(context);
+      panel.paintBackground(context);
     }
   }
 

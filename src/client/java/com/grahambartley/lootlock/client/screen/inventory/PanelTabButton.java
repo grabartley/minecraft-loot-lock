@@ -33,7 +33,7 @@ public final class PanelTabButton extends PressableWidget {
   }
 
   static Identifier sprite(boolean selected, boolean active, boolean hovered) {
-    return Chrome.TAB.get(selected, active && hovered);
+    return GuiSprites.TAB.get(selected, active && hovered);
   }
 
   static int labelColor(boolean selected, boolean active, boolean hovered) {

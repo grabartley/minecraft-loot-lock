@@ -4,11 +4,12 @@ import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.ButtonTextures;
 import net.minecraft.util.Identifier;
 
-public final class Chrome {
-  private Chrome() {}
+public final class GuiSprites {
+  private GuiSprites() {}
 
   public static final Identifier PANEL = Identifier.ofVanilla("recipe_book/overlay_recipe");
   public static final Identifier SLOT = Identifier.ofVanilla("container/slot");
+  static final Identifier TOAST = Identifier.ofVanilla("toast/system");
   private static final int SLOT_SIZE = 18;
 
   public static final ButtonTextures BUTTON =
@@ -23,17 +24,6 @@ public final class Chrome {
           Identifier.ofVanilla("widget/tab"),
           Identifier.ofVanilla("widget/tab_selected_highlighted"),
           Identifier.ofVanilla("widget/tab_highlighted"));
-
-  public static void guiWindow(DrawContext context, int x, int y, int width, int height) {
-    int x2 = x + width;
-    int y2 = y + height;
-    context.fill(x, y, x2, y2, Palette.EDGE);
-    context.fill(x + 1, y + 1, x2 - 1, y2 - 1, Palette.FACE);
-    context.fill(x + 1, y + 1, x2 - 1, y + 2, Palette.FACE_HI);
-    context.fill(x + 1, y + 1, x + 2, y2 - 1, Palette.FACE_HI);
-    context.fill(x + 1, y2 - 2, x2 - 1, y2 - 1, Palette.FACE_LO);
-    context.fill(x2 - 2, y + 1, x2 - 1, y2 - 1, Palette.FACE_LO);
-  }
 
   public static void panel(DrawContext context, int x, int y, int width, int height) {
     context.drawGuiTexture(PANEL, x, y, width, height);

@@ -81,7 +81,7 @@ public final class RuleRowButton extends PressableWidget {
     MinecraftClient client = MinecraftClient.getInstance();
     int iconX = getX() + ICON_INSET;
     int iconY = getY() + (getHeight() - ICON_SIZE) / 2;
-    Chrome.slot(context, iconX - 1, iconY - 1);
+    GuiSprites.slot(context, iconX - 1, iconY - 1);
     if (icon != null) {
       context.drawItem(new ItemStack(icon), iconX, iconY);
     } else if (itemId != null && itemId.startsWith(RuleEntry.TAG_PREFIX)) {

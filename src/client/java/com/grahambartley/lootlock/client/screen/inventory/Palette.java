@@ -4,12 +4,9 @@ public final class Palette {
   private Palette() {}
 
   public static final int FACE = 0xFFC6C6C6;
-  public static final int FACE_HI = 0xFFFEFEFE;
-  public static final int FACE_LO = 0xFF545454;
   public static final int SLOT = 0xFF8B8B8B;
   public static final int SLOT_HI = 0xFFFFFFFF;
   public static final int SLOT_LO = 0xFF373737;
-  public static final int EDGE = 0xFF1B1B1B;
 
   public static final int TITLE = 0xFF404040;
   public static final int INK = 0xFF1B1B1B;

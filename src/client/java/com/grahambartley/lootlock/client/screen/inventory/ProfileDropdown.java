@@ -153,7 +153,7 @@ final class ProfileDropdown {
         frameX + frameW + SHADOW_OFFSET,
         frameY + frameH + SHADOW_OFFSET,
         0x80000000);
-    Chrome.panel(context, frameX, frameY, frameW, frameH);
+    GuiSprites.panel(context, frameX, frameY, frameW, frameH);
     int headerY = frameY + 4;
     context.drawText(
         client.textRenderer,
