@@ -32,6 +32,7 @@ final class ProfileDropdown {
   private static final int HEADER_STRIP_HEIGHT = 14;
   private static final int FOOTER_BUTTON_HEIGHT = 16;
   private static final int SHADOW_OFFSET = 3;
+  private static final float OVERLAY_Z = 300f;
 
   private final List<ClickableWidget> widgets = new ArrayList<>();
   private final BooleanSupplier panelOpen;
@@ -138,6 +139,13 @@ final class ProfileDropdown {
     if (!open || widgets.isEmpty()) {
       return;
     }
+    context.getMatrices().push();
+    context.getMatrices().translate(0f, 0f, OVERLAY_Z);
+    paintFrame(context, mouseX, mouseY, delta);
+    context.getMatrices().pop();
+  }
+
+  private void paintFrame(DrawContext context, int mouseX, int mouseY, float delta) {
     MinecraftClient client = MinecraftClient.getInstance();
     context.fill(
         frameX + SHADOW_OFFSET,
