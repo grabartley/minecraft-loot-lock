@@ -43,6 +43,11 @@ sourceSets {
 	}
 }
 
+configurations {
+	clientTestImplementation.extendsFrom testImplementation
+	clientTestRuntimeOnly.extendsFrom testRuntimeOnly
+}
+
 dependencies {
 	// To change the versions see the gradle.properties file
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
@@ -61,12 +66,6 @@ dependencies {
 	testImplementation "org.mockito:mockito-junit-jupiter:${project.mockito_version}"
 	testRuntimeOnly "org.junit.platform:junit-platform-launcher"
 
-	clientTestImplementation "net.fabricmc:fabric-loader-junit:${project.loader_version}"
-	clientTestImplementation "org.junit.jupiter:junit-jupiter:${project.junit_version}"
-	clientTestImplementation "org.junit.jupiter:junit-jupiter-params:${project.junit_version}"
-	clientTestImplementation "org.mockito:mockito-core:${project.mockito_version}"
-	clientTestImplementation "org.mockito:mockito-junit-jupiter:${project.mockito_version}"
-	clientTestRuntimeOnly "org.junit.platform:junit-platform-launcher"
 }
 
 test {
@@ -79,6 +78,7 @@ test {
 }
 
 tasks.register("clientTest", Test) {
+	finalizedBy jacocoTestReport
 	group = "verification"
 	description = "Runs client-side unit tests."
 	useJUnitPlatform()
@@ -95,7 +95,9 @@ jacoco {
 }
 
 jacocoTestReport {
-	dependsOn test
+	dependsOn test, clientTest
+	executionData test, clientTest
+	sourceSets sourceSets.main, sourceSets.client
 	reports {
 		xml.required = true
 		html.required = true

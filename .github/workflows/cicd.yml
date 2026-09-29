@@ -135,7 +135,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          PREV_RELEASE=$(gh release list --limit 100 --json tagName,publishedAt \
+          PREV_RELEASE=$(gh release list --exclude-drafts --limit 100 --json tagName,publishedAt \
             --jq 'map(select(.publishedAt != null))
                   | sort_by(.publishedAt)
                   | reverse
