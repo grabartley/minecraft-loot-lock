@@ -49,7 +49,7 @@ class LootLockInventoryPanelTest {
   }
 
   @BeforeEach
-  void swapClockAndPanel() {
+  void swapStaticsAndPanel() {
     originalClock = LootLockInventoryPanel.clockMillis;
     now = new AtomicLong(1000L);
     LootLockInventoryPanel.clockMillis = now::get;
@@ -61,7 +61,7 @@ class LootLockInventoryPanelTest {
   }
 
   @AfterEach
-  void restoreClock() {
+  void restoreStatics() {
     LootLockInventoryPanel.clockMillis = originalClock;
     LootLockInventoryPanel.saveRequestDispatcher = originalDispatcher;
     LootLockClient.getState().clear();
@@ -246,7 +246,7 @@ class LootLockInventoryPanelTest {
     LootLockProfile profile = newProfile(0);
     primeClientState(profile);
 
-    new LootLockInventoryPanel().cycleProfileColor(profile.getId());
+    panel.cycleProfileColor(profile.getId());
 
     ClientDraftProfile draft = LootLockClient.getState().getDraftProfile().orElseThrow();
     assertTrue(draft.isDirty());
@@ -264,7 +264,7 @@ class LootLockInventoryPanelTest {
     LootLockProfile profile = newProfile(Palette.PROFILE_COLORS[LAST_PALETTE_INDEX]);
     primeClientState(profile);
 
-    new LootLockInventoryPanel().cycleProfileColor(profile.getId());
+    panel.cycleProfileColor(profile.getId());
 
     ClientDraftProfile draft = LootLockClient.getState().getDraftProfile().orElseThrow();
     assertEquals(Palette.PROFILE_COLORS[0], draft.getDraft().getColor());
@@ -277,7 +277,7 @@ class LootLockInventoryPanelTest {
     LootLockProfile profile = newProfile(0);
     primeClientState(profile);
 
-    new LootLockInventoryPanel().cycleProfileColor(UUID.randomUUID());
+    panel.cycleProfileColor(UUID.randomUUID());
 
     assertTrue(LootLockClient.getState().getDraftProfile().isEmpty());
     assertTrue(captured.isEmpty());
@@ -285,7 +285,7 @@ class LootLockInventoryPanelTest {
 
   @Test
   void cycleProfileColorIsNoOpWithoutSnapshot() {
-    new LootLockInventoryPanel().cycleProfileColor(UUID.randomUUID());
+    panel.cycleProfileColor(UUID.randomUUID());
 
     assertTrue(LootLockClient.getState().getDraftProfile().isEmpty());
     assertTrue(captured.isEmpty());

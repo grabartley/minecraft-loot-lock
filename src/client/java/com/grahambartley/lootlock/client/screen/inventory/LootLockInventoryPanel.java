@@ -1433,11 +1433,11 @@ public final class LootLockInventoryPanel {
     if (!isInlineRenameActive()) {
       return false;
     }
-    if (keyCode == 257 || keyCode == 335) {
+    if (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER) {
       commitInlineRename();
       return true;
     }
-    if (keyCode == 256) {
+    if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
       cancelInlineRename();
       return true;
     }
