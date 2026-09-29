@@ -3,7 +3,8 @@
   "package": "com.grahambartley.lootlock.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
-    "ItemEntityMixin"
+    "ItemEntityMixin",
+    "LevelStorageMixin"
   ],
   "injectors": {
     "defaultRequire": 1

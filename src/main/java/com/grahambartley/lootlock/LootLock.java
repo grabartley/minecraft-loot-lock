@@ -1,12 +1,12 @@
 package com.grahambartley.lootlock;
 
 import com.grahambartley.lootlock.command.LootLockCommand;
-import com.grahambartley.lootlock.config.ConfigManager;
 import com.grahambartley.lootlock.config.LootLockConfig;
 import com.grahambartley.lootlock.network.LootLockNetworking;
 import com.grahambartley.lootlock.server.PickupGuard;
 import com.grahambartley.lootlock.server.ServerLifecycleHooks;
 import com.grahambartley.lootlock.server.ServerPlayerDataManager;
+import com.grahambartley.lootlock.server.WorldSession;
 import java.nio.file.Path;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
@@ -29,16 +29,16 @@ public class LootLock implements ModInitializer {
         (dispatcher, registryAccess, environment) -> LootLockCommand.register(dispatcher));
     LootLockNetworking.initializeNetworking();
 
+    ServerLifecycleHooks.register();
     ServerLifecycleEvents.SERVER_STARTED.register(
         server -> {
           Path worldDir = server.getSavePath(WorldSavePath.ROOT).normalize();
-          ConfigManager configManager = new ConfigManager(worldDir);
-          SERVER_CONFIG = LootLockConfig.load(configManager.getPaths().getServerPolicyPath());
-          PLAYER_DATA_MANAGER = new ServerPlayerDataManager(configManager);
-          PICKUP_GUARD = new PickupGuard(PLAYER_DATA_MANAGER);
-          ServerLifecycleHooks.initialize(PLAYER_DATA_MANAGER, PICKUP_GUARD);
+          if (!WorldSession.isOpenFor(worldDir)) {
+            WorldSession.open(worldDir);
+          }
           LOGGER.info("{} initialized (world: {})", LootLockConstants.MOD_NAME, worldDir);
         });
+    ServerLifecycleEvents.SERVER_STOPPED.register(server -> WorldSession.close());
 
     CommonLifecycleEvents.TAGS_LOADED.register(
         (registries, client) -> {
