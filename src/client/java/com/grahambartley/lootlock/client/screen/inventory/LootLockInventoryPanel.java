@@ -34,6 +34,7 @@ import net.minecraft.entity.effect.StatusEffectUtil;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
+import org.lwjgl.glfw.GLFW;
 
 public final class LootLockInventoryPanel {
   public static final int WIDTH = 270;
