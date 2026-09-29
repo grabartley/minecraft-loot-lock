@@ -19,6 +19,12 @@ public final class WorldSession {
     openWorldDir = normalized;
   }
 
+  public static synchronized void ensureOpen(Path worldDir) {
+    if (!isOpenFor(worldDir)) {
+      open(worldDir);
+    }
+  }
+
   public static synchronized void close() {
     LootLock.PLAYER_DATA_MANAGER = null;
     LootLock.PICKUP_GUARD = null;

@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.grahambartley.lootlock.LootLock;
@@ -79,6 +80,37 @@ class WorldSessionTest {
     assertTrue(Files.exists(new ConfigPaths(secondWorld).getPlayerDataPath(playerUuid)));
     assertFalse(Files.exists(new ConfigPaths(firstWorld).getPlayerDataPath(playerUuid)));
     assertFalse(WorldSession.isOpenFor(firstWorld));
+  }
+
+  @Test
+  void ensureOpenKeepsTheSessionAlreadyOpenForThatWorld() {
+    Path worldDir = saves.resolve("world");
+    WorldSession.open(worldDir);
+    ServerPlayerDataManager opened = LootLock.PLAYER_DATA_MANAGER;
+
+    WorldSession.ensureOpen(worldDir);
+
+    assertSame(opened, LootLock.PLAYER_DATA_MANAGER);
+  }
+
+  @Test
+  void ensureOpenReplacesASessionOpenForAnotherWorld() {
+    WorldSession.open(saves.resolve("edited"));
+    ServerPlayerDataManager edited = LootLock.PLAYER_DATA_MANAGER;
+
+    WorldSession.ensureOpen(saves.resolve("played"));
+
+    assertNotSame(edited, LootLock.PLAYER_DATA_MANAGER);
+    assertTrue(WorldSession.isOpenFor(saves.resolve("played")));
+  }
+
+  @Test
+  void openingAWorldWritesNothingIntoIt() {
+    Path worldDir = saves.resolve("world");
+
+    WorldSession.open(worldDir);
+
+    assertFalse(Files.exists(new ConfigPaths(worldDir).getLootLockDir()));
   }
 
   @Test

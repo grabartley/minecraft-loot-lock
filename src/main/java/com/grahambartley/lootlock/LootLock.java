@@ -33,9 +33,7 @@ public class LootLock implements ModInitializer {
     ServerLifecycleEvents.SERVER_STARTED.register(
         server -> {
           Path worldDir = server.getSavePath(WorldSavePath.ROOT).normalize();
-          if (!WorldSession.isOpenFor(worldDir)) {
-            WorldSession.open(worldDir);
-          }
+          WorldSession.ensureOpen(worldDir);
           LOGGER.info("{} initialized (world: {})", LootLockConstants.MOD_NAME, worldDir);
         });
     ServerLifecycleEvents.SERVER_STOPPED.register(server -> WorldSession.close());

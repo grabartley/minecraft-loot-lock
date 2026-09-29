@@ -61,6 +61,11 @@ class ConfigManagerTest {
   }
 
   @Test
+  void constructingTouchesNothingOnDisk() {
+    assertFalse(Files.exists(manager.getPaths().getLootLockDir()));
+  }
+
+  @Test
   void corruptFileCreatesDefaultAndBackup() throws IOException {
     UUID playerUuid = UUID.randomUUID();
     Path dataPath = manager.getPaths().getPlayerDataPath(playerUuid);

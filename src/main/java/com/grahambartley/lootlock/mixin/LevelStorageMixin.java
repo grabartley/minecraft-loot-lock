@@ -10,14 +10,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(LevelStorage.class)
 public abstract class LevelStorageMixin {
-  @Inject(method = "createSession", at = @At("RETURN"))
+  @Inject(
+      method = {"createSession", "createSessionWithoutSymlinkCheck"},
+      at = @At("RETURN"))
   private void lootlock$openWorldSession(
-      String directoryName, CallbackInfoReturnable<LevelStorage.Session> cir) {
-    WorldSession.open(cir.getReturnValue().getDirectory(WorldSavePath.ROOT));
-  }
-
-  @Inject(method = "createSessionWithoutSymlinkCheck", at = @At("RETURN"))
-  private void lootlock$openWorldSessionWithoutSymlinkCheck(
       String directoryName, CallbackInfoReturnable<LevelStorage.Session> cir) {
     WorldSession.open(cir.getReturnValue().getDirectory(WorldSavePath.ROOT));
   }

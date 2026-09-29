@@ -2,7 +2,7 @@ package com.grahambartley.lootlock.server;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import com.grahambartley.lootlock.LootLock;
@@ -29,29 +29,31 @@ class ServerLifecycleHooksTest {
   }
 
   @Test
-  void tickRunsOnceOnTheCurrentWorldsManagerOnly() {
+  void tickRunsOnceOnWhicheverWorldIsOpen() {
     ServerPlayerDataManager firstWorld = mock(ServerPlayerDataManager.class);
     ServerPlayerDataManager secondWorld = mock(ServerPlayerDataManager.class);
-    LootLock.PLAYER_DATA_MANAGER = firstWorld;
-    LootLock.PLAYER_DATA_MANAGER = secondWorld;
 
+    LootLock.PLAYER_DATA_MANAGER = firstWorld;
+    ServerTickEvents.END_SERVER_TICK.invoker().onEndTick(server);
+    LootLock.PLAYER_DATA_MANAGER = secondWorld;
     ServerTickEvents.END_SERVER_TICK.invoker().onEndTick(server);
 
-    verify(secondWorld).tick(server);
-    verify(firstWorld, never()).tick(server);
+    verify(firstWorld, times(1)).tick(server);
+    verify(secondWorld, times(1)).tick(server);
   }
 
   @Test
-  void stoppingFlushesTheCurrentWorldsManagerOnce() {
+  void stoppingFlushesWhicheverWorldIsOpenOnce() {
     ServerPlayerDataManager firstWorld = mock(ServerPlayerDataManager.class);
     ServerPlayerDataManager secondWorld = mock(ServerPlayerDataManager.class);
-    LootLock.PLAYER_DATA_MANAGER = firstWorld;
-    LootLock.PLAYER_DATA_MANAGER = secondWorld;
 
+    LootLock.PLAYER_DATA_MANAGER = firstWorld;
+    ServerLifecycleEvents.SERVER_STOPPING.invoker().onServerStopping(server);
+    LootLock.PLAYER_DATA_MANAGER = secondWorld;
     ServerLifecycleEvents.SERVER_STOPPING.invoker().onServerStopping(server);
 
-    verify(secondWorld).flushAll();
-    verify(firstWorld, never()).flushAll();
+    verify(firstWorld, times(1)).flushAll();
+    verify(secondWorld, times(1)).flushAll();
   }
 
   @Test
