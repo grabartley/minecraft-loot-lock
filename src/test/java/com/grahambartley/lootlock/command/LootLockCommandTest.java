@@ -10,8 +10,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.grahambartley.lootlock.LootLock;
-import com.grahambartley.lootlock.data.FilterMode;
-import com.grahambartley.lootlock.data.RejectedItemAction;
 import com.grahambartley.lootlock.text.LootLockLang;
 import com.mojang.authlib.GameProfile;
 import com.mojang.brigadier.CommandDispatcher;
@@ -49,24 +47,6 @@ class LootLockCommandTest {
   @AfterEach
   void resetDataManager() {
     LootLock.PLAYER_DATA_MANAGER = null;
-  }
-
-  @ParameterizedTest(name = "{0} -> {1}")
-  @CsvSource({
-    "DENYLIST,  denylist",
-    "ALLOWLIST, allowlist",
-  })
-  void modeTokenMapsEnumToCommandToken(FilterMode mode, String expected) {
-    assertEquals(expected, LootLockCommand.modeToken(mode));
-  }
-
-  @ParameterizedTest(name = "{0} -> {1}")
-  @CsvSource({
-    "LEAVE_ON_GROUND, leave",
-    "DELETE,          delete",
-  })
-  void actionTokenMapsEnumToCommandToken(RejectedItemAction action, String expected) {
-    assertEquals(expected, LootLockCommand.actionToken(action));
   }
 
   static Stream<Arguments> nodeRequirements() {

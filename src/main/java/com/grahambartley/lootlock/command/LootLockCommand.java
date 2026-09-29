@@ -429,14 +429,6 @@ public final class LootLockCommand {
                                             ctx, RuleCommandHandlers::handleRuleClear)))));
   }
 
-  static String modeToken(FilterMode mode) {
-    return mode == FilterMode.ALLOWLIST ? "allowlist" : "denylist";
-  }
-
-  static String actionToken(RejectedItemAction action) {
-    return action == RejectedItemAction.DELETE ? "delete" : "leave";
-  }
-
   private static int help(CommandContext<ServerCommandSource> context) {
     ServerCommandSource source = context.getSource();
     sendKey(source, LootLockLang.COMMAND_HELP_HEADER);
