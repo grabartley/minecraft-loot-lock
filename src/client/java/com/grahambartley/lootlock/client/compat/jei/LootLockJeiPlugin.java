@@ -1,5 +1,6 @@
 package com.grahambartley.lootlock.client.compat.jei;
 
+import com.grahambartley.lootlock.LootLockConstants;
 import com.grahambartley.lootlock.client.compat.RecipeViewerBridge;
 import com.grahambartley.lootlock.client.compat.RecipeViewerBridge.Area;
 import java.util.List;
@@ -17,7 +18,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.util.Identifier;
 
 public final class LootLockJeiPlugin implements IModPlugin {
-  static final Identifier UID = Identifier.of("loot-lock", "jei_plugin");
+  static final Identifier UID = Identifier.of(LootLockConstants.MOD_ID, "jei_plugin");
 
   private final JeiHoverSource hoverSource = new JeiHoverSource();
 

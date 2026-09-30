@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.item.ItemStack;
@@ -34,6 +35,9 @@ public final class RecipeViewerBridge {
     }
   }
 
+  static final String JEI_MOD_ID = "jei";
+  static final String REI_MOD_ID = "roughlyenoughitems";
+
   private static final Set<HoverSource> SOURCES = new CopyOnWriteArraySet<>();
 
   private RecipeViewerBridge() {}
@@ -48,8 +52,20 @@ public final class RecipeViewerBridge {
     SOURCES.remove(source);
   }
 
+  public static boolean isRecipeViewerLoaded() {
+    FabricLoader loader = FabricLoader.getInstance();
+    return loader.isModLoaded(JEI_MOD_ID) || loader.isModLoaded(REI_MOD_ID);
+  }
+
   public static boolean hasHoverSources() {
     return !SOURCES.isEmpty();
+  }
+
+  public static boolean handleAddHoveredKey(MinecraftClient client, Screen screen) {
+    if (isTyping() || panelHasTextFocus(screen)) {
+      return false;
+    }
+    return addHovered(client);
   }
 
   public static boolean isTyping() {
@@ -107,6 +123,14 @@ public final class RecipeViewerBridge {
         .getSnapshot()
         .filter(LootLockPlayerData::isClientCanEdit)
         .flatMap(LootLockPlayerData::getActiveProfile);
+  }
+
+  private static boolean panelHasTextFocus(Screen screen) {
+    if (!(screen instanceof LootLockPanelHolder holder)) {
+      return false;
+    }
+    LootLockInventoryPanel panel = holder.lootlock$getPanel();
+    return panel != null && (panel.isInlineRenameActive() || panel.isSearchFieldFocused());
   }
 
   private static Optional<LootLockInventoryPanel> openPanel(Screen screen) {

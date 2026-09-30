@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.Bootstrap;
 import net.minecraft.SharedConstants;
 import net.minecraft.client.MinecraftClient;
@@ -187,6 +188,47 @@ class RecipeViewerBridgeTest {
     assertTrue(RecipeViewerBridge.addHovered(null));
 
     sync.verify(() -> ClientMutationSync.sendSaveRequest(any()));
+  }
+
+  static Stream<Arguments> keyFocusCases() {
+    return Stream.of(
+        Arguments.of("plain screen", false, false, false, false, true),
+        Arguments.of("panel idle", true, false, false, false, true),
+        Arguments.of("recipe viewer search focused", false, true, false, false, false),
+        Arguments.of("panel rename active", true, false, true, false, false),
+        Arguments.of("panel search focused", true, false, false, true, false));
+  }
+
+  @ParameterizedTest(name = "{0} -> handled {5}")
+  @MethodSource("keyFocusCases")
+  void handleAddHoveredKeyStepsAsideWhileTyping(
+      String label,
+      boolean hasPanel,
+      boolean viewerTyping,
+      boolean renaming,
+      boolean searching,
+      boolean expected) {
+    syncActiveProfile(List.of(), true);
+    register(source(new ItemStack(Items.DIRT), viewerTyping));
+    LootLockInventoryPanel panel = mock(LootLockInventoryPanel.class);
+    when(panel.isInlineRenameActive()).thenReturn(renaming);
+    when(panel.isSearchFieldFocused()).thenReturn(searching);
+    Screen screen = hasPanel ? holderScreen(panel) : mock(Screen.class);
+
+    assertEquals(expected, RecipeViewerBridge.handleAddHoveredKey(null, screen));
+  }
+
+  @ParameterizedTest(name = "jei={0}, rei={1} -> loaded {2}")
+  @CsvSource({"false,false,false", "true,false,true", "false,true,true", "true,true,true"})
+  void recipeViewerLoadedWhenEitherModPresent(boolean jei, boolean rei, boolean expected) {
+    FabricLoader loader = mock(FabricLoader.class);
+    when(loader.isModLoaded(RecipeViewerBridge.JEI_MOD_ID)).thenReturn(jei);
+    when(loader.isModLoaded(RecipeViewerBridge.REI_MOD_ID)).thenReturn(rei);
+    try (MockedStatic<FabricLoader> fabric = mockStatic(FabricLoader.class)) {
+      fabric.when(FabricLoader::getInstance).thenReturn(loader);
+
+      assertEquals(expected, RecipeViewerBridge.isRecipeViewerLoaded());
+    }
   }
 
   @ParameterizedTest(name = "typing flags {0},{1} -> {2}")

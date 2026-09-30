@@ -1,6 +1,5 @@
 package com.grahambartley.lootlock.client.mixin;
 
-import com.grahambartley.lootlock.client.compat.RecipeViewerBridge;
 import com.grahambartley.lootlock.client.keybind.LootLockKeybinds;
 import com.grahambartley.lootlock.client.screen.inventory.DragToAddRouter;
 import com.grahambartley.lootlock.client.screen.inventory.LootLockInventoryPanel;
@@ -61,27 +60,6 @@ public abstract class HandledScreenInputMixin {
     }
     if (LootLockKeybinds.matchesToggleEnabled(keyCode, scanCode)) {
       LootLockKeybinds.toggleEnabledNow(client);
-      info.setReturnValue(true);
-    }
-  }
-
-  @Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true)
-  private void lootlock$addHoveredRecipeViewerItem(
-      int keyCode, int scanCode, int modifiers, CallbackInfoReturnable<Boolean> info) {
-    if (info.isCancelled() || !LootLockKeybinds.matchesAddHovered(keyCode, scanCode)) {
-      return;
-    }
-    HandledScreen<?> self = (HandledScreen<?>) (Object) this;
-    if (self instanceof LootLockPanelHolder holder) {
-      LootLockInventoryPanel panel = holder.lootlock$getPanel();
-      if (panel != null && (panel.isInlineRenameActive() || panel.isSearchFieldFocused())) {
-        return;
-      }
-    }
-    if (RecipeViewerBridge.isTyping()) {
-      return;
-    }
-    if (RecipeViewerBridge.addHovered(MinecraftClient.getInstance())) {
       info.setReturnValue(true);
     }
   }

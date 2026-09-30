@@ -271,7 +271,7 @@ public final class SettingsTabView {
             viewWidth,
             LootLockLang.SETTINGS_CONTROLS_CYCLE_PROFILE,
             LootLockKeybinds.getCycleProfile());
-    if (RecipeViewerBridge.hasHoverSources()) {
+    if (RecipeViewerBridge.isRecipeViewerLoaded()) {
       cursorY = addDivider(cursorY);
       cursorY =
           addKeybindRow(
