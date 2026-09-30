@@ -1,14 +1,9 @@
 package com.grahambartley.lootlock.client.screen;
 
-import java.util.HashSet;
 import java.util.Set;
 import net.minecraft.item.Item;
-import net.minecraft.item.ItemGroup;
-import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
-import net.minecraft.registry.Registries;
 import net.minecraft.resource.featuretoggle.FeatureFlags;
-import net.minecraft.util.Identifier;
 
 public final class UnobtainableItems {
   private UnobtainableItems() {}
@@ -21,34 +16,23 @@ public final class UnobtainableItems {
           Items.DRAGON_EGG,
           Items.SPAWNER);
 
-  private static volatile Set<Item> operatorItems;
+  private static final Set<Item> OPERATOR_ITEMS =
+      Set.of(
+          Items.COMMAND_BLOCK,
+          Items.CHAIN_COMMAND_BLOCK,
+          Items.REPEATING_COMMAND_BLOCK,
+          Items.COMMAND_BLOCK_MINECART,
+          Items.STRUCTURE_BLOCK,
+          Items.STRUCTURE_VOID,
+          Items.JIGSAW,
+          Items.BARRIER,
+          Items.LIGHT,
+          Items.DEBUG_STICK);
 
   public static boolean isUnobtainable(Item item) {
     return item == Items.AIR
         || !item.isEnabled(FeatureFlags.DEFAULT_ENABLED_FEATURES)
-        || operatorItems().contains(item)
+        || OPERATOR_ITEMS.contains(item)
         || EXPLICIT_BLOCKLIST.contains(item);
-  }
-
-  private static Set<Item> operatorItems() {
-    Set<Item> local = operatorItems;
-    if (local == null) {
-      local = computeOperatorItems();
-      operatorItems = local;
-    }
-    return local;
-  }
-
-  private static Set<Item> computeOperatorItems() {
-    Set<Item> ops = new HashSet<>();
-    for (ItemGroup group : Registries.ITEM_GROUP) {
-      Identifier id = Registries.ITEM_GROUP.getId(group);
-      if (id != null && id.getPath().equals("operator")) {
-        for (ItemStack stack : group.getDisplayStacks()) {
-          ops.add(stack.getItem());
-        }
-      }
-    }
-    return Set.copyOf(ops);
   }
 }

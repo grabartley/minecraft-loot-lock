@@ -131,9 +131,6 @@ class ProfileShareCodecTest {
     rulesArray.append("]");
     return Stream.of(
         Arguments.of(
-            "{\"v\":2,\"name\":\"x\",\"mode\":\"DENYLIST\",\"action\":\"LEAVE_ON_GROUND\",\"rules\":[]}",
-            "bad_version"),
-        Arguments.of(
             "{\"v\":1,\"name\":\"\",\"mode\":\"DENYLIST\",\"action\":\"LEAVE_ON_GROUND\",\"rules\":[]}",
             "bad_name"),
         Arguments.of(
@@ -175,6 +172,43 @@ class ProfileShareCodecTest {
     ProfileShareCodec.DecodeResult.Err err =
         assertInstanceOf(ProfileShareCodec.DecodeResult.Err.class, result);
     assertEquals(expectedReason, err.reason());
+  }
+
+  static Stream<Arguments> versionCases() {
+    return Stream.of(
+        Arguments.of("\"v\":1,", true),
+        Arguments.of("", false),
+        Arguments.of("\"v\":\"x\",", false),
+        Arguments.of("\"v\":true,", false),
+        Arguments.of("\"v\":\"1\",", false),
+        Arguments.of("\"v\":1.5,", false),
+        Arguments.of("\"v\":1.0,", false),
+        Arguments.of("\"v\":2,", false),
+        Arguments.of("\"v\":0,", false),
+        Arguments.of("\"v\":-1,", false),
+        Arguments.of("\"v\":null,", false),
+        Arguments.of("\"v\":{},", false),
+        Arguments.of("\"v\":[],", false),
+        Arguments.of("\"v\":[1],", false));
+  }
+
+  @ParameterizedTest(name = "version field [{0}] decodes={1}")
+  @MethodSource("versionCases")
+  void decodeAcceptsOnlyVersionOne(String versionField, boolean decodes) {
+    String json =
+        "{"
+            + versionField
+            + "\"name\":\"x\",\"mode\":\"DENYLIST\",\"action\":\"LEAVE_ON_GROUND\",\"rules\":[]}";
+
+    ProfileShareCodec.DecodeResult result = ProfileShareCodec.decode(encodeRawJson(json));
+
+    if (decodes) {
+      assertInstanceOf(ProfileShareCodec.DecodeResult.Ok.class, result);
+    } else {
+      ProfileShareCodec.DecodeResult.Err err =
+          assertInstanceOf(ProfileShareCodec.DecodeResult.Err.class, result);
+      assertEquals("bad_version", err.reason());
+    }
   }
 
   @ParameterizedTest(name = "rule token \"{0}\" valid={1}")

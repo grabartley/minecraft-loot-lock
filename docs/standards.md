@@ -35,7 +35,7 @@ How Loot Lock applies them:
 
 - Server policy lives in `<world>/lootlock/server-policy.json` and currently holds one field, `allowDeleteRejectedItems`, which defaults to `true`.
 - A `LevelStorage` mixin opens a `WorldSession` as soon as a level storage session is created, before the server exists. The session loads the server policy and creates the per-player store and the pickup guard for that world, and writes nothing to disk until the first player data save. `SERVER_STARTED` opens the session only if no session is open for that world yet, and `SERVER_STOPPED` closes it.
-- A missing policy file, or one that is not valid JSON, yields defaults. The file is only written when an operator changes the policy.
+- A missing policy file, a file that is not valid JSON, or a file where `allowDeleteRejectedItems` is not `true` or `false` yields defaults. The file is only written when an operator changes the policy.
 - Per-player data lives beside it in `<world>/lootlock/players/<uuid>.json`. A player file that cannot be read is moved aside as `<uuid>.broken.<timestamp>.json` rather than overwritten, and the player starts from defaults. See [ADR 0002](adr/0002-per-player-json-store.md).
 - `/lootlock policy` and `/lootlock player <target> ...` require permission level 2, and so does the policy packet the in-game panel sends. Players manage their own profiles without operator permission.
 - Everything that affects filtering has a `/lootlock` command: the on and off switch, profiles, the active profile, mode, rejected-item action, rules, share codes, and the server policy. A player on a vanilla client can therefore be fully managed by an operator. Profile rename and profile colour are panel-only, since neither changes what gets picked up.

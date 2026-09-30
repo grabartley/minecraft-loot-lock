@@ -12,6 +12,7 @@ import com.grahambartley.lootlock.data.RejectedItemAction;
 import com.grahambartley.lootlock.data.RuleEntry;
 import com.grahambartley.lootlock.network.PacketLimits;
 import java.io.ByteArrayOutputStream;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -88,9 +89,7 @@ public final class ProfileShareCodec {
     if (root == null) {
       return DecodeResult.err("bad_json");
     }
-    if (!root.has("v")
-        || !root.get("v").isJsonPrimitive()
-        || root.get("v").getAsInt() != FORMAT_VERSION) {
+    if (!isFormatVersion(root.get("v"))) {
       return DecodeResult.err("bad_version");
     }
     String name = readString(root, "name");
@@ -154,6 +153,13 @@ public final class ProfileShareCodec {
       return null;
     }
     return element.getAsString();
+  }
+
+  private static boolean isFormatVersion(JsonElement element) {
+    return element != null
+        && element.isJsonPrimitive()
+        && element.getAsJsonPrimitive().isNumber()
+        && element.getAsBigDecimal().equals(BigDecimal.valueOf(FORMAT_VERSION));
   }
 
   private static FilterMode parseMode(String value) {

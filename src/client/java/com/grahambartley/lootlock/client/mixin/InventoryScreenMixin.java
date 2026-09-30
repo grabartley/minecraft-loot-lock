@@ -25,6 +25,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(InventoryScreen.class)
 public abstract class InventoryScreenMixin implements LootLockPanelHolder {
+  @Unique private static final int LOOTLOCK$ENTRY_OFFSET_X = 128;
+  @Unique private static final int LOOTLOCK$ENTRY_OFFSET_Y = 61;
+
   @Unique private LootLockInventoryPanel lootlock$panel;
   @Unique private ButtonWidget lootlock$entryButton;
 
@@ -43,8 +46,6 @@ public abstract class InventoryScreenMixin implements LootLockPanelHolder {
 
     int invX = ((HandledScreenAccessor) self).lootlock$getInvX();
     int invY = ((HandledScreenAccessor) self).lootlock$getInvY();
-    int entryX = invX + 124;
-    int entryY = invY + 61;
     int panelX = invX + 176 + 4;
     int panelY = invY;
 
@@ -52,8 +53,8 @@ public abstract class InventoryScreenMixin implements LootLockPanelHolder {
     lootlock$entryButton =
         accessor.lootlock$invokeAddDrawableChild(
             new LootLockIconButton(
-                entryX,
-                entryY,
+                invX + LOOTLOCK$ENTRY_OFFSET_X,
+                invY + LOOTLOCK$ENTRY_OFFSET_Y,
                 20,
                 18,
                 () -> lootlock$panel != null && lootlock$panel.isOpen(),
@@ -74,7 +75,8 @@ public abstract class InventoryScreenMixin implements LootLockPanelHolder {
     int invX = ((HandledScreenAccessor) self).lootlock$getInvX();
     int invY = ((HandledScreenAccessor) self).lootlock$getInvY();
     if (lootlock$entryButton != null) {
-      lootlock$entryButton.setPosition(invX + 128, invY + 61);
+      lootlock$entryButton.setPosition(
+          invX + LOOTLOCK$ENTRY_OFFSET_X, invY + LOOTLOCK$ENTRY_OFFSET_Y);
     }
     if (lootlock$panel != null) {
       MinecraftClient client = MinecraftClient.getInstance();
