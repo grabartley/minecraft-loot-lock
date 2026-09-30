@@ -100,7 +100,7 @@ public final class LootLockReiClientPlugin implements REIClientPlugin {
   }
 
   static final class PanelDropVisitor implements DraggableStackVisitor<Screen> {
-    static final double PRIORITY_ABOVE_REI_OVERLAY = 100.0;
+    private static final double PRIORITY_ABOVE_REI_OVERLAY = 100.0;
 
     @Override
     public double getPriority() {
