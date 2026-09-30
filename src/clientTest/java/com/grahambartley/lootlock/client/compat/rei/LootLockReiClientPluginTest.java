@@ -5,16 +5,20 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 import com.grahambartley.lootlock.client.compat.RecipeViewerBridge;
 import com.grahambartley.lootlock.client.compat.RecipeViewerBridge.Area;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -25,6 +29,9 @@ import me.shedaniel.rei.api.client.gui.drag.DraggableStack;
 import me.shedaniel.rei.api.client.gui.drag.DraggableStackVisitor;
 import me.shedaniel.rei.api.client.gui.drag.DraggedAcceptorResult;
 import me.shedaniel.rei.api.client.gui.drag.DraggingContext;
+import me.shedaniel.rei.api.client.gui.drag.component.DraggableComponent;
+import me.shedaniel.rei.api.client.gui.drag.component.DraggableComponentVisitor;
+import me.shedaniel.rei.api.client.gui.drag.component.DraggableComponentVisitorWidget;
 import me.shedaniel.rei.api.client.gui.widgets.TextField;
 import me.shedaniel.rei.api.client.overlay.OverlayListWidget;
 import me.shedaniel.rei.api.client.overlay.ScreenOverlay;
@@ -264,6 +271,37 @@ class LootLockReiClientPluginTest {
     }
   }
 
+  static Stream<Arguments> chainedDropCases() {
+    return Stream.of(
+        Arguments.of("on panel", new Point(10, 10), true, DraggedAcceptorResult.ACCEPTED),
+        Arguments.of("outside panel", new Point(1, 1), false, DraggedAcceptorResult.CONSUMED));
+  }
+
+  @SuppressWarnings({"unchecked", "rawtypes"})
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("chainedDropCases")
+  void panelDropRunsBeforeReiOverlayThatConsumesEverywhere(
+      String label, Point at, boolean expectAdd, DraggedAcceptorResult expected) {
+    DraggableComponentVisitorWidget overlayConsumingAll =
+        new DraggableComponentVisitorWidget() {
+          @Override
+          public DraggedAcceptorResult acceptDragged(
+              DraggingContext<Screen> context, DraggableComponent<?> component) {
+            return DraggedAcceptorResult.CONSUMED;
+          }
+        };
+    List<DraggableComponentVisitor<Screen>> visitors = new ArrayList<>();
+    visitors.add(DraggableComponentVisitorWidget.toVisitor(overlayConsumingAll));
+    visitors.add((DraggableComponentVisitor) new LootLockReiClientPlugin.PanelDropVisitor());
+    visitors.sort(Comparator.reverseOrder());
+    DraggableComponentVisitor<Screen> chain = DraggableComponentVisitor.from(() -> visitors);
+    bridge.when(() -> RecipeViewerBridge.panelArea(screen)).thenReturn(Optional.of(AREA));
+    bridge.when(() -> RecipeViewerBridge.add(any(), any())).thenReturn(true);
+
+    assertEquals(expected, chain.acceptDragged(context(at), realDragged()));
+    bridge.verify(() -> RecipeViewerBridge.add(any(), any()), expectAdd ? times(1) : never());
+  }
+
   static Stream<Arguments> boundsCases() {
     return Stream.of(
         Arguments.of("droppable", true, true, 1L),
@@ -301,6 +339,14 @@ class LootLockReiClientPluginTest {
   private static DraggableStack dragged(boolean isItem) {
     DraggableStack dragged = mock(DraggableStack.class);
     EntryStack<?> entry = isItem ? entry(new ItemStack(Items.DIRT), false) : entry("lava", false);
+    when(dragged.getStack()).thenAnswer(invocation -> entry);
+    return dragged;
+  }
+
+  private static DraggableStack realDragged() {
+    DraggableStack dragged =
+        mock(DraggableStack.class, withSettings().defaultAnswer(CALLS_REAL_METHODS));
+    EntryStack<?> entry = entry(new ItemStack(Items.DIRT), false);
     when(dragged.getStack()).thenAnswer(invocation -> entry);
     return dragged;
   }
