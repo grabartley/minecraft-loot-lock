@@ -1,8 +1,10 @@
 package com.grahambartley.lootlock.config;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
+import com.google.gson.JsonParser;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -27,17 +29,18 @@ public final class LootLockConfig {
     }
 
     try {
-      JsonObject root =
-          GSON.fromJson(Files.readString(path, StandardCharsets.UTF_8), JsonObject.class);
-      if (root == null) {
+      JsonElement root = JsonParser.parseString(Files.readString(path, StandardCharsets.UTF_8));
+      if (!root.isJsonObject()) {
         return defaults();
       }
-      boolean allowDelete =
-          root.has("allowDeleteRejectedItems")
-              ? root.get("allowDeleteRejectedItems").getAsBoolean()
-              : true;
-      return new LootLockConfig(allowDelete);
-    } catch (IOException | JsonParseException | IllegalStateException ex) {
+      JsonElement allowDelete = root.getAsJsonObject().get("allowDeleteRejectedItems");
+      if (allowDelete == null
+          || !allowDelete.isJsonPrimitive()
+          || !allowDelete.getAsJsonPrimitive().isBoolean()) {
+        return defaults();
+      }
+      return new LootLockConfig(allowDelete.getAsBoolean());
+    } catch (IOException | JsonParseException ex) {
       return defaults();
     }
   }

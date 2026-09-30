@@ -1,7 +1,6 @@
 package com.grahambartley.lootlock.config;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
@@ -22,14 +21,6 @@ class LootLockConfigTest {
     assertTrue(config.allowDeleteRejectedItems());
   }
 
-  @Test
-  void loadReadsAllowDeleteRejectedItemsWhenPresent() throws IOException {
-    Path policyPath = tempDir.resolve("server-policy.json");
-    Files.writeString(policyPath, "{\"allowDeleteRejectedItems\":false}");
-
-    assertFalse(LootLockConfig.load(policyPath).allowDeleteRejectedItems());
-  }
-
   @ParameterizedTest(name = "invalid contents \"{0}\" -> defaults")
   @ValueSource(strings = {"not json", "", "{", "[]"})
   void loadFallsBackToDefaultsWhenJsonInvalid(String invalidJson) throws IOException {
@@ -37,6 +28,36 @@ class LootLockConfigTest {
     Files.writeString(policyPath, invalidJson);
 
     assertTrue(LootLockConfig.load(policyPath).allowDeleteRejectedItems());
+  }
+
+  @ParameterizedTest(name = "contents {0} -> defaults")
+  @ValueSource(
+      strings = {
+        "{\"allowDeleteRejectedItems\":null}",
+        "{\"allowDeleteRejectedItems\":{}}",
+        "{\"allowDeleteRejectedItems\":[]}",
+        "{\"allowDeleteRejectedItems\":\"yes\"}",
+        "{\"allowDeleteRejectedItems\":1}",
+        "{\"allowDeleteRejectedItems\":false,",
+        "null",
+        "5",
+        "\"text\"",
+        "[false]"
+      })
+  void loadFallsBackToDefaultsWhenValueMalformed(String contents) throws IOException {
+    Path policyPath = tempDir.resolve("server-policy.json");
+    Files.writeString(policyPath, contents);
+
+    assertTrue(LootLockConfig.load(policyPath).allowDeleteRejectedItems());
+  }
+
+  @ParameterizedTest(name = "allowDeleteRejectedItems={0} loads as written")
+  @ValueSource(booleans = {true, false})
+  void loadReadsBooleanValues(boolean allowDelete) throws IOException {
+    Path policyPath = tempDir.resolve("server-policy.json");
+    Files.writeString(policyPath, "{\"allowDeleteRejectedItems\":" + allowDelete + "}");
+
+    assertEquals(allowDelete, LootLockConfig.load(policyPath).allowDeleteRejectedItems());
   }
 
   @ParameterizedTest(name = "save then load roundtrips allowDelete={0}")

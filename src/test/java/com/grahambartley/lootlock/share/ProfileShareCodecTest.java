@@ -17,10 +17,12 @@ import java.util.stream.Stream;
 import net.minecraft.Bootstrap;
 import net.minecraft.SharedConstants;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class ProfileShareCodecTest {
 
@@ -175,6 +177,44 @@ class ProfileShareCodecTest {
     ProfileShareCodec.DecodeResult.Err err =
         assertInstanceOf(ProfileShareCodec.DecodeResult.Err.class, result);
     assertEquals(expectedReason, err.reason());
+  }
+
+  @ParameterizedTest(name = "version {0} rejected as bad_version")
+  @ValueSource(
+      strings = {"\"x\"", "true", "\"1\"", "1.5", "1.0", "2", "0", "-1", "null", "{}", "[]", "[1]"})
+  void decodeRejectsMalformedVersion(String version) {
+    String json =
+        "{\"v\":"
+            + version
+            + ",\"name\":\"x\",\"mode\":\"DENYLIST\",\"action\":\"LEAVE_ON_GROUND\",\"rules\":[]}";
+
+    ProfileShareCodec.DecodeResult result = ProfileShareCodec.decode(encodeRawJson(json));
+
+    ProfileShareCodec.DecodeResult.Err err =
+        assertInstanceOf(ProfileShareCodec.DecodeResult.Err.class, result);
+    assertEquals("bad_version", err.reason());
+  }
+
+  @Test
+  void decodeRejectsMissingVersion() {
+    ProfileShareCodec.DecodeResult result =
+        ProfileShareCodec.decode(
+            encodeRawJson(
+                "{\"name\":\"x\",\"mode\":\"DENYLIST\",\"action\":\"LEAVE_ON_GROUND\",\"rules\":[]}"));
+
+    ProfileShareCodec.DecodeResult.Err err =
+        assertInstanceOf(ProfileShareCodec.DecodeResult.Err.class, result);
+    assertEquals("bad_version", err.reason());
+  }
+
+  @Test
+  void decodeAcceptsVersionOne() {
+    ProfileShareCodec.DecodeResult result =
+        ProfileShareCodec.decode(
+            encodeRawJson(
+                "{\"v\":1,\"name\":\"x\",\"mode\":\"DENYLIST\",\"action\":\"LEAVE_ON_GROUND\",\"rules\":[]}"));
+
+    assertInstanceOf(ProfileShareCodec.DecodeResult.Ok.class, result);
   }
 
   @ParameterizedTest(name = "rule token \"{0}\" valid={1}")
