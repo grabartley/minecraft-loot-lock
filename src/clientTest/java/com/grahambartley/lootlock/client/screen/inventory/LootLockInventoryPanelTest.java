@@ -168,6 +168,16 @@ class LootLockInventoryPanelTest {
   }
 
   @Test
+  void attachRecordsPanelOrigin() {
+    panel.setClientPrefsMode(true);
+
+    panel.attach(null, 37, 52, w -> {});
+
+    assertEquals(37, panel.getPanelX());
+    assertEquals(52, panel.getPanelY());
+  }
+
+  @Test
   void setClientPrefsModeAfterAttachThrows() {
     panel.setClientPrefsMode(true);
     panel.attach(null, 0, 0, w -> {});

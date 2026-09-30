@@ -24,6 +24,9 @@ repositories {
 	// See https://docs.gradle.org/current/userguide/declaring_repositories.html
 	// for more information about repositories.
 	maven { url = "https://maven.terraformersmc.com/releases" }
+	maven { url = "https://maven.blamejared.com" }
+	maven { url = "https://maven.shedaniel.me" }
+	maven { url = "https://maven.architectury.dev" }
 }
 
 loom {
@@ -68,6 +71,12 @@ configurations {
 	clientTestRuntimeOnly.extendsFrom testRuntimeOnly
 }
 
+def recipeViewerApiJars = {
+	configurations.clientCompileClasspath.filter {
+		it.name ==~ /(jei-.*-api.*|RoughlyEnoughItems-api-fabric.*|basic-math.*)\.jar/
+	}
+}
+
 dependencies {
 	// To change the versions see the gradle.properties file
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
@@ -78,6 +87,8 @@ dependencies {
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
 	modCompileOnly "com.terraformersmc:modmenu:${project.modmenu_version}"
 	modLocalRuntime "com.terraformersmc:modmenu:${project.modmenu_version}"
+	modCompileOnly "mezz.jei:jei-${project.minecraft_version}-fabric-api:${project.jei_version}"
+	modCompileOnly "me.shedaniel:RoughlyEnoughItems-api-fabric:${project.rei_version}"
 
 	testImplementation "net.fabricmc:fabric-loader-junit:${project.loader_version}"
 	testImplementation "org.junit.jupiter:junit-jupiter:${project.junit_version}"
@@ -85,6 +96,7 @@ dependencies {
 	testImplementation "org.mockito:mockito-core:${project.mockito_version}"
 	testImplementation "org.mockito:mockito-junit-jupiter:${project.mockito_version}"
 	testRuntimeOnly "org.junit.platform:junit-platform-launcher"
+	clientTestRuntimeOnly files(recipeViewerApiJars)
 
 }
 
@@ -249,5 +261,7 @@ modrinth {
 	dependencies {
 		required.project 'fabric-api'
 		optional.project 'modmenu'
+		optional.project 'jei'
+		optional.project 'rei'
 	}
 }

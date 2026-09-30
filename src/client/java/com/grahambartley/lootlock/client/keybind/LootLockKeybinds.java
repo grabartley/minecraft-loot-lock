@@ -25,6 +25,7 @@ public final class LootLockKeybinds {
   private static final String CATEGORY = LootLockLang.KEY_CATEGORY;
   private static KeyBinding TOGGLE_ENABLED;
   private static KeyBinding CYCLE_PROFILE;
+  private static KeyBinding ADD_HOVERED;
 
   public static boolean matchesCycleProfile(int keyCode, int scanCode) {
     return CYCLE_PROFILE != null && CYCLE_PROFILE.matchesKey(keyCode, scanCode);
@@ -34,12 +35,20 @@ public final class LootLockKeybinds {
     return TOGGLE_ENABLED != null && TOGGLE_ENABLED.matchesKey(keyCode, scanCode);
   }
 
+  public static boolean matchesAddHovered(int keyCode, int scanCode) {
+    return ADD_HOVERED != null && ADD_HOVERED.matchesKey(keyCode, scanCode);
+  }
+
   public static KeyBinding getToggleEnabled() {
     return TOGGLE_ENABLED;
   }
 
   public static KeyBinding getCycleProfile() {
     return CYCLE_PROFILE;
+  }
+
+  public static KeyBinding getAddHovered() {
+    return ADD_HOVERED;
   }
 
   public static void cycleProfileNow(MinecraftClient client) {
@@ -59,6 +68,9 @@ public final class LootLockKeybinds {
     CYCLE_PROFILE =
         KeyBindingHelper.registerKeyBinding(
             new KeyBinding(LootLockLang.KEY_CYCLE_PROFILE, GLFW.GLFW_KEY_UNKNOWN, CATEGORY));
+    ADD_HOVERED =
+        KeyBindingHelper.registerKeyBinding(
+            new KeyBinding(LootLockLang.KEY_ADD_HOVERED, GLFW.GLFW_KEY_UNKNOWN, CATEGORY));
     ClientTickEvents.END_CLIENT_TICK.register(LootLockKeybinds::onEndClientTick);
   }
 
@@ -73,6 +85,12 @@ public final class LootLockKeybinds {
     while (CYCLE_PROFILE.wasPressed()) {
       cycleProfile(client);
     }
+
+    discardPresses(ADD_HOVERED);
+  }
+
+  private static void discardPresses(KeyBinding binding) {
+    while (binding.wasPressed()) {}
   }
 
   private static void cycleProfile(MinecraftClient client) {

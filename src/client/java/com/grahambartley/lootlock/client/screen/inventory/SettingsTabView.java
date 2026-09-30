@@ -1,6 +1,7 @@
 package com.grahambartley.lootlock.client.screen.inventory;
 
 import com.grahambartley.lootlock.client.LootLockClient;
+import com.grahambartley.lootlock.client.compat.RecipeViewerBridge;
 import com.grahambartley.lootlock.client.config.ClientSettings;
 import com.grahambartley.lootlock.client.config.ClientSettingsManager;
 import com.grahambartley.lootlock.client.keybind.LootLockKeybinds;
@@ -255,21 +256,14 @@ public final class SettingsTabView {
     }
 
     cursorY = addSectionHeader(cursorY, LootLockLang.SETTINGS_SECTION_CONTROLS);
-    cursorY =
-        addKeybindRow(
-            cursorY,
-            viewX,
-            viewWidth,
-            LootLockLang.SETTINGS_CONTROLS_TOGGLE_ENABLED,
-            LootLockKeybinds.getToggleEnabled());
-    cursorY = addDivider(cursorY);
-    cursorY =
-        addKeybindRow(
-            cursorY,
-            viewX,
-            viewWidth,
-            LootLockLang.SETTINGS_CONTROLS_CYCLE_PROFILE,
-            LootLockKeybinds.getCycleProfile());
+    List<ControlRow> controls = controlRows(RecipeViewerBridge.isRecipeViewerLoaded());
+    for (int i = 0; i < controls.size(); i++) {
+      if (i > 0) {
+        cursorY = addDivider(cursorY);
+      }
+      ControlRow control = controls.get(i);
+      cursorY = addKeybindRow(cursorY, viewX, viewWidth, control.labelKey(), control.binding());
+    }
 
     cursorY = addSectionHeader(cursorY, LootLockLang.SETTINGS_SECTION_ABOUT);
     addAboutRow(cursorY, viewX, viewWidth);
@@ -447,6 +441,24 @@ public final class SettingsTabView {
 
   static String aboutBody(boolean showServerPolicy) {
     return showServerPolicy ? IN_WORLD_ABOUT_BODY : CLIENT_PREFS_ABOUT_BODY;
+  }
+
+  record ControlRow(String labelKey, KeyBinding binding) {}
+
+  static List<ControlRow> controlRows(boolean recipeViewerLoaded) {
+    List<ControlRow> controls = new ArrayList<>();
+    controls.add(
+        new ControlRow(
+            LootLockLang.SETTINGS_CONTROLS_TOGGLE_ENABLED, LootLockKeybinds.getToggleEnabled()));
+    controls.add(
+        new ControlRow(
+            LootLockLang.SETTINGS_CONTROLS_CYCLE_PROFILE, LootLockKeybinds.getCycleProfile()));
+    if (recipeViewerLoaded) {
+      controls.add(
+          new ControlRow(
+              LootLockLang.SETTINGS_CONTROLS_ADD_HOVERED, LootLockKeybinds.getAddHovered()));
+    }
+    return controls;
   }
 
   OnOffButton policySwitchForTest() {

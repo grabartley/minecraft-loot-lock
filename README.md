@@ -46,6 +46,11 @@ Stop letting your inventory turn into a graveyard of rotten flesh and wheat seed
 - **Settings tab** for HUD toasts, safety confirmations, and a built-in keybind cheatsheet.
 - **Profile dropdown** from the profile pill with inline rename, duplicate, export, and delete, plus one-click cycle arrows and a colour chip per profile.
 
+### Recipe viewers
+- **Add from the list with one key.** Bind **Add Hovered JEI/REI Item**, hover any item in the JEI or REI item list or your bookmarks or favorites, and press the key. The panel flashes if it is open, otherwise a toast confirms which profile the item went into.
+- **Drag and drop with REI.** Drag an item from the REI item list onto the open Loot Lock panel to add it. JEI does not allow drag targets on the inventory screen, so with JEI use the key instead.
+- The item list moves out of the way of the docked panel while it is open.
+
 ### Feedback
 - **Blocked-item toast** that briefly tells you which item was filtered out (toggleable).
 - **Profile-switch toast** so you know which loadout you just swapped to (toggleable).
@@ -91,10 +96,11 @@ Inside the Rules tab:
 
 ## Controls
 
-Loot Lock ships with two keybinds, both unbound by default. Set them in `Controls > Loot Lock`:
+Loot Lock ships with three keybinds, all unbound by default. Set them in `Controls > Loot Lock`:
 
 - **Toggle Loot Lock** flips the whole-mod enable state, identical to clicking the Player switch on the docked panel.
 - **Cycle Loot Profile** swaps to your next saved profile in one keypress.
+- **Add Hovered JEI/REI Item** adds the item under your mouse in the JEI or REI item list to your active profile. It only does something when JEI or REI is installed, and it is ignored while you are typing in any text field.
 
 ## Commands
 
@@ -179,6 +185,8 @@ Profile data is server-authoritative and saved per player UUID alongside other w
 | Fabric Loader | `>=0.16.5` | Yes | Mod loader |
 | Fabric API | `>=0.116.12+1.21.1` | Yes | Fabric hooks and APIs |
 | Mod Menu | `>=11.0.4` | No | Opens Loot Lock client preferences from the mod list. Profiles, rules, and server policy are edited in-game by opening the Loot Lock panel from your inventory |
+| JEI | `19.x` | No | Add items to your active profile from the JEI item list with a keybind |
+| REI | `16.x` | No | Add items to your active profile from the REI item list, by drag and drop or with a keybind |
 
 ## Permissions
 

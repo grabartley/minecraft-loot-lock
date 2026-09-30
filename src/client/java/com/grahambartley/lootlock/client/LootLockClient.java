@@ -1,6 +1,7 @@
 package com.grahambartley.lootlock.client;
 
 import com.grahambartley.lootlock.LootLock;
+import com.grahambartley.lootlock.client.compat.RecipeViewerBridge;
 import com.grahambartley.lootlock.client.config.ClientSettingsManager;
 import com.grahambartley.lootlock.client.hud.BlockedNoticePresenter;
 import com.grahambartley.lootlock.client.keybind.LootLockKeybinds;
@@ -14,6 +15,7 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
+import net.fabricmc.fabric.api.client.screen.v1.ScreenKeyboardEvents;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenMouseEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.CommonLifecycleEvents;
 import net.fabricmc.loader.api.FabricLoader;
@@ -54,6 +56,13 @@ public class LootLockClient implements ClientModInitializer {
 
     ScreenEvents.AFTER_INIT.register(
         (client, screen, scaledWidth, scaledHeight) -> {
+          if (RecipeViewerBridge.isRecipeViewerLoaded()) {
+            ScreenKeyboardEvents.allowKeyPress(screen)
+                .register(
+                    (s, key, scancode, modifiers) ->
+                        !(LootLockKeybinds.matchesAddHovered(key, scancode)
+                            && RecipeViewerBridge.handleAddHoveredKey(client, s)));
+          }
           if (!(screen instanceof InventoryScreen)) {
             return;
           }

@@ -10,6 +10,7 @@ import com.grahambartley.lootlock.client.config.ClientSettings;
 import com.grahambartley.lootlock.client.config.ClientSettingsManager;
 import com.grahambartley.lootlock.text.LootLockLang;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -173,6 +174,25 @@ class SettingsTabViewTest {
     view.attach(null, noopAdd);
 
     assertNull(view.policySwitchForTest());
+  }
+
+  @ParameterizedTest(name = "recipe viewer loaded {0}")
+  @ValueSource(booleans = {true, false})
+  void controlRowsListAddHoveredOnlyWithRecipeViewer(boolean loaded) {
+    List<String> expected =
+        new ArrayList<>(
+            List.of(
+                LootLockLang.SETTINGS_CONTROLS_TOGGLE_ENABLED,
+                LootLockLang.SETTINGS_CONTROLS_CYCLE_PROFILE));
+    if (loaded) {
+      expected.add(LootLockLang.SETTINGS_CONTROLS_ADD_HOVERED);
+    }
+
+    assertEquals(
+        expected,
+        SettingsTabView.controlRows(loaded).stream()
+            .map(SettingsTabView.ControlRow::labelKey)
+            .toList());
   }
 
   private static KeyBinding newBinding(String name, int key) {
