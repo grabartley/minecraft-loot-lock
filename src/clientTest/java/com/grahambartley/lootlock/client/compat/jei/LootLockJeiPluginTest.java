@@ -19,8 +19,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 import mezz.jei.api.constants.VanillaTypes;
-import mezz.jei.api.gui.handlers.IGhostIngredientHandler.Target;
-import mezz.jei.api.ingredients.ITypedIngredient;
 import mezz.jei.api.registration.IGuiHandlerRegistration;
 import mezz.jei.api.runtime.IBookmarkOverlay;
 import mezz.jei.api.runtime.IIngredientListOverlay;
@@ -70,7 +68,7 @@ class LootLockJeiPluginTest {
   }
 
   @Test
-  void registerGuiHandlersAddsExclusionAndDropTargetForInventory() {
+  void registerGuiHandlersAddsPanelExclusionForInventory() {
     IGuiHandlerRegistration registration = mock(IGuiHandlerRegistration.class);
 
     plugin.registerGuiHandlers(registration);
@@ -78,9 +76,7 @@ class LootLockJeiPluginTest {
     verify(registration)
         .addGuiContainerHandler(
             eq(InventoryScreen.class), any(LootLockJeiPlugin.PanelExclusion.class));
-    verify(registration)
-        .addGhostIngredientHandler(
-            eq(InventoryScreen.class), any(LootLockJeiPlugin.PanelDropTarget.class));
+    verify(registration, never()).addGhostIngredientHandler(any(), any());
   }
 
   @Test
@@ -168,65 +164,10 @@ class LootLockJeiPluginTest {
     assertTrue(new LootLockJeiPlugin.PanelExclusion().getGuiExtraAreas(screen).isEmpty());
   }
 
-  static Stream<Arguments> noTargetCases() {
-    return Stream.of(
-        Arguments.of("not an item", false, true, true),
-        Arguments.of("cannot add", true, false, true),
-        Arguments.of("panel hidden", true, true, false));
-  }
-
-  @ParameterizedTest(name = "{0} offers no drop target")
-  @MethodSource("noTargetCases")
-  void dropTargetsEmptyUnlessItemCanLandOnPanel(
-      String label, boolean isItem, boolean canAdd, boolean panelShown) {
-    ITypedIngredient<Object> ingredient = ingredient(isItem);
-    bridge.when(RecipeViewerBridge::canAdd).thenReturn(canAdd);
-    bridge
-        .when(() -> RecipeViewerBridge.panelArea(screen))
-        .thenReturn(panelShown ? Optional.of(AREA) : Optional.empty());
-
-    assertTrue(
-        new LootLockJeiPlugin.PanelDropTarget()
-            .getTargetsTyped(screen, ingredient, true)
-            .isEmpty());
-  }
-
-  @Test
-  void dropTargetCoversPanelAndAddsDroppedItem() {
-    ITypedIngredient<Object> ingredient = ingredient(true);
-    bridge.when(RecipeViewerBridge::canAdd).thenReturn(true);
-    bridge.when(() -> RecipeViewerBridge.panelArea(screen)).thenReturn(Optional.of(AREA));
-
-    List<Target<Object>> targets =
-        new LootLockJeiPlugin.PanelDropTarget().getTargetsTyped(screen, ingredient, true);
-
-    assertEquals(1, targets.size());
-    assertRect(targets.get(0).getArea());
-    targets.get(0).accept(new Object());
-    bridge.verify(() -> RecipeViewerBridge.add(any(), any(ItemStack.class)));
-  }
-
-  @Test
-  void dropTargetIgnoresNonItemOnAccept() {
-    ITypedIngredient<Object> ingredient = ingredient(false);
-
-    new LootLockJeiPlugin.PanelTarget<>(new Rect2i(0, 0, 1, 1), ingredient).accept(new Object());
-
-    bridge.verify(() -> RecipeViewerBridge.add(any(), any()), never());
-  }
-
   private HoverSource capturedHoverSource() {
     ArgumentCaptor<HoverSource> captor = ArgumentCaptor.forClass(HoverSource.class);
     bridge.verify(() -> RecipeViewerBridge.registerHoverSource(captor.capture()));
     return captor.getValue();
-  }
-
-  @SuppressWarnings("unchecked")
-  private static ITypedIngredient<Object> ingredient(boolean isItem) {
-    ITypedIngredient<Object> ingredient = mock(ITypedIngredient.class);
-    when(ingredient.getItemStack())
-        .thenReturn(isItem ? Optional.of(new ItemStack(Items.DIRT)) : Optional.empty());
-    return ingredient;
   }
 
   private static void assertRect(Rect2i rect) {

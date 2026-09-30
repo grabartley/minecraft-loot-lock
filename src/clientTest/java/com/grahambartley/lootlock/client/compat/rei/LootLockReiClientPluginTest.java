@@ -1,6 +1,7 @@
 package com.grahambartley.lootlock.client.compat.rei;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -12,6 +13,7 @@ import static org.mockito.Mockito.when;
 
 import com.grahambartley.lootlock.client.compat.RecipeViewerBridge;
 import com.grahambartley.lootlock.client.compat.RecipeViewerBridge.Area;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -28,15 +30,18 @@ import me.shedaniel.rei.api.client.overlay.OverlayListWidget;
 import me.shedaniel.rei.api.client.overlay.ScreenOverlay;
 import me.shedaniel.rei.api.client.registry.screen.ExclusionZones;
 import me.shedaniel.rei.api.client.registry.screen.ExclusionZonesProvider;
+import me.shedaniel.rei.api.client.registry.screen.OverlayDecider;
 import me.shedaniel.rei.api.client.registry.screen.ScreenRegistry;
 import me.shedaniel.rei.api.common.entry.EntryStack;
 import net.minecraft.Bootstrap;
 import net.minecraft.SharedConstants;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.ingame.InventoryScreen;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
+import net.minecraft.util.ActionResult;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -120,29 +125,74 @@ class LootLockReiClientPluginTest {
 
   static Stream<Arguments> hoverCases() {
     return Stream.of(
-        Arguments.of("no overlay", false, null, null, Items.AIR),
-        Arguments.of("entry list wins", true, Items.DIRT, Items.DIAMOND, Items.DIRT),
-        Arguments.of("favorites fallback", true, null, Items.DIAMOND, Items.DIAMOND),
-        Arguments.of("nothing hovered", true, null, null, Items.AIR));
+        Arguments.of("no overlay", false, true, true, Items.DIRT, null, Items.AIR),
+        Arguments.of("overlay toggled off", true, false, true, Items.DIRT, null, Items.AIR),
+        Arguments.of("overlay not drawn on screen", true, true, false, Items.DIRT, null, Items.AIR),
+        Arguments.of("entry list wins", true, true, true, Items.DIRT, Items.DIAMOND, Items.DIRT),
+        Arguments.of("favorites fallback", true, true, true, null, Items.DIAMOND, Items.DIAMOND),
+        Arguments.of("nothing hovered", true, true, true, null, null, Items.AIR));
   }
 
   @ParameterizedTest(name = "{0}")
   @MethodSource("hoverCases")
   void hoverSourceReadsEntryListThenFavorites(
-      String label, boolean hasOverlay, Item listItem, Item favoriteItem, Item expected) {
+      String label,
+      boolean hasOverlay,
+      boolean toggledOn,
+      boolean shownOnScreen,
+      Item listItem,
+      Item favoriteItem,
+      Item expected) {
     REIRuntime runtime = mock(REIRuntime.class);
     ScreenOverlay overlay = mock(ScreenOverlay.class);
-    when(runtime.getOverlay()).thenReturn(hasOverlay ? Optional.of(overlay) : Optional.empty());
     OverlayListWidget entryList = listFocusing(listItem);
     OverlayListWidget favorites = listFocusing(favoriteItem);
+    when(runtime.getOverlay()).thenReturn(hasOverlay ? Optional.of(overlay) : Optional.empty());
+    when(runtime.isOverlayVisible()).thenReturn(toggledOn);
     when(overlay.getEntryList()).thenReturn(entryList);
     when(overlay.getFavoritesList()).thenReturn(Optional.of(favorites));
+    MinecraftClient client = mock(MinecraftClient.class);
+    client.currentScreen = screen;
+    ScreenRegistry registry =
+        registryDeciding(shownOnScreen ? ActionResult.SUCCESS : ActionResult.FAIL);
 
-    try (MockedStatic<REIRuntime> rei = mockStatic(REIRuntime.class)) {
+    try (MockedStatic<REIRuntime> rei = mockStatic(REIRuntime.class);
+        MockedStatic<ScreenRegistry> screens = mockStatic(ScreenRegistry.class);
+        MockedStatic<MinecraftClient> mc = mockStatic(MinecraftClient.class)) {
       rei.when(REIRuntime::getInstance).thenReturn(runtime);
+      screens.when(ScreenRegistry::getInstance).thenReturn(registry);
+      mc.when(MinecraftClient::getInstance).thenReturn(client);
 
       assertSame(expected, LootLockReiClientPlugin.HOVER_SOURCE.hoveredStack().getItem());
     }
+  }
+
+  static Stream<Arguments> deciderCases() {
+    return Stream.of(
+        Arguments.of("no deciders", List.of(), false),
+        Arguments.of("only pass", List.of(ActionResult.PASS), false),
+        Arguments.of("fail", List.of(ActionResult.FAIL), false),
+        Arguments.of("success", List.of(ActionResult.SUCCESS), true),
+        Arguments.of("pass then success", List.of(ActionResult.PASS, ActionResult.SUCCESS), true),
+        Arguments.of(
+            "fail beats later success", List.of(ActionResult.FAIL, ActionResult.SUCCESS), false));
+  }
+
+  @ParameterizedTest(name = "{0} -> shown {2}")
+  @MethodSource("deciderCases")
+  void overlayShownOnFollowsFirstDecisiveDecider(
+      String label, List<ActionResult> results, boolean expected) {
+    ScreenRegistry registry = registryDeciding(results.toArray(ActionResult[]::new));
+    try (MockedStatic<ScreenRegistry> screens = mockStatic(ScreenRegistry.class)) {
+      screens.when(ScreenRegistry::getInstance).thenReturn(registry);
+
+      assertEquals(expected, LootLockReiClientPlugin.overlayShownOn(screen));
+    }
+  }
+
+  @Test
+  void overlayNotShownWithoutScreen() {
+    assertFalse(LootLockReiClientPlugin.overlayShownOn(null));
   }
 
   static Stream<Arguments> typingCases() {
@@ -268,6 +318,18 @@ class LootLockReiClientPluginTest {
     when(entry.isEmpty()).thenReturn(empty);
     when(entry.getValue()).thenReturn(value);
     return entry;
+  }
+
+  private ScreenRegistry registryDeciding(ActionResult... results) {
+    List<OverlayDecider> deciders = new ArrayList<>();
+    for (ActionResult result : results) {
+      OverlayDecider decider = mock(OverlayDecider.class);
+      when(decider.shouldScreenBeOverlaid(screen)).thenReturn(result);
+      deciders.add(decider);
+    }
+    ScreenRegistry registry = mock(ScreenRegistry.class);
+    when(registry.getDeciders(screen)).thenReturn(deciders);
+    return registry;
   }
 
   private static Rectangle areaRect() {

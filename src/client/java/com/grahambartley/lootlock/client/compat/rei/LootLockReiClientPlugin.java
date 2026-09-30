@@ -16,12 +16,14 @@ import me.shedaniel.rei.api.client.overlay.OverlayListWidget;
 import me.shedaniel.rei.api.client.overlay.ScreenOverlay;
 import me.shedaniel.rei.api.client.plugins.REIClientPlugin;
 import me.shedaniel.rei.api.client.registry.screen.ExclusionZones;
+import me.shedaniel.rei.api.client.registry.screen.OverlayDecider;
 import me.shedaniel.rei.api.client.registry.screen.ScreenRegistry;
 import me.shedaniel.rei.api.common.entry.EntryStack;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.ingame.InventoryScreen;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.ActionResult;
 
 public final class LootLockReiClientPlugin implements REIClientPlugin {
   static final RecipeViewerBridge.HoverSource HOVER_SOURCE = new ReiHoverSource();
@@ -52,11 +54,30 @@ public final class LootLockReiClientPlugin implements REIClientPlugin {
     return stack;
   }
 
+  private static Screen currentScreen() {
+    MinecraftClient client = MinecraftClient.getInstance();
+    return client == null ? null : client.currentScreen;
+  }
+
+  static boolean overlayShownOn(Screen screen) {
+    if (screen == null) {
+      return false;
+    }
+    for (OverlayDecider decider : ScreenRegistry.getInstance().getDeciders(screen)) {
+      ActionResult result = decider.shouldScreenBeOverlaid(screen);
+      if (result != ActionResult.PASS) {
+        return result != ActionResult.FAIL;
+      }
+    }
+    return false;
+  }
+
   static final class ReiHoverSource implements RecipeViewerBridge.HoverSource {
     @Override
     public ItemStack hoveredStack() {
-      Optional<ScreenOverlay> overlay = REIRuntime.getInstance().getOverlay();
-      if (overlay.isEmpty()) {
+      REIRuntime runtime = REIRuntime.getInstance();
+      Optional<ScreenOverlay> overlay = runtime.getOverlay();
+      if (overlay.isEmpty() || !runtime.isOverlayVisible() || !overlayShownOn(currentScreen())) {
         return ItemStack.EMPTY;
       }
       ItemStack fromList = itemOf(overlay.get().getEntryList().getFocusedStack());

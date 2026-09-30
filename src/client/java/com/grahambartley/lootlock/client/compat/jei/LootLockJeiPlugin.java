@@ -6,12 +6,9 @@ import com.grahambartley.lootlock.client.compat.RecipeViewerBridge.Area;
 import java.util.List;
 import mezz.jei.api.IModPlugin;
 import mezz.jei.api.constants.VanillaTypes;
-import mezz.jei.api.gui.handlers.IGhostIngredientHandler;
 import mezz.jei.api.gui.handlers.IGuiContainerHandler;
-import mezz.jei.api.ingredients.ITypedIngredient;
 import mezz.jei.api.registration.IGuiHandlerRegistration;
 import mezz.jei.api.runtime.IJeiRuntime;
-import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.ingame.InventoryScreen;
 import net.minecraft.client.util.math.Rect2i;
 import net.minecraft.item.ItemStack;
@@ -30,7 +27,6 @@ public final class LootLockJeiPlugin implements IModPlugin {
   @Override
   public void registerGuiHandlers(IGuiHandlerRegistration registration) {
     registration.addGuiContainerHandler(InventoryScreen.class, new PanelExclusion());
-    registration.addGhostIngredientHandler(InventoryScreen.class, new PanelDropTarget());
   }
 
   @Override
@@ -79,37 +75,6 @@ public final class LootLockJeiPlugin implements IModPlugin {
     @Override
     public List<Rect2i> getGuiExtraAreas(InventoryScreen screen) {
       return RecipeViewerBridge.panelArea(screen).map(LootLockJeiPlugin::toRect).stream().toList();
-    }
-  }
-
-  static final class PanelDropTarget implements IGhostIngredientHandler<InventoryScreen> {
-    @Override
-    public <I> List<Target<I>> getTargetsTyped(
-        InventoryScreen screen, ITypedIngredient<I> ingredient, boolean doStart) {
-      if (ingredient.getItemStack().isEmpty() || !RecipeViewerBridge.canAdd()) {
-        return List.of();
-      }
-      return RecipeViewerBridge.panelArea(screen)
-          .map(area -> List.<Target<I>>of(new PanelTarget<>(toRect(area), ingredient)))
-          .orElse(List.of());
-    }
-
-    @Override
-    public void onComplete() {}
-  }
-
-  record PanelTarget<I>(Rect2i area, ITypedIngredient<I> ingredient)
-      implements IGhostIngredientHandler.Target<I> {
-    @Override
-    public Rect2i getArea() {
-      return area;
-    }
-
-    @Override
-    public void accept(I value) {
-      ingredient
-          .getItemStack()
-          .ifPresent(stack -> RecipeViewerBridge.add(MinecraftClient.getInstance(), stack));
     }
   }
 }
