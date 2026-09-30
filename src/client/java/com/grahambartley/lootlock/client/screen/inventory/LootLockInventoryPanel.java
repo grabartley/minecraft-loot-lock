@@ -117,6 +117,14 @@ public final class LootLockInventoryPanel {
         && mouseY < panelY + currentHeight;
   }
 
+  public int getPanelX() {
+    return panelX;
+  }
+
+  public int getPanelY() {
+    return panelY;
+  }
+
   public int getCurrentHeight() {
     return currentHeight;
   }

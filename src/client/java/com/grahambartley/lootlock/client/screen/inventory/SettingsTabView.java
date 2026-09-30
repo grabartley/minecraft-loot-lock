@@ -1,6 +1,7 @@
 package com.grahambartley.lootlock.client.screen.inventory;
 
 import com.grahambartley.lootlock.client.LootLockClient;
+import com.grahambartley.lootlock.client.compat.RecipeViewerBridge;
 import com.grahambartley.lootlock.client.config.ClientSettings;
 import com.grahambartley.lootlock.client.config.ClientSettingsManager;
 import com.grahambartley.lootlock.client.keybind.LootLockKeybinds;
@@ -270,6 +271,16 @@ public final class SettingsTabView {
             viewWidth,
             LootLockLang.SETTINGS_CONTROLS_CYCLE_PROFILE,
             LootLockKeybinds.getCycleProfile());
+    if (RecipeViewerBridge.hasHoverSources()) {
+      cursorY = addDivider(cursorY);
+      cursorY =
+          addKeybindRow(
+              cursorY,
+              viewX,
+              viewWidth,
+              LootLockLang.SETTINGS_CONTROLS_ADD_HOVERED,
+              LootLockKeybinds.getAddHovered());
+    }
 
     cursorY = addSectionHeader(cursorY, LootLockLang.SETTINGS_SECTION_ABOUT);
     addAboutRow(cursorY, viewX, viewWidth);

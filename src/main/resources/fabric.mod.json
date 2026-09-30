@@ -25,6 +25,12 @@
     "modmenu": [
       "com.grahambartley.lootlock.client.modmenu.LootLockModMenuIntegration"
     ],
+    "jei_mod_plugin": [
+      "com.grahambartley.lootlock.client.compat.jei.LootLockJeiPlugin"
+    ],
+    "rei_client": [
+      "com.grahambartley.lootlock.client.compat.rei.LootLockReiClientPlugin"
+    ],
     "fabric-gametest": [
       "com.grahambartley.lootlock.gametest.ItemEntityMixinGameTest",
       "com.grahambartley.lootlock.gametest.ServerLifecycleHooksGameTest"
@@ -44,6 +50,8 @@
     "fabric-api": ">=0.116.12+1.21.1"
   },
   "suggests": {
-    "modmenu": "*"
+    "modmenu": "*",
+    "jei": "*",
+    "roughlyenoughitems": "*"
   }
 }

@@ -93,7 +93,7 @@ A release is a manual `workflow_dispatch` run with a bump (patch, minor, or majo
 
 - **Work with vanilla wherever possible.** A feature that only works on the mod's own content is worth much less than one that works on what players already have. Loot Lock filters any item or item tag by id, modded ones included.
 - **Vanilla clients are first-class.** Filtering runs entirely on the server, so a player without the mod is still filtered, and an operator can manage their profiles through `/lootlock player <target>`.
-- **Optional integrations degrade cleanly.** Mod Menu is a suggested dependency. The mod loads and runs correctly without it, and no class referencing its types loads when it is absent.
+- **Optional integrations degrade cleanly.** Mod Menu, JEI, and REI are suggested dependencies. The mod loads and runs correctly without them, and no class referencing their types loads when they are absent. Each integration is a single class under `client/compat` that the other mod loads through its own entrypoint, and shared logic lives in `RecipeViewerBridge`, which references none of their types.
 - **Do not assume the player's video settings.** Feedback that only makes sense with particles or a specific GUI scale is invisible to some players.
 
 ## Translations

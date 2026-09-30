@@ -2,6 +2,7 @@
   "key.categories.loot-lock": "Loot Lock",
   "key.loot-lock.toggle_enabled": "Toggle Loot Lock",
   "key.loot-lock.cycle_profile": "Cycle Loot Profile",
+  "key.loot-lock.add_hovered": "Add Hovered JEI/REI Item",
 
   "loot-lock.brand.name": "Loot Lock",
 
@@ -95,6 +96,8 @@
   "loot-lock.toast.profile_switched": "Profile switched",
   "loot-lock.toast.enabled": "Enabled",
   "loot-lock.toast.disabled": "Disabled",
+  "loot-lock.toast.added_to": "Added to %s",
+  "loot-lock.toast.already_in": "Already in %s",
   "loot-lock.toast.export_copied": "Share code copied to clipboard",
   "loot-lock.toast.import_success": "Imported profile '%s'",
   "loot-lock.toast.import_at_capacity": "Profile limit reached. Delete one first.",
@@ -124,6 +127,7 @@
   "loot-lock.settings.toggle.allow_delete.desc": "Set for everyone with /lootlock policy allowDeleteRejectedItems. When off, Delete is blocked and every profile leaves rejected items on the ground.",
   "loot-lock.settings.controls.toggle_enabled": "Toggle Loot Lock",
   "loot-lock.settings.controls.cycle_profile": "Cycle Loot Profile",
+  "loot-lock.settings.controls.add_hovered": "Add Hovered JEI/REI Item",
   "loot-lock.settings.controls.unbound": "Unbound",
   "loot-lock.settings.about.in_world": "Rules are stored per player and synced from the server. Operators can manage any player's rules with /lootlock commands, even for vanilla clients.",
   "loot-lock.settings.about.client_prefs": "These preferences apply across all worlds. Profiles, rules, and server policy live per world, open the Loot Lock panel from your inventory to edit them in-game.",

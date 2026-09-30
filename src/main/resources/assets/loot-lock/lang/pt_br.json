@@ -2,6 +2,7 @@
   "key.categories.loot-lock": "Loot Lock",
   "key.loot-lock.toggle_enabled": "Alternar Loot Lock",
   "key.loot-lock.cycle_profile": "Alternar perfil de loot",
+  "key.loot-lock.add_hovered": "Adicionar item do JEI/REI sob o cursor",
 
   "loot-lock.brand.name": "Loot Lock",
 
@@ -95,6 +96,8 @@
   "loot-lock.toast.profile_switched": "Perfil alterado",
   "loot-lock.toast.enabled": "Ativado",
   "loot-lock.toast.disabled": "Desativado",
+  "loot-lock.toast.added_to": "Adicionado a %s",
+  "loot-lock.toast.already_in": "Já está em %s",
   "loot-lock.toast.export_copied": "Código copiado para a área de transferência",
   "loot-lock.toast.import_success": "Perfil '%s' importado",
   "loot-lock.toast.import_at_capacity": "Limite de perfis atingido. Apague um primeiro.",
@@ -124,6 +127,7 @@
   "loot-lock.settings.toggle.allow_delete.desc": "Definido para todos via /lootlock policy allowDeleteRejectedItems. Quando desligado, o modo Excluir é bloqueado e todos os perfis deixam os itens rejeitados no chão.",
   "loot-lock.settings.controls.toggle_enabled": "Alternar Loot Lock",
   "loot-lock.settings.controls.cycle_profile": "Alternar perfil de loot",
+  "loot-lock.settings.controls.add_hovered": "Adicionar item do JEI/REI sob o cursor",
   "loot-lock.settings.controls.unbound": "Sem atalho",
   "loot-lock.settings.about.in_world": "As regras são salvas por jogador e sincronizadas pelo servidor. Operadores podem gerenciar as regras de qualquer jogador com os comandos /lootlock, inclusive para clientes vanilla.",
   "loot-lock.settings.about.client_prefs": "Estas preferências valem em todos os mundos. Perfis, regras e política do servidor ficam por mundo, abra o painel do Loot Lock pelo seu inventário para editá-los no jogo.",

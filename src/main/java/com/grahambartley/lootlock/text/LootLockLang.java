@@ -6,6 +6,7 @@ public final class LootLockLang {
   public static final String KEY_CATEGORY = "key.categories.loot-lock";
   public static final String KEY_TOGGLE_ENABLED = "key.loot-lock.toggle_enabled";
   public static final String KEY_CYCLE_PROFILE = "key.loot-lock.cycle_profile";
+  public static final String KEY_ADD_HOVERED = "key.loot-lock.add_hovered";
 
   public static final String BRAND = "loot-lock.brand.name";
 
@@ -107,6 +108,8 @@ public final class LootLockLang {
   public static final String TOAST_PROFILE_SWITCHED = "loot-lock.toast.profile_switched";
   public static final String TOAST_ENABLED = "loot-lock.toast.enabled";
   public static final String TOAST_DISABLED = "loot-lock.toast.disabled";
+  public static final String TOAST_ADDED_TO = "loot-lock.toast.added_to";
+  public static final String TOAST_ALREADY_IN = "loot-lock.toast.already_in";
 
   public static final String ONBOARDING_TITLE = "loot-lock.onboarding.title";
   public static final String ONBOARDING_BODY = "loot-lock.onboarding.body";
@@ -147,6 +150,8 @@ public final class LootLockLang {
       "loot-lock.settings.controls.toggle_enabled";
   public static final String SETTINGS_CONTROLS_CYCLE_PROFILE =
       "loot-lock.settings.controls.cycle_profile";
+  public static final String SETTINGS_CONTROLS_ADD_HOVERED =
+      "loot-lock.settings.controls.add_hovered";
   public static final String SETTINGS_CONTROLS_UNBOUND = "loot-lock.settings.controls.unbound";
   public static final String SETTINGS_ABOUT_IN_WORLD = "loot-lock.settings.about.in_world";
   public static final String SETTINGS_ABOUT_CLIENT_PREFS = "loot-lock.settings.about.client_prefs";
