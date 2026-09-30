@@ -33,6 +33,7 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.Bootstrap;
 import net.minecraft.SharedConstants;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.ParentElement;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.ingame.InventoryScreen;
 import net.minecraft.client.gui.widget.TextFieldWidget;
@@ -216,6 +217,25 @@ class RecipeViewerBridgeTest {
     Screen screen = hasPanel ? holderScreen(panel) : mock(Screen.class);
 
     assertEquals(expected, RecipeViewerBridge.handleAddHoveredKey(null, screen));
+  }
+
+  @ParameterizedTest(name = "nested text field focused {0}")
+  @CsvSource({"true", "false"})
+  void textFieldFocusedWalksNestedParents(boolean focused) {
+    TextFieldWidget field = mock(TextFieldWidget.class);
+    when(field.isFocused()).thenReturn(focused);
+    ParentElement inner = mock(ParentElement.class);
+    when(inner.getFocused()).thenReturn(field);
+    Screen screen = mock(Screen.class);
+    when(screen.getFocused()).thenReturn(inner);
+
+    assertEquals(focused, RecipeViewerBridge.textFieldFocused(screen));
+  }
+
+  @Test
+  void textFieldFocusedFalseWithoutFocus() {
+    assertFalse(RecipeViewerBridge.textFieldFocused(null));
+    assertFalse(RecipeViewerBridge.textFieldFocused(mock(Screen.class)));
   }
 
   @ParameterizedTest(name = "jei={0}, rei={1} -> loaded {2}")

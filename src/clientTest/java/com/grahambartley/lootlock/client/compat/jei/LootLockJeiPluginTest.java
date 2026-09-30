@@ -114,12 +114,26 @@ class LootLockJeiPluginTest {
     IBookmarkOverlay bookmarks = mock(IBookmarkOverlay.class);
     when(runtime.getIngredientListOverlay()).thenReturn(list);
     when(runtime.getBookmarkOverlay()).thenReturn(bookmarks);
+    when(list.isListDisplayed()).thenReturn(true);
     when(list.getIngredientUnderMouse(VanillaTypes.ITEM_STACK)).thenReturn(fromList);
     when(bookmarks.getIngredientUnderMouse(VanillaTypes.ITEM_STACK)).thenReturn(fromBookmarks);
 
     plugin.onRuntimeAvailable(runtime);
 
     assertSame(expected, capturedHoverSource().hoveredStack().getItem());
+  }
+
+  @Test
+  void hoverSourceIgnoresHiddenList() {
+    IJeiRuntime runtime = mock(IJeiRuntime.class);
+    IIngredientListOverlay list = mock(IIngredientListOverlay.class);
+    when(runtime.getIngredientListOverlay()).thenReturn(list);
+    when(list.getIngredientUnderMouse(VanillaTypes.ITEM_STACK))
+        .thenReturn(new ItemStack(Items.DIRT));
+
+    plugin.onRuntimeAvailable(runtime);
+
+    assertTrue(capturedHoverSource().hoveredStack().isEmpty());
   }
 
   @ParameterizedTest(name = "keyboard focus {0}")

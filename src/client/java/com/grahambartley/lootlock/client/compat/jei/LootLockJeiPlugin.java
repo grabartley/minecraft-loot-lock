@@ -55,7 +55,7 @@ public final class LootLockJeiPlugin implements IModPlugin {
     @Override
     public ItemStack hoveredStack() {
       IJeiRuntime current = runtime;
-      if (current == null) {
+      if (current == null || !current.getIngredientListOverlay().isListDisplayed()) {
         return ItemStack.EMPTY;
       }
       ItemStack fromList =

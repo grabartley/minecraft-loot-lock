@@ -18,6 +18,8 @@ import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.Element;
+import net.minecraft.client.gui.ParentElement;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.item.ItemStack;
@@ -121,10 +123,12 @@ public final class RecipeViewerBridge {
         .flatMap(LootLockPlayerData::getActiveProfile);
   }
 
-  private static boolean textFieldFocused(Screen screen) {
-    return screen != null
-        && screen.getFocused() instanceof TextFieldWidget field
-        && field.isFocused();
+  static boolean textFieldFocused(ParentElement parent) {
+    Element focused = parent == null ? null : parent.getFocused();
+    while (focused instanceof ParentElement nested) {
+      focused = nested.getFocused();
+    }
+    return focused instanceof TextFieldWidget field && field.isFocused();
   }
 
   private static boolean panelHasTextFocus(Screen screen) {
