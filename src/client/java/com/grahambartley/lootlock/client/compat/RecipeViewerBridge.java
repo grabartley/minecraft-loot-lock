@@ -19,6 +19,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.item.ItemStack;
 import net.minecraft.text.Text;
 
@@ -57,45 +58,36 @@ public final class RecipeViewerBridge {
     return loader.isModLoaded(JEI_MOD_ID) || loader.isModLoaded(REI_MOD_ID);
   }
 
-  public static boolean hasHoverSources() {
-    return !SOURCES.isEmpty();
-  }
-
   public static boolean handleAddHoveredKey(MinecraftClient client, Screen screen) {
-    if (isTyping() || panelHasTextFocus(screen)) {
+    if (isTyping() || textFieldFocused(screen) || panelHasTextFocus(screen)) {
       return false;
     }
     return addHovered(client);
   }
 
-  public static boolean isTyping() {
+  static boolean isTyping() {
     return SOURCES.stream().anyMatch(HoverSource::isTyping);
   }
 
-  public static Optional<ItemStack> hoveredStack() {
+  static Optional<ItemStack> hoveredStack() {
     return SOURCES.stream()
         .map(HoverSource::hoveredStack)
         .filter(stack -> stack != null && !stack.isEmpty())
         .findFirst();
   }
 
-  public static boolean addHovered(MinecraftClient client) {
+  static boolean addHovered(MinecraftClient client) {
     return hoveredStack().map(stack -> add(client, stack)).orElse(false);
   }
 
   public static boolean canAdd() {
-    ClientLootLockState state = LootLockClient.getState();
-    return state.isSynced() && editableActiveProfile(state).isPresent();
+    return addTarget().isPresent();
   }
 
   public static boolean add(MinecraftClient client, ItemStack stack) {
     String itemId = DragToAddRouter.itemIdOf(stack);
-    ClientLootLockState state = LootLockClient.getState();
-    if (itemId == null || !state.isSynced()) {
-      return false;
-    }
-    Optional<LootLockProfile> profile = editableActiveProfile(state);
-    if (profile.isEmpty()) {
+    Optional<LootLockProfile> profile = addTarget();
+    if (itemId == null || profile.isEmpty()) {
       return false;
     }
     boolean alreadyListed = profile.get().getRules().contains(new RuleEntry(itemId));
@@ -118,11 +110,21 @@ public final class RecipeViewerBridge {
                     panel.getCurrentHeight()));
   }
 
-  private static Optional<LootLockProfile> editableActiveProfile(ClientLootLockState state) {
+  private static Optional<LootLockProfile> addTarget() {
+    ClientLootLockState state = LootLockClient.getState();
+    if (!state.isSynced()) {
+      return Optional.empty();
+    }
     return state
         .getSnapshot()
         .filter(LootLockPlayerData::isClientCanEdit)
         .flatMap(LootLockPlayerData::getActiveProfile);
+  }
+
+  private static boolean textFieldFocused(Screen screen) {
+    return screen != null
+        && screen.getFocused() instanceof TextFieldWidget field
+        && field.isFocused();
   }
 
   private static boolean panelHasTextFocus(Screen screen) {

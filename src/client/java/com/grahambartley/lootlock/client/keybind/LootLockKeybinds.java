@@ -86,7 +86,11 @@ public final class LootLockKeybinds {
       cycleProfile(client);
     }
 
-    while (ADD_HOVERED.wasPressed()) {}
+    discardPresses(ADD_HOVERED);
+  }
+
+  private static void discardPresses(KeyBinding binding) {
+    while (binding.wasPressed()) {}
   }
 
   private static void cycleProfile(MinecraftClient client) {

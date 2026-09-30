@@ -35,6 +35,7 @@ import net.minecraft.SharedConstants;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.ingame.InventoryScreen;
+import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.toast.ToastManager;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
@@ -175,7 +176,6 @@ class RecipeViewerBridgeTest {
 
   @Test
   void hoveredStackIsEmptyWithoutSources() {
-    assertFalse(RecipeViewerBridge.hasHoverSources());
     assertTrue(RecipeViewerBridge.hoveredStack().isEmpty());
     assertFalse(RecipeViewerBridge.addHovered(null));
   }
@@ -242,15 +242,28 @@ class RecipeViewerBridgeTest {
 
   @Test
   void registerIgnoresNullAndDeduplicatesSources() {
-    HoverSource source = source(ItemStack.EMPTY, false);
+    HoverSource source = source(new ItemStack(Items.DIRT), false);
     RecipeViewerBridge.registerHoverSource(null);
-    assertFalse(RecipeViewerBridge.hasHoverSources());
+    assertTrue(RecipeViewerBridge.hoveredStack().isEmpty());
 
     register(source);
     register(source);
     RecipeViewerBridge.unregisterHoverSource(source);
 
-    assertFalse(RecipeViewerBridge.hasHoverSources());
+    assertTrue(RecipeViewerBridge.hoveredStack().isEmpty());
+  }
+
+  @ParameterizedTest(name = "text field focused {0} -> handled {1}")
+  @CsvSource({"true,false", "false,true"})
+  void handleAddHoveredKeyStepsAsideForFocusedTextField(boolean focused, boolean expected) {
+    syncActiveProfile(List.of(), true);
+    register(source(new ItemStack(Items.DIRT), false));
+    TextFieldWidget field = mock(TextFieldWidget.class);
+    when(field.isFocused()).thenReturn(focused);
+    Screen screen = mock(Screen.class);
+    when(screen.getFocused()).thenReturn(field);
+
+    assertEquals(expected, RecipeViewerBridge.handleAddHoveredKey(null, screen));
   }
 
   static Stream<Arguments> panelScreens() {
