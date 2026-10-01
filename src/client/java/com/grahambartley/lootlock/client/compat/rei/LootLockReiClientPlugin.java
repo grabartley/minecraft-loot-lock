@@ -100,6 +100,13 @@ public final class LootLockReiClientPlugin implements REIClientPlugin {
   }
 
   static final class PanelDropVisitor implements DraggableStackVisitor<Screen> {
+    private static final double PRIORITY_ABOVE_REI_OVERLAY = 100.0;
+
+    @Override
+    public double getPriority() {
+      return PRIORITY_ABOVE_REI_OVERLAY;
+    }
+
     @Override
     public <R extends Screen> boolean isHandingScreen(R screen) {
       return screen instanceof InventoryScreen && RecipeViewerBridge.panelArea(screen).isPresent();
