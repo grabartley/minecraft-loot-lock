@@ -1,8 +1,8 @@
 # Engineering Standards
 
-These standards apply to every mod in this family: Dogs Unleashed, Loot Lock, More Doors, Not Enough Arrows, Teleport Effects, and Too Many Chests. They exist because the same decisions kept being re-made from memory.
+These standards apply to every mod in this family: Dogs Unleashed, Loot Lock, More Doors, Not Enough Arrows, Teleport Effects, and Total Storage. They exist because the same decisions kept being re-made from memory.
 
-Dogs Unleashed is the reference implementation, and Too Many Chests is the reference for build, CI, and tooling. When this document and those codebases disagree, the codebases are probably right and this document needs updating. The sections below state the family rule first, then how Loot Lock applies it where that is not obvious.
+Dogs Unleashed is the reference implementation, and Total Storage is the reference for build, CI, and tooling. When this document and those codebases disagree, the codebases are probably right and this document needs updating. The sections below state the family rule first, then how Loot Lock applies it where that is not obvious.
 
 ## Multiplayer First
 
