@@ -82,6 +82,8 @@ Every pull request and every push to `main` runs `.github/workflows/cicd.yml`:
 6. On failure, upload `build/gametest/`, `run/logs/`, and `run/crash-reports/`.
 7. Build a snapshot jar versioned `1.0.0-SNAPSHOT-<sha>` and upload it as an artifact.
 
+The job stops after 20 minutes and the gametest step after 10. The gametest server exits as soon as it runs out of memory, so a stuck run fails instead of running for hours. A new push to a pull request cancels the run still going for its older commit.
+
 A release is a manual `workflow_dispatch` run with a bump (patch, minor, or major) and a release type (alpha, beta, or stable). It runs the same checks, then:
 
 1. Finds the most recently published GitHub release with `gh release list`, validates its tag as semver, and bumps it.
