@@ -47,6 +47,7 @@ loom {
 			server()
 			name "Game Test"
 			vmArg "-ea"
+			vmArg "-XX:+ExitOnOutOfMemoryError"
 			runDir "build/gametest"
 			programArgs "--nogui"
 			property "fabric-api.gametest", "true"

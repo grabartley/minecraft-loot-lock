@@ -28,9 +28,14 @@ on:
           - stable
         default: alpha
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: write
       checks: write
@@ -65,6 +70,7 @@ jobs:
         run: ./gradlew check --configuration-cache --build-cache
 
       - name: Run gametests
+        timeout-minutes: 10
         run: ./gradlew runGametest --no-daemon --stacktrace
 
       - name: Dedicated server smoke boot
@@ -226,6 +232,7 @@ jobs:
           MOD_RELEASE_TYPE: ${{ steps.release_meta.outputs.modrinth_type }}
 
       - name: Create and apply release milestone
+        timeout-minutes: 5
         if: github.event_name == 'workflow_dispatch'
         continue-on-error: true
         env:
